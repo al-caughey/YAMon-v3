@@ -16,6 +16,8 @@
 # version 3.0.11 - modified notes for _dnsmasq_conf & _dnsmasq_leases for OpenWrt
 # version 3.1.0 - added _ftp_site, _ftp_user, _ftp_pswd
 # version 3.2.0 - added _ftp_dir, _useTMangle
+# version 3.2.1 - set default for _useTMangle=0
+# version 3.2.2 - removed _debug
 
 _firmware='0'                                # which firmware is running on the router: permitted values: 0->DD-WRT(*) || 1->OpenWrt || 2->Asuswrt-Merlin
 _updatefreq='30'                             # number of seconds between updates (* default `15` sec)
@@ -41,8 +43,6 @@ _log2file='1'                                # send logs to screen or file: perm
 _loglevel='1'                                # amount of detail to include in the log: permitted values: -1->really verbose || 0->all || 1->most(*) || 2->serious only
 _scrlevel='1'                                # amount of detail to include in the screen updates: permitted values: -1->really verbose || 0->all || 1->most(*) || 2->serious only
                                              #   NB - only required if _log2file == 0 || 2...
-_debug=0                                     # whether or not to show low-level debugging messages: 0->off(*) || 1->some || 2->most || 3->all(?)
-                                             #   ATM - only 0, 2 & 3 are implemented
 _dowwwBU=1                                   # whether or not to make backups of the www directory when the script is shut down - values: 1-->Yes(*) || 0->No
 _wwwBU="wwwBU/"                              # path to web backup directory  (* default `wwwBU/`)
                                              #   NB - only required if _dowwwBU == 1...
@@ -93,14 +93,14 @@ _path2MSMTP=/opt/usr/bin/msmtp               #   NB - only required if _sendAler
 _MSMTP_CONFIG=/opt/scripts/msmtprc           #   NB - only required if _sendAlerts == 2
 _organizeData='2'                            # whether or not to organize data files - values: 0->no || 1->by year || 2->by year & month(*)
 _allowMultipleIPsperMAC=0                    # set to 1 if you have virtual machines with their own IP on a single MAC address - values: 0-->No(*) || 1->Yes
-_enable_ftp=1                                # set to 1 if you have an FTP site to mirror the data - values: 0-->No(*) || 1->Yes
+_enable_ftp=0                                # set to 1 if you have an FTP site to mirror the data - values: 0-->No(*) || 1->Yes
                                              #   NB - if _organizeData>0, you will have to create the subdirectories manually
 _ftp_site=''                                 # set to url to your FTP site... ***YOU*** must set up & configure your FTP server
 _ftp_user=''                                 # set to the username for your FTP site
 _ftp_pswd=''                                 # set to the password for your FTP site
 _ftp_dir=''                                  # set to root directory path to your desired storage location
-_useTMangle=1                                # whether or not to use the `-t mangle` option for ipchain: 0->no || 1->yes(*)
-#--------------------------------- COMING IN YAMon 3.2 ---------------------------------
+_useTMangle=0                                # whether or not to use the `-t mangle` option for ipchain: 0->no(*) || 1->yes
+#--------------------------------- COMING IN YAMon 3.3+ ---------------------------------
 _enable_db=0                                 # set to 1 if you want to save data value to an external database - values: 0-->No(*) || 1->Yes
 _db_url=''                                   # set to url to your db site... I ***DO NOT*** know what this is!
 _db_name=''                                  # set to the username for your db

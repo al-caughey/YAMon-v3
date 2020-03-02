@@ -23,19 +23,24 @@ loadconfig
 source "$d_baseDir/strings/$_lang/strings.sh"
 
 # stop the script by removing the locking directory
-if [ -d $_lockDir ] ; then
+
+gt=$(top -n1)
+ir=$(echo "$gt" | grep -v "grep" | grep -c "yamon3")
+
+if [ -d $_lockDir ] || [ "$ir" -gt "1" ]; then
 	rmdir $_lockDir
 	echo "$_s_stopping"
 	local n=0
 	while [ true ] ; do
 		n=$(($n + 1))
 		gt=$(top -n1)
-		ir=$(echo "$gt" | grep "yamon3")
-		[ "$n" -gt "$_updatefreq" ] || [ -z "$ir" ] && break;
+		ir=$(echo "$gt" | grep -v "grep" | grep -c "yamon3")
+		[ "$n" -gt "$_updatefreq" ] || [ "$ir" -le "1" ] && break;
 		echo -n '.'
 		sleep 1
 	done
-	echo "$_s_stopped"
+	echo "
+$_s_stopped"
 else
 	echo "$_s_notrunning"
 fi

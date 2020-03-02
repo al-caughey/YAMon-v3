@@ -5,10 +5,13 @@
 #
 # default parameters - these values may be updated in readConfig()
 #
+# History
+# 3.2.2 - moved _version and _file_version to versions.sh
+#
 ##########################################################################
 
-_version='3.2.0'
-_file_version='3.2'
+[ -z "$_version" ] && _version='3.2.1'
+[ -z "$_file_version" ] && _file_version='3.2'
 
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
 _lockDir="/tmp/YAMon3-running"
@@ -81,10 +84,6 @@ d_useTMangle=0
 d_enable_db=0
 d_db_url=''
 d_db_name=''
-d_debug=0
-DB_SOME=1
-DB_MOST=2
-DB_ALL=3
 d_path2MSMTP=/opt/usr/bin/msmtp
 d_MSMTP_CONFIG=/opt/scripts/msmtprc
 

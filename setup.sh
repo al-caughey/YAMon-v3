@@ -16,6 +16,7 @@
 # 3.1.6 (2016-11-19): added a logging info to setup.log
 # 3.1.8 (2016-12-15): add version to util.sh
 # 3.2.0 (2017-01-22): added options for ftp_dir parameter
+# 3.2.1 (2017-01-28): added rm for index.html & call to setWebDirectories
 
 d_baseDir="$YAMON"
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
@@ -240,22 +241,29 @@ if [ "$ipv6_enable" -eq "1" ] ; then
 fi
 prompt '_symlink2data' 'Create symbollic links to the web data directories?' "$yn_y" '1' $zo_r
 [ "$_firmware" -eq "2" ] && prompt '_wwwPath' 'Specify the path to the web directories?' 'The path must start with a \`/\`' '/tmp/var/wwwext/' $re_path
+[ -f "${_wwwPath}index.html" ] && rm -fv ${_wwwPath}index.html
+if [ "${_dataDir:0:1}" == "/" ] ; then
+    _dataPath=$_dataDir
+else
+    _dataPath="${_baseDir}$_dataDir"
+fi
+setWebDirectories
+
 prompt '_organizeData' 'Organize the data files (into directories by year or year-month)?' 'Options: 0->No(*) -or- 1->by year -or- 2->by year & month' '0' $zot_r
 prompt '_enableLogging' 'Enable logging (for support & debugging purposes)?' "$yn_y" '1' $zo_r
 [ "$_enableLogging" -eq 1 ] && prompt '_log2file' 'Where do you want to send the logging info?' 'Options: 0->screen -or- 1->file(*) -or- 2->both' '1' $zot_r
 [ "$_enableLogging" -eq 1 ] && [ "$_log2file" -ne 0 ] && prompt '_logDir' 'Where do you want to create the logs directory?' 'Options: 
-    * to specify an absolute path, start with \`/\`
-    * the path *must* end with \`/\`' 'logs/' $re_path_slash
+    * to specify an absolute path, start with `/`
+    * the path *must* end with `/`' 'logs/' $re_path_slash
 [ "$_enableLogging" -eq 1 ] && prompt '_loglevel' 'How much detail do you want in the logs?' 'Options: -1->really verbose -or- 0->all -or- 1->most(*) -or- 2->serious only' '1' ^[012]$\|^-1$
 [ "$_log2file" -eq 2 ] || [ "$_log2file" -eq 2 ] && prompt '_scrlevel' 'How much detail do you want shown on the screen?' 'Options: -1->really verbose -or- 0->all -or- 1->most(*) -or- 2->serious only' '1' ^[012]$\|^-1$
 
-_enable_ftp=0
 [ ! -z "$(command -v ftpput)" ] &&  prompt '_enable_ftp' 'Do you want to mirror a copy of your data files to an external FTP site? \n	NB - *YOU* must setup the FTP site yourself!' "$yn_n" '0' $zo_r
 if [ "$_enable_ftp" -eq "1" ] ; then
 	prompt '_ftp_site' 'What is the URL for your FTP site?' 'Enter just the URL or IP address' '' ''
 	prompt '_ftp_user' 'What is the username for your FTP site?' '' '' ''
 	prompt '_ftp_pswd' 'What is the password for your FTP site?' '' '' ''
-	prompt '_ftp_dir' 'What is the path to your storage location?' "Options: ''->root level -or- enter path" '' ''
+	prompt '_ftp_dir' 'What is the path to your FTP storage directory?' "Options: ''->root level -or- enter path" '' ''
     [ "$_organizeData" -gt "0" ] && echo "
     *******************************************************
     *  You will have to manually create the year/month 
