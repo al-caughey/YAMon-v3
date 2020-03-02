@@ -15,9 +15,10 @@
 # 3.3.1a (2017-07-19): fixed symlink paths in setWebDirectories
 # 3.3.2 (2017-07-26): added check for SFE; more Tomato fixes
 # 3.3.3 (2017-09-26): fixed d_baseDir; added prompts for '_doLiveUpdates' & '_doArchiveLiveUpdates'; improved Turris setup
+# 3.3.4 (2017-10-10): check for nvram vs uci
 
 d_baseDir="$YAMON"
-[ -z "$d_baseDir" ] && d_baseDir=`dirname $0`
+[ -z "$d_baseDir" ] && d_baseDir=$(cd "$(dirname "$0")" && pwd)
 delay=$1
 [ -z $delay ] && delay=5
 
@@ -60,10 +61,22 @@ echo "Log file:  \`$_logfilename\`."
 send2log "Launched setup.sh - v$_version" 2
 echo "You are running this script from \`$d_baseDir\`."
 
+[ -z "$_has_nvram" ] && [ ! -z $(command -v nvram) ] && _has_nvram=1
+[ -z "$has_uci" ] && [ ! -z $(command -v uci) ] && has_uci=1
+
 installedfirmware=$(uname -o)
-installedversion=$(nvram get os_version)
-installedtype=$(nvram get dist_type)
+if [ ! -z "$_has_nvram" ] ; then
+	routermodel=$(nvram get DD_BOARD)
+	installedversion=$(nvram get os_version)
+	installedtype=$(nvram get dist_type)
+else
+	routermodel='TBD'
+	installedversion='TBD'
+	installedtype='TBD'
+fi
+echo "Router Model: $routermodel"
 echo "Installed firmware: $installedfirmware $installedversion $installedtype"
+send2log "Router Model: $routermodel" 2
 send2log "Installed firmware: $installedfirmware $installedversion $installedtype" 2
 
 if [ ! -f "${d_baseDir}/config.file" ] && [ ! -f "${d_baseDir}/default_config.file" ] ; then
@@ -85,106 +98,6 @@ loadconfig()
 echo "Loading baseline settings from \`$_configFile\`"
 send2log "Loading baseline settings from \`$_configFile\`" 2
 sleep $delay
-
-#dhcpfwd_enable=1
-#lan_proto=dhcp
-
-lan_proto=$(nvram get lan_proto)
-send2log "lan_proto --> $lan_proto" 1
-[ ! "$lan_proto" == "dhcp" ] && echo "
-$wrn
-$bl_a
-  ##   It appears that your router is not the DHCP Server for
-  ##   for your network.
-  ##   YAMon gets its data via \`iptables\` calls.  They only
-  ##   return meaningful data from the DHCP Server.
-$bl_a
-  ##   You must enable this option on this router if you want to use YAMon!
-$bl_a
-  ##   DD-WRT web GUI: \`Setup\`-->\`Basic Setup\` -->\`Network Address Server Settings (DHCP)\`
-$bl_a
-$loh" && sleep 5
-
-sfe_enable=$(nvram get sfe)
-send2log "sfe_enable --> $sfe_enable" 1
-[ "$sfe_enable" -eq "1" ] && echo "
-$wrn
-$bl_a
-  ##   The \`Shortcut Forwarding Engine\` is enabled in your DD-WRT config.
-  ##   SFE alters the normal flow of packets through \`iptables\` and that
-  ##   will prevents YAMon from accurately reporting the traffic on
-  ##   your router.
-$bl_a
-  ##   It is recommended that you disable this option!
-$bl_a
-  ##   DD-WRT web GUI: \`Setup\`-->\`Basic Setup\` -->\`Optional Settings\`
-$bl_a
-$loh" && sleep 5
-
-upnp_enable=$(nvram get upnp_enable)
-send2log "upnp_enable --> $upnp_enable" 1
-[ "$upnp_enable" -eq "1" ] && echo "
-$wrn
-$bl_a
-  ##   \`UPnP\` is enabled in your DD-WRT config.
-  ##   UPnP alters the normal flow of packets through \`iptables\` and that
-  ##   will likely prevent YAMon from accurately reporting the traffic on
-  ##   your router.
-$bl_a
-  ##   It is recommended that you disable this option!
-$bl_a
-  ##   DD-WRT web GUI: \`NAT / QoS\`-->\`UPnP\` -->\`UPnP Configuration\`
-$bl_a
-$loh" && sleep 5
-
-privoxy_enable=$(nvram get privoxy_enable)
-send2log "privoxy_enable --> $privoxy_enable" 1
-[ ! -z "$privoxy_enable" ] && [ "$privoxy_enable" -eq "1" ] && echo "
-$wrn
-$bl_a
-  ##   \`Privoxy\` is enabled in your DD-WRT config.
-  ##   Privoxy alters the normal flow of packets through \`iptables\` and
-  ##   that *will* prevent YAMon from accurately reporting the traffic
-  ##   on your router.
-$bl_a
-  ##   If you want to use YAMon to monitor usage, you must disable Privoxy!
-$bl_a
-  ##   DD-WRT web GUI: \`Services\`-->\`Adblocking\`-->\`Privoxy\`
-$bl_a
-$loh" && sleep 5
-
-ntp_enable=$(nvram get ntp_enable)
-send2log "ntp_enable --> $ntp_enable" 1
-[ ! -z "$ntp_enable" ] && [ "$ntp_enable" -ne "1" ] && echo "
-$wrn
-$bl_a
-  ##   \`NTP Client\` is not enabled in your DD-WRT config.
-  ##   The NTP Client allows you to set your time zone and synchronize
-  ##   the clock on your router.
-$bl_a
-  ##   YAMon will likely not provide accurate reports if you do not
-  ##   enabled this option!
-$bl_a
-  ##   DD-WRT web GUI: \`Setup\`-->\`Basic Setup\`-->\`Time Settings\`
-$bl_a
-$loh" && sleep 5
-
-schedule_enable=$(nvram get schedule_enable)
-schedule_hours=$(nvram get schedule_hours)
-schedule_minutes=$(nvram get schedule_minutes)
-send2log "schedule_enable --> $schedule_enable ($schedule_hours:$schedule_minutes)" 1
-[ ! -z "$schedule_enable" ] && [ "$schedule_enable" -eq "1" ] && [ "$schedule_hours" -eq "0" ] && [ "$schedule_minutes" -lt "10" ] && echo "
-$wrn
-$bl_a
-  ##   Your router is scheduled to auto-reboot at '$schedule_hours:$schedule_minutes'.
-  ##   This may interfere with the YAMon function that consolidates
-  ##   the daily totals into the monthly usage file.
-$bl_a
-  ##   If you must auto-reboot your router, please do so after ~12:15AM!
-$bl_a
-  ##   DD-WRT web GUI: \`Administration\`-->\`Keep Alive\`-->\`Schedule Reboot\`
-$bl_a
-$loh" && sleep 5
 
 echo "
 In the prompts below, the recommended value is denoted with
@@ -224,6 +137,107 @@ prompt '_firmware' 'Which of the *WRT firmware variants is your router running?'
     4 -> LEDE
     5 -> Xwrt-Vortex
     6 -> Turris' $_firmware ^[0-6]$
+	
+if [ "$_firmware" -eq 0 ] ; then
+	lan_proto=$(nvram get lan_proto)
+	send2log "lan_proto --> $lan_proto" 1
+	[ ! "$lan_proto" == "dhcp" ] && echo "
+	$wrn
+	$bl_a
+	  ##   It appears that your router is not the DHCP Server for
+	  ##   for your network.
+	  ##   YAMon gets its data via \`iptables\` calls.  They only
+	  ##   return meaningful data from the DHCP Server.
+	$bl_a
+	  ##   You must enable this option on this router if you want to use YAMon!
+	$bl_a
+	  ##   DD-WRT web GUI: \`Setup\`-->\`Basic Setup\` -->\`Network Address Server Settings (DHCP)\`
+	$bl_a
+	$loh" && sleep 5
+
+	sfe_enable=$(nvram get sfe)
+	send2log "sfe_enable --> $sfe_enable" 1
+	[ "$sfe_enable" -eq "1" ] && echo "
+	$wrn
+	$bl_a
+	  ##   The \`Shortcut Forwarding Engine\` is enabled in your DD-WRT config.
+	  ##   SFE alters the normal flow of packets through \`iptables\` and that
+	  ##   will prevents YAMon from accurately reporting the traffic on
+	  ##   your router.
+	$bl_a
+	  ##   YAMon will not report properly if you do not disable this option!
+	$bl_a
+	  ##   DD-WRT web GUI: \`Setup\`-->\`Basic Setup\` -->\`Optional Settings\`
+	$bl_a
+	$loh" && sleep 5
+
+	upnp_enable=$(nvram get upnp_enable)
+	send2log "upnp_enable --> $upnp_enable" 1
+	[ "$upnp_enable" -eq "1" ] && echo "
+	$wrn
+	$bl_a
+	  ##   \`UPnP\` is enabled in your DD-WRT config.
+	  ##   UPnP alters the normal flow of packets through \`iptables\` and that
+	  ##   will likely prevent YAMon from accurately reporting the traffic on
+	  ##   your router.
+	$bl_a
+	  ##   It is recommended that you disable this option!
+	$bl_a
+	  ##   DD-WRT web GUI: \`NAT / QoS\`-->\`UPnP\` -->\`UPnP Configuration\`
+	$bl_a
+	$loh" && sleep 5
+
+	privoxy_enable=$(nvram get privoxy_enable)
+	send2log "privoxy_enable --> $privoxy_enable" 1
+	[ ! -z "$privoxy_enable" ] && [ "$privoxy_enable" -eq "1" ] && echo "
+	$wrn
+	$bl_a
+	  ##   \`Privoxy\` is enabled in your DD-WRT config.
+	  ##   Privoxy alters the normal flow of packets through \`iptables\` and
+	  ##   that *will* prevent YAMon from accurately reporting the traffic
+	  ##   on your router.
+	$bl_a
+	  ##   YAMon will not report properly if you do not disable this option!
+	$bl_a
+	  ##   DD-WRT web GUI: \`Services\`-->\`Adblocking\`-->\`Privoxy\`
+	$bl_a
+	$loh" && sleep 5
+
+	ntp_enable=$(nvram get ntp_enable)
+	send2log "ntp_enable --> $ntp_enable" 1
+	[ ! -z "$ntp_enable" ] && [ "$ntp_enable" -ne "1" ] && echo "
+	$wrn
+	$bl_a
+	  ##   \`NTP Client\` is not enabled in your DD-WRT config.
+	  ##   The NTP Client allows you to set your time zone and synchronize
+	  ##   the clock on your router.
+	$bl_a
+	  ##   YAMon will likely not provide accurate reports if you do not
+	  ##   enabled this option!
+	$bl_a
+	  ##   DD-WRT web GUI: \`Setup\`-->\`Basic Setup\`-->\`Time Settings\`
+	$bl_a
+	$loh" && sleep 5
+
+	schedule_enable=$(nvram get schedule_enable)
+	schedule_hours=$(nvram get schedule_hours)
+	schedule_minutes=$(nvram get schedule_minutes)
+	send2log "schedule_enable --> $schedule_enable ($schedule_hours:$schedule_minutes)" 1
+	[ ! -z "$schedule_enable" ] && [ "$schedule_enable" -eq "1" ] && [ "$schedule_hours" -eq "0" ] && [ "$schedule_minutes" -lt "10" ] && echo "
+	$wrn
+	$bl_a
+	  ##   Your router is scheduled to auto-reboot at '$schedule_hours:$schedule_minutes'.
+	  ##   This may interfere with the YAMon function that consolidates
+	  ##   the daily totals into the monthly usage file.
+	$bl_a
+	  ##   If you must auto-reboot your router, please do so after ~12:15AM!
+	$bl_a
+	  ##   DD-WRT web GUI: \`Administration\`-->\`Keep Alive\`-->\`Schedule Reboot\`
+	$bl_a
+	$loh" && sleep 5
+
+fi
+
 t_wid=1
 prompt 't_wid' "Is your \`data\` directory in \`$d_baseDir\`?" "$yn_y" $t_wid $zo_r
 [ "$t_wid" -eq 0 ] && prompt '_dataDir' "Enter the path to your data directory" "Options:
@@ -236,7 +250,7 @@ prompt '_unlimited_usage' 'Does your ISP offer `Bonus Data`?\n    (i.e., uncappe
 prompt '_updatefreq' 'How frequently would you like to check the data?' 'Enter the interval in seconds [1-300 sec]' '30' ^[1-9]$\|^[1-9][0-9]$\|^[1-2][0-9][0-9]$\|^300$
 prompt '_publishInterval' 'How many checks between updates in the reports?' 'Enter the number of checks [must be a positive integer]' '2' ^[1-9]$\|^[1-9][0-9]$\|^[1-9][0-9][0-9]$
 
-ipv6_enable=$(nvram get ipv6_enable)
+[ "$_has_nvram" == 1 ] && ipv6_enable=$(nvram get ipv6_enable)
 send2log "ipv6_enable --> $ipv6_enable" 1
 if [ ! -z "$ipv6_enable" ] && [ "$ipv6_enable" -eq "1" ] ; then
 	prompt '_includeIPv6' 'Do you want to include IPv6 traffic?\n	(i.e., you *must* have a full version if `ip` installed)' "$yn_n" '0' $zo_r
@@ -418,7 +432,6 @@ if [ "$t_www" -eq "1" ] ; then
 	chmod "$t_perm" -R "$_wwwPath"
 	send2log "Changed \`$_wwwPath\` permissions to: \`$t_perm\`" 1
 else
-
 	chmod 700 -R "$_wwwPath"
 fi
 startup_delay=''

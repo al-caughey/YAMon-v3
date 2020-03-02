@@ -9,7 +9,7 @@
 #
 ##########################################################################
 
-d_baseDir=`dirname $0`
+d_baseDir=$(cd "$(dirname "$0")" && pwd)
 
 source "${d_baseDir}/includes/versions.sh"
 source "${d_baseDir}/includes/defaults.sh"

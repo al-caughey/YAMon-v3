@@ -194,6 +194,8 @@ setWebDirectories()
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    ~  Your reports URL: http://${lan_ip}/user/$_setupWebIndex
    ~  (subject to some firmware variant oddities)
+   ~  If your reports do not open properly, see
+   ~     http://usage-monitoring.com/help/?t=reports-help
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	send2log "Reports URL: http://${lan_ip}/user/$_setupWebIndex" 1
 }
@@ -352,9 +354,9 @@ createUDList(){
 	send2log "=== createUDList ===" -1
 	send2log "	  arguments:  $1" -1
 	local results=''
-	iptablesData="$1"
+	local itd="$1"
 	IFS=$'\n'
-	for line in $(echo "$iptablesData")
+	for line in $(echo "$itd")
 	do
 		send2log "  >>> line-->$line" -1
 		local f1=$(echo "$line" | cut -d' ' -f1)
@@ -364,7 +366,7 @@ createUDList(){
 		[ ! -z "$isy" ] && continue
 		[ "$f1" -eq '0' ] && continue
 		send2log "  >>> f1-->$f1	f2-->$f2   f3-->$f3   " -1
-		if [ "$f2" == "$_generic_ipv4" ] || [ "$f2" == "::/0" ] ; then
+		if [ "$f2" == "$_generic_ipv4" ] || [ "$f2" == "$_generic_ipv6" ] ; then
 			add2UDList $f3 $f1 0
 		else
 			add2UDList $f2 0 $f1
@@ -425,19 +427,19 @@ checkIPTableEntries()
 		local cmd=$1
 		local chain=$2
 		local ip=$3
-		[ "$ip" == "$g_ip" ] && return
+		#[ "$ip" == "$g_ip" ] && return
 		while [ true ]; do
 			local dup_num=$(eval $cmd $_tMangleOption -vnxL "$chain" --line-numbers | grep -m 1 -i "\b$ip\b" | cut -d' ' -f1)
 			[ -z "$dup_num" ] && break
-			$(eval $cmd $_tMangleOption  -D "$chain" $dup_num)
+			eval $cmd $_tMangleOption  -D "$chain" $dup_num
 		done
 	}
 	addIP(){
 		local cmd=$1
 		local chain=$2
 		local ip=$3
-		$(eval $cmd $_tMangleOption -I "$chain" -s "$ip" -j RETURN)
-		$(eval $cmd $_tMangleOption -I "$chain" -d "$ip" -j RETURN)
+		eval $cmd $_tMangleOption -I "$chain" -s "$ip" -j RETURN
+		[ "$ip" != "$g_ip" ] && eval $cmd $_tMangleOption -I "$chain" -d "$ip" -j RETURN
 	}
 
 	send2log "=== checkIPTableEntries === " 0
@@ -447,7 +449,9 @@ checkIPTableEntries()
 	nm=$4
 	g_ip="$_generic_ipv4"
 	[ "$cmd" == 'ip6tables' ] && g_ip="$_generic_ipv6"
-
+	
+	[ "$ip" == "$g_ip" ] && [ "$nm" -eq "1" ] && return
+	
 	if [ "$nm" -eq "0" ]; then
 		send2log "  >>> Added rules to $chain for $mac-->$ip" 0
 		addIP "$cmd" "$chain" "$ip"
@@ -470,7 +474,7 @@ checkIPChain()
 	send2log "	>>> oldRuleinChain-->$oldRuleinChain" 0
     while [  "$i" -le "$oldRuleinChain" ]; do
         local dup_num=$(eval $cmd $_tMangleOption -L "$chain" --line-numbers | grep -m 1 -i "\b$base\b" | cut -d' ' -f1)
-        $(eval $cmd $_tMangleOption -D "$chain" $dup_num)
+        eval $cmd $_tMangleOption -D "$chain" $dup_num
 		send2log "	>>> $cmd $_tMangleOption -D "$chain" $dup_num" 0
         i=$(($i+1))
     done
@@ -480,16 +484,16 @@ checkIPChain()
         send2log "  >>> Rule $rule exists in chain $chain ==> $foundRuleinChain" 0
     elif [ "$foundRuleinChain" -eq "0" ]; then
         send2log "  >>> Created rule $rule in chain $chain ==> $foundRuleinChain" 2
-        $(eval $cmd $_tMangleOption -I "$chain" -j "$rule")
+        eval $cmd $_tMangleOption -I "$chain" -j "$rule"
     else
         send2log "  !!! Found $foundRuleinChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99
         local i=1
         while [  "$i" -le "$foundRuleinChain" ]; do
             local dup_num=$($cmd -L "$chain" --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
-            $(eval $cmd $_tMangleOption -D "$chain" $dup_num)
+            eval $cmd $_tMangleOption -D "$chain" $dup_num
             i=$(($i+1))
         done
-        $(eval $cmd $_tMangleOption -I "$chain" -j "$rule")
+        eval $cmd $_tMangleOption -I "$chain" -j "$rule"
     fi
 }
 getMACIPList(){

@@ -24,10 +24,10 @@
 # 3.3.0 (2017-06-18): bumped minor version; added xwrt
 # 3.3.1 (2017-07-17): added option for ip_conntrack vs nf_conntrack; added count number to new devices; added defensive code to better handle oddball situations where iptables chains go missing
 #                     added setupIPChains; changes in setFirmware, CheckUsersJS, update
-#                     general housekeeping; removed blocks of unused code; tweaked some regexes																																						 
+#                     general housekeeping; removed blocks of unused code; tweaked some regexes
 # 3.3.2 (2017-07-19): replaced `command` with `which`; removed ls -e; some Tomato fixes
 # 3.3.3 (2017-09-25): tidied up d_baseDir; monthly files are now year-mo (without date); added option to archive live updates
-#
+# 3.3.4 (2017-10-11): fixed issues in setup.sh; fixed _liveFilePath
 # ==========================================================
 #				  Functions
 # ==========================================================
@@ -37,9 +37,9 @@ setupIPChains(){
         local cmd="$1"
         local chain="$2"
         local ce=$(echo "$ipchains" | grep "$chain\b")
-        if [ -z "$ce" ]; then
+        if [ -z "$ce" ] ; then
             send2log "Adding $chain in $cmd ($_tMangleOption)" 2
-            $(eval $cmd $_tMangleOption -N $chain)
+            eval $cmd $_tMangleOption -N $chain
         else 
             send2log "$chain exists in $cmd ($_tMangleOption)" 0
         fi
@@ -49,21 +49,21 @@ setupIPChains(){
         local chain="$2"
         local ip_blocks="$3"
         local generic="$4"
-        $(eval $cmd $_tMangleOption -F "$chain")
-        $(eval $cmd $_tMangleOption -F "${chain}Entry")
-        $(eval $cmd $_tMangleOption -F "${chain}Local")
+        eval $cmd $_tMangleOption -F "$chain"
+        eval $cmd $_tMangleOption -F "${chain}Entry"
+        eval $cmd $_tMangleOption -F "${chain}Local"
     	IFS=$','
         for iprs in $(echo "$ip_blocks")
         do
             for iprd in $(echo "$ip_blocks")
             do
-                $(eval $cmd  $_tMangleOption -I "${chain}Entry" -j "${chain}Local" -s $iprs -d $iprd)
-                $(eval $cmd  $_tMangleOption -A "${chain}Entry" -j "RETURN" -s $iprs -d $iprd)
+                [ "$iprs" != "$iprd" ] && eval $cmd $_tMangleOption -I "${chain}Entry" -j "RETURN" -s $iprs -d $iprd
+                eval $cmd $_tMangleOption -I "${chain}Entry" -j "${chain}Local" -s $iprs -d $iprd
             done
         done
-        $(eval $cmd $_tMangleOption -A "${chain}Entry" -j "${chain}")
-        $(eval $cmd $_tMangleOption -I "${chain}Local" -j "RETURN" -s $generic -d $generic)
-        $(eval $cmd $_tMangleOption -A "$chain" -j "RETURN" -s $generic -d $generic)
+        eval $cmd $_tMangleOption -A "${chain}Entry" -j "${chain}"
+        eval $cmd $_tMangleOption -I "${chain}Local" -j "RETURN" -s $generic -d $generic
+        eval $cmd $_tMangleOption -A "$chain" -j "RETURN" -s $generic -d $generic
         IFS=$'\n'
     }
 	ipchains=$(eval iptables $_tMangleOption -L -vnx | grep Chain)
@@ -238,13 +238,24 @@ setDataDirectories()
 	else
 		createMonthlyFile
 	fi
-	[ "$_doLiveUpdates" -eq "1" ] && _liveFilePath="$_wwwPath$_wwwJS$_liveFileName"
-	[ "$_doLiveUpdates" -eq "1" ] && _liveArchiveFilePath="$wwwsavePath$_cYear-$_cMonth-$_cDay-$_liveFileName"
+	
 	[ ! -d "$_wwwPath$_wwwJS" ] && mkdir -p "$_wwwPath$_wwwJS"
-	if [ ! -f "$_liveFilePath" ] ; then
-		touch $_liveFilePath
-		chmod 666 $_liveFilePath
+	
+	if [ "$_doLiveUpdates" -eq "1" ] ; then
+		_liveFilePath="$_wwwPath$_wwwJS$_liveFileName"
+		if [ ! -f "$_liveFilePath" ] ; then
+			touch $_liveFilePath
+			chmod 666 $_liveFilePath
+		fi
+		if [ "$_doArchiveLiveUpdates" -eq "1" ] ; then
+			_liveArchiveFilePath="$wwwsavePath$_cYear-$_cMonth-$_cDay-$_liveFileName"
+			if [ ! -f "$_liveArchiveFilePath" ] ; then
+				touch $_liveArchiveFilePath
+				chmod 666 $_liveArchiveFilePath
+			fi
+		fi
 	fi
+	
 	_hourlyUsageDB="$savePath$_cYear-$_cMonth-$_cDay-$_hourlyFileName"
 	_hourlyUsageWWW="$wwwsavePath$_cYear-$_cMonth-$_cDay-$_hourlyFileName"
 
@@ -455,11 +466,11 @@ setFirmware()
 	
 	if [ "$_use_nf_conntrack" -ne "1" ] ; then
 		_conntrack="/proc/net/ip_conntrack"
-		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$1,$1 == "tcp" ? $5 : $4,$1 == "tcp" ? $7 : $6,$1 == "tcp" ? $6 : $5,$1 == "tcp" ? $8 : $7; } END { print "[ null ] ]"}'
+		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); if($1 == "tcp"){ printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$1,$5,$7,$6,$8;} else { printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$1,$4,$6,$5,$7;} } END { print "[ null ] ]"}'
 	
 	else
 		_conntrack="/proc/net/nf_conntrack"
-		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$3 == "tcp" ? $7 : $6,$3 == "tcp" ? $9 : $8,$3 == "tcp" ? $8 : $7,$3 == "tcp" ? $10 : $9; } END { print "[ null ] ]"}'
+		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); if($3 == "tcp"){ printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$7,$9,$8,$10;} else { printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$6,$8,$7,$9;} } END { print "[ null ] ]"}'
 	
 	fi
 	
@@ -472,7 +483,10 @@ setFirmware()
 	
 	_wan_ipaddr=$(ifconfig 'eth0' | grep 'inet addr:' | tr -s ' ' | cut -d' ' -f3 | cut -d: -f2)
 	_wan_hwaddr=$(ifconfig 'eth0' | grep 'HWaddr' | tr -s ' ' | cut -d' ' -f5 | tr '[A-Z]' '[a-z]')
-	
+	if [ "$_has_nvram" -eq 1 ] ; then
+		[ -z "$_wan_ipaddr" ] && wan_ipaddr=$(nvram get wan_ipaddr)
+		[ -z "$wan_hwaddr" ] && _wan_hwaddr=$(nvram get wan_hwaddr)
+	fi
 	[ "$_includeIPv6" -eq "1" ] && _lan_ip6addr=$(ifconfig $_lan_iface | grep 'inet6 addr:' | grep -v fe80 | tr -s ' ' | cut -d' ' -f4)
 
 }
@@ -540,13 +554,13 @@ shutDown(){
 	updateHourly
 	[ "$_symlink2data" -eq "0" ] && [ "$_dowwwBU" -eq 1 ] && doFinalBU
 
-	$(eval iptables $_tMangleOption -F "$YAMON_IP4")
-    $(eval iptables $_tMangleOption -A "$YAMON_IP4" -j "RETURN" -s $_generic_ipv4 -d $_generic_ipv4)
+	#eval iptables $_tMangleOption -F "$YAMON_IP4"
+    #eval iptables $_tMangleOption -A "$YAMON_IP4" -j "RETURN" -s $_generic_ipv4 -d $_generic_ipv4
 
-	if [ "$_includeIPv6" -eq "1" ] ; then
-        $(eval ip6tables $_tMangleOption -F "$YAMON_IP6")
-        $(eval ip6tables $_tMangleOption -A "$YAMON_IP6" -j "RETURN" -s $_generic_ipv6 -d $_generic_ipv6)
-    fi
+	#if [ "$_includeIPv6" -eq "1" ] ; then
+        #eval ip6tables $_tMangleOption -F "$YAMON_IP6"
+        #eval ip6tables $_tMangleOption -A "$YAMON_IP6" -j "RETURN" -s $_generic_ipv6 -d $_generic_ipv6
+    #fi
 	send2log "
 	=====================================
 	\`yamon.sh\` has been stopped.
@@ -560,7 +574,6 @@ changeDates()
 	send2log "	 >>> date change: $_pDay --> $_cDay " 1
 	updateHourly $_p_hr
 	updateHourly2Monthly $_cYear $_cMonth $_pDay &
-
 	local avrt='n/a'
 	[ "$_dailyiterations" -gt "0" ] && avrt=$(echo "$_totalDailyRunTime $_dailyiterations" | awk '{printf "%.3f \n", $1/$2}')
 	send2log "	 >>> Daily stats:  day-> $_pDay  #iterations--> $_dailyiterations   total runtime--> $_totalDailyRunTime   Ave--> $avrt	min-> $_daily_rt_min   max--> $_daily_rt_max" 1
@@ -572,7 +585,15 @@ changeDates()
 	_hr_rt_min=''
 	_daily_rt_max=''
 	_daily_rt_min=''
-
+	local yEntry=$(iptables -L YAMON33v4Entry -vnxZ | tr -s '-' ' ' | grep "^ [1-9]" | cut -d' ' -f2,3,8,9,10 | sort -k3)
+	local yLocal=$(iptables -L YAMON33v4Local -vnxZ | tr -s '-' ' ' | grep "^ [1-9]" | cut -d' ' -f2,3,8,9,10 | sort -k3)
+	local yall=$(iptables -L yall -vnxZ | tr -s '-' ' ' | grep "^ [1-9]" | cut -d' ' -f2,3,8,9,10 | sort -k3)
+	send2log "	 >>> YAMON33v4Entry:
+$yEntry" 0
+	send2log "	 >>> YAMON33v4Local:
+$yLocal" 0
+	send2log "	 >>> yall:
+$yall" 0
 	[ "$_doDailyBU" -eq "1" ] && dailyBU "$_cYear-$_cMonth-$_pDay" &
 	sl_max=''
 	sl_min=''
@@ -658,9 +679,9 @@ CheckUsersJS()
 	local tip=${ip//\./\\.}
 	if [ "$_includeBridge" -eq "1" ] && [ "$mac" == "$_bridgeMAC" ] ; then
 			local ipcount=$(echo "$_currentUsers" | grep -ic "[\b\",]$tip\b")
-		if [ "$ipcount" -eq 0 ] ;  then
+		if [ "$ipcount" -eq 0 ] ; then
 			send2log "	--- matched bridge mac but no matching entry for $ip.  Data will be tallied under bridge mac" 1
-		elif [ "$ipcount" -eq 1 ] ;  then
+		elif [ "$ipcount" -eq 1 ] ; then
 			mac=$(echo "$_currentUsers" | grep -i "[\b\",]$tip\b" | grep -io '\([a-z0-9]\{2\}\:\)\{5,\}[a-z0-9]\{2\}')
 			send2log "	--- matched bridge mac and found a unique entry for associated IP: $ip.  Changing MAC from $_bridgeMAC (bridge) to $mac (device)" 1
 		else
@@ -802,7 +823,6 @@ getDeviceName()
 
 	if [ "$_firmware" -eq "0" ] ; then
 		local nvr=$(nvram show 2>&1 | grep -i "static_leases=")
-		#local result=$(echo "$nvr" | grep -io "$mac=.\{1,\}=" | cut -d= -f2)
 		local result=$(echo "$nvr" | grep -io "$mac[^=]*=.\{1,\}=.\{1,\}=" | cut -d= -f2)
 	elif [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] ; then
 		# thanks to Robert Micsutka for providing this code & easywinclan for suggesting & testing improvements!
@@ -893,7 +913,7 @@ updateServerStats()
 {
 	send2log "=== updateServerStats === " 0
 	local cTime=$(date +"%T")
-	if [ -z "$sl_max" ] || [ "$sl_max" \< "$load5" ]; then
+	if [ -z "$sl_max" ] || [ "$sl_max" \< "$load5" ] ; then
 		sl_max=$load5
 		sl_max_ts="$cTime"
 	fi
@@ -921,7 +941,10 @@ serverload($load1,$load5,$load15)" > $_liveFilePath
 
 	if [ "$_doCurrConnections" -eq "1" ] ; then
 		send2log "	>>> curr_connections" -1
-		awk "$_conntrack_awk" "$_conntrack" >> $_liveFilePath
+		local ddd=$(awk "$_conntrack_awk" "$_conntrack")
+		echo "$ddd"  >> $_liveFilePath
+		send2log "	curr_connections >>>
+$ddd" 0
 	fi
 
 	send2log "	>>> _liveusage: $_liveusage" -1
@@ -985,16 +1008,18 @@ update()
 
 	local new_do=$do
 	local new_up=$up
+	[ -z "$new_do" ] && new_do=0
+	[ -z "$new_up" ] && new_up=0
 	local cu=$(echo "$cu_no_dup" | grep -i "[\b\",]$tip\b")
 	local mac=$(getField "$cu" 'mac')
-	if [ -z "$mac " ] ; then
+	if [ -z "$mac" ] ; then
 		send2log "		  cu-->$cu" -1
 		lostBytes "	  !!! No matching MAC in _currentUsers for $ip?!? - adding $bytes to unknown mac " $bytes
-		update "$_generic_ipv4" "$do" "$up" "$hr"
+		update "$_generic_ipv4" "$new_do" "$new_up" "$hr"
 		return
 	elif [ "$mac" == "00:00:00:00:00:00" ] || [ "$mac" == "failed" ] || [ "$mac" == "incomplete" ] ; then
 		lostBytes "  >>> skipping null/invalid MAC address for $ip?!? - adding $bytes to unknown mac " $bytes
-		update "$_generic_ipv4" "$do" "$up" "$hr"
+		update "$_generic_ipv4" "$new_do" "$new_up" "$hr"
 		return
 	elif [ "$_includeBridge" -eq "1" ] && [ "$mac" == "$_bridgeMAC" ] ; then
 		local ipcount=$(echo "$cu_no_dup" | grep -v "\b$_bridgeMAC\b" | grep -ic "[\b\",]$tip\b")
@@ -1006,7 +1031,7 @@ update()
 		fi
 	fi
 	_liveusage="$_liveusage
-curr_users({mac:'$mac',ip:'$ip',down:$do,up:$up})"
+curr_users({mac:'$mac',ip:'$ip',down:$new_do,up:$new_up})"
 	[ "$_ignoreGateway" -eq "1" ] && [ "$mac" == "$_gatewayMAC" ] && return
 	local cur_hd=$(echo "$_thisHrdata" | grep -i "\"$mac\".\{0,\}\"$hr\"")
 	if [ -z "$cur_hd" ] ; then
@@ -1025,7 +1050,7 @@ $cur_hd"
 	pup=$(getCV "$cur_hd" "up")
 	new_do=$(digitAdd "$do" "$pdo")
 	new_up=$(digitAdd "$up" "$pup")
-	if [ "$_inUnlimited" -eq "1" ] || [ ! -z "$hasUL" ]; then
+	if [ "$_inUnlimited" -eq "1" ] || [ ! -z "$hasUL" ] ; then
 		local pul_do=$(getCV "$cur_hd" "ul_do")
 		local pul_up=$(getCV "$cur_hd" "ul_up")
 		local new_ul_do=$(digitAdd "$do" "$pul_do")
@@ -1046,7 +1071,7 @@ updateUsage()
 	local hr=$(date +%H)
 	_ud_list=''
 
-    local iptablesData=$(eval $cmd $_tMangleOption -L "$chain" -vnxZ | tail -n +3 | tr -s '-' ' ' | grep -v "0 0 RETURN" | cut -d' ' -f3,8,9)
+    local iptablesData=$(eval $cmd $_tMangleOption -L "$chain" -vnxZ | tr -s '-' ' ' | grep "^ [1-9]" | cut -d' ' -f3,8,9)
 
 	if [ -z "$iptablesData" ] ; then
 		send2log "	>>> $cmd returned no data... returning " 0
@@ -1054,9 +1079,9 @@ updateUsage()
 	fi
 	createUDList "$iptablesData"
 	send2log "iptablesData-->
-$iptablesData" -1
+$iptablesData" 0
 	send2log "_ud_list-->
-$_ud_list" -1
+$_ud_list" 0
 
 	IFS=$'\n'
 	for line in $(echo "$_ud_list")
@@ -1116,8 +1141,7 @@ runtimestats()
 #				  Main program
 # ==========================================================
 
-d_baseDir=`dirname $0`
-
+d_baseDir=$(cd "$(dirname "$0")" && pwd)
 if [ ! -d "$d_baseDir/includes" ] || [ ! -f "$d_baseDir/includes/defaults.sh" ] ; then
 	echo "
 **************************** ERROR!!! ****************************
@@ -1192,9 +1216,14 @@ _iteration=0
 _br_d=''
 _br_u=''
 
+installedversion='tbd'
+installedtype='tbd'
+
 installedfirmware=$(uname -o)
-installedversion=$(nvram get os_version)
-installedtype=$(nvram get dist_type)
+if [ "$_has_nvram" -eq 1 ] ; then
+	installedversion=$(nvram get os_version)
+	installedtype=$(nvram get dist_type)
+fi
 
 np=$(ps | grep -v grep | grep -c yamon)
 if [ -d "$_lockDir" ] ; then

@@ -13,7 +13,7 @@
 #
 ##########################################################################
 	
-[ -z "$d_baseDir" ] && d_baseDir=$(cd "$(dirname "$0")" && pwd)
+d_baseDir=$(cd "$(dirname "$0")" && pwd)
 _configFile="${d_baseDir}/config.file"
 d_usageFileName="mac_data2.js"
 _loglevel=1
