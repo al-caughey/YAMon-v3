@@ -4,12 +4,9 @@
 # All rights reserved.
 #
 # History
-# 2017-01-29: 3.2.2 (created)
-# 2017-02-15: updated to 3.2.3
-# 2017-02-20: updated to 3.2.4
-# 2017-03-17: updated to 3.2.5
-# 2017-03-23: updated to 3.2.6
-# 2017-05-21: updated to 3.2.7
+# 2017-01-29: 3.2.2 (created)/o	
+# 2017-05-14: updated to 3.3.0
+# 2017-07-15: updated to 3.3.1
 
-_version='3.2.7'
-_file_version='3.2'
+_version='3.3.1'
+_file_version='3.3'

@@ -21,33 +21,44 @@
 ##########################################################################
 
 #HISTORY
-# 3.0.16 (2016-25-25): fixed some functions to returns zeroes rather than null
-# 3.0.17 (2016-25-28): tweaks; Tomato updates as per Todd Saylor (in getDeviceName)
-# 3.1.0 (2016-10-05): bumped to 3.1 because of breaking changes to yamon.html; FTP functionality; added checks for LAN & WAN IP addresses; fixed IP address regex
-# 3.1.1 (2016-10-10): tweaks not caught in 3.1.0; added arp, added init script for OpenWrt (in setup.sh)
-# 3.1.2 (2016-10-10): fixes in defaults.sh to set missing values in config.file to defaults
-# 3.1.3 (2016-10-24): update config3.js if config.file changes; defensively check for $_dnsmasq_conf & proper values for FTPing
-# 3.1.4 (2016-11-13): added YAMon rule to iptables INPUT & OUTPUT (in addition to FORWARD); fixed date issue in checkTimes
-#				   : check for duplicate MAC addresses in users.js; reduced number of messages going to logs
-# 3.1.5 (2016-11-16): fixed regexs (never released to the wild though)
-# 3.1.6 (2016-11-17): changed br_u/br_d for hr=start in new 'getStartPND' (to roll over values from previous day); fixed issue in sendAlerts
-# 3.1.7 (2016-11-20): changed fixed 'getStartPND' _br_u/_br_d
-# 3.1.8 (2016-12-14): added DrMona's fix for ips across the bridge; disabled function write2log
-# 3.1.9 (2016-12-17): chasing bridge IP issue... added dumpUsers max once per hour; config3.js is now symlinked and also copied to FTP server automatically if options enabled
-# 3.2.0 (2017-01-22): modest clean up; incorporated Münir Ozan TOPCU iptables improvements; added ftp_dir
-# 3.2.1 (2017-01-28): moved setWebDirectories to util.3.2.1.sh
-# 3.2.2 (2017-01-29): tweaks to runtimestats & housecleaning; removed unused debugging call
-# 3.2.3 (2017-02-05): replace call to ip in line #91
-# 3.2.4 (2017-02-20): re-replaced call to ip in line #91
-# 3.2.5 (2017-02-20): added generic user (0.0.0.0/0) & mac (un:kn:ow:n0:0m:ac), fixed shutdown loop silliness; fixed issues for LEDE
-# 3.2.6 (2017-05-07): several small tweaks...
-# 3.2.7 (2017-05-07): clean-up so that yamon3.2 can run concurrently with 3.3... this will likely be the last update to YAMon3.2013-present.
-
+# 3.3.0 (2017-06-18): bumped minor version; added xwrt
+#
 # ==========================================================
 #				  Functions
 # ==========================================================
 
 setInitValues(){
+    checkChain(){
+        local cmd="$1"
+        local chain="$2"
+        local ce=$(echo "$ipchains" | grep "$chain")
+        if [ -z "$ce" ]; then
+            send2log "Adding $chain in $cmd ($_tMangleOption)" 2
+            $(eval $cmd $_tMangleOption -N $chain)
+        else 
+            send2log "$chain exists in $cmd ($_tMangleOption)" 0
+        fi
+    }
+    addLocalIPs(){
+        local cmd="$1"
+        local chain="$2"
+        local ip_blocks="$3"
+        local generic="$4"
+        $(eval $cmd $_tMangleOption -F "${chain}Entry")
+        $(eval $cmd  $_tMangleOption -F "${chain}Local")
+    	IFS=$','
+        for iprs in $(echo "$ip_blocks")
+        do
+            for iprd in $(echo "$ip_blocks")
+            do
+                $(eval $cmd  $_tMangleOption -I "${chain}Entry" -j "${chain}Local" -s $iprs -d $iprd)
+                $(eval $cmd  $_tMangleOption -A "${chain}Entry" -j "RETURN" -s $iprs -d $iprd)
+            done
+        done
+        $(eval $cmd $_tMangleOption -A "${chain}Entry" -j "${chain}")
+        $(eval $cmd $_tMangleOption -I "${chain}Local" -j "RETURN" -s $generic -d $generic)
+        IFS=$'\n'
+    }
 	_configFile="$d_baseDir/config.file"
 	source "$_configFile"
 	loadconfig
@@ -55,15 +66,33 @@ setInitValues(){
 	source "$d_baseDir/strings/$_lang/strings.sh"
 	_savedconfigMd5=$(md5sum $_configFile | cut -f1 -d" ")
 	setLogFile
+
+    ipchains=$(eval iptables $_tMangleOption -L -vnx | grep Chain)
+    checkChain 'iptables' "$YAMON_IP4"
+    checkChain 'iptables' "${YAMON_IP4}Entry"
+    checkChain 'iptables' "${YAMON_IP4}Local"
+
+    addLocalIPs 'iptables' "$YAMON_IP4" "$_PRIVATE_IP4_BLOCKS" "$_generic_ipv4" 
+    
 	checkIPChain "iptables" "FORWARD" "$YAMON_IP4"
 	checkIPChain "iptables" "INPUT" "$YAMON_IP4"
 	checkIPChain "iptables" "OUTPUT" "$YAMON_IP4"
+    
 	if [ "$_includeIPv6" -eq "1" ] ; then
 		_getIP6List="$_path2ip -6 neigh | grep 'lladdr' | cut -d' ' -f1,5 | tr '[A-Z]' '[a-z]' $sortStr"
-		checkIPChain 'ip6tables' 'FORWARD' $YAMON_IP6
-		checkIPChain 'ip6tables' 'INPUT' $YAMON_IP6
-		checkIPChain 'ip6tables' 'OUTPUT' $YAMON_IP6
+
+        ipchains=$(eval ip6tables $_tMangleOption -L -vnx | grep Chain)
+        checkChain 'ip6tables' "$YAMON_IP6"
+        checkChain 'ip6tables' "${YAMON_IP6}Entry"
+        checkChain 'ip6tables' "${YAMON_IP6}Local"
+
+        addLocalIPs 'ip6tables' "$YAMON_IP6" "$_PRIVATE_IP6_BLOCKS" "$_generic_ipv6"
+    
+		checkIPChain 'ip6tables' 'FORWARD' "$YAMON_IP6"
+		checkIPChain 'ip6tables' 'INPUT' "$YAMON_IP6"
+		checkIPChain 'ip6tables' 'OUTPUT' "$YAMON_IP6"
 	fi
+    
 	setFirmware
 	updateServerStats
 	setDataDirectories
@@ -116,7 +145,7 @@ setLogFile()
 		local lfpath="${_baseDir}$_logDir"
 	fi
 	[ ! -d "$lfpath" ] && mkdir -p "$lfpath"
-	_logfilename="${lfpath}monitor-$_cYear-$_cMonth-$_cDay.log"
+	_logfilename="${lfpath}monitor$_version-$_cYear-$_cMonth-$_cDay.log"
 	[ ! -f "$_logfilename" ] && touch "$_logfilename" && send2log "YAMon :: version $_version	_loglevel: $_loglevel" 2
 	send2log "=== setLogFile ===" -1
 	send2log "Installed firmware: $installedfirmware $installedversion $installedtype" 2
@@ -309,20 +338,17 @@ setUsers(){
 	_currentUsers=$(cat "$_usersFile" | sed -e "s~(dup) (dup)~(dup)~Ig")
 	[ "$_includeBridge" -eq "1" ] && checkBridge
 
-	local t_options=''
-	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
-
 	if [ ! -z "$_lan_ipaddr" ] ; then
 		local lipe=$(echo "$_currentUsers" | grep "\b$_lan_ipaddr\b")
 		[ -z "$lipe" ] && add2UsersJS $_lan_hwaddr $_lan_ipaddr 0 "Hardware" "LAN MAC"
-		local nm=$(eval iptables $t_options -vnxL "$YAMON_IP4" | grep -c "\b$_lan_ipaddr\b")
+		local nm=$(eval iptables $_tMangleOption -vnxL "$YAMON_IP4" | grep -c "\b$_lan_ipaddr\b")
 		checkIPTableEntries "iptables" "$YAMON_IP4" "$_lan_ipaddr" $nm
 	fi
 
 	if [ ! -z "$_wan_ipaddr" ] ; then
 		lipe=$(echo "$_currentUsers" | grep "\b$_wan_ipaddr\b")
 		[ -z "$lipe" ] && [ "$_wan_hwaddr" != "$_lan_hwaddr" ] && add2UsersJS $_wan_hwaddr $_wan_ipaddr 0 "Hardware" "WAN MAC"
-		local nm=$(eval iptables $t_options -vnxL "$YAMON_IP4" | grep -c "\b$_wan_ipaddr\b")
+		local nm=$(eval iptables $_tMangleOption -vnxL "$YAMON_IP4" | grep -c "\b$_wan_ipaddr\b")
 		checkIPTableEntries "iptables" "$YAMON_IP4" "$_wan_ipaddr" $nm
 	fi
 
@@ -414,7 +440,7 @@ setFirmware()
 	elif [ "$_firmware" -eq "0" ]; then #DD-WRT
 		_conntrack="/proc/net/nf_conntrack"
 		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$3 == "tcp" ? $7 : $6,$3 == "tcp" ? $9 : $8,$3 == "tcp" ? $8 : $7,$3 == "tcp" ? $10 : $9; } END { print "[ null ] ]"}'
-	elif [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ]; then #OpenWRT//LEDE
+	elif [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] ; then #OpenWRT//LEDE
 		_lan_iface="br-lan"
 		_lan_ipaddr=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
 		_lan_hwaddr=$(ifconfig br-lan | awk '/HWaddr/ {print $5}' | tr '[A-Z]' '[a-z]')
@@ -422,9 +448,9 @@ setFirmware()
 		_wan_hwaddr=$(ifconfig eth0 | awk '/HWaddr/ {print $5}' | tr '[A-Z]' '[a-z]')
 		_conntrack="/proc/net/nf_conntrack"
 		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$3 == "tcp" ? $7 : $6,$3 == "tcp" ? $9 : $8,$3 == "tcp" ? $8 : $7,$3 == "tcp" ? $10 : $9; } END { print "[ null ] ]"}'
-	elif [ "$_firmware" -eq "2" ]; then #AsusWRT
+	elif [ "$_firmware" -eq "2" ] || [ "$_firmware" -eq "5" ] ; then #AsusWRT
 		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$3 == "tcp" ? $7 : $6,$3 == "tcp" ? $9 : $8,$3 == "tcp" ? $8 : $7,$3 == "tcp" ? $10 : $9; } END { print "[ null ] ]"}'
-	elif [ "$_firmware" -eq "3" ]; then #Tomato
+	elif [ "$_firmware" -eq "3" ] ; then #Tomato
 		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$3 == "tcp" ? $7 : $6,$3 == "tcp" ? $9 : $8,$3 == "tcp" ? $8 : $7,$3 == "tcp" ? $10 : $9; } END { print "[ null ] ]"}'
 	fi
 }
@@ -492,11 +518,13 @@ shutDown(){
 	updateHourly
 	[ "$_symlink2data" -eq "0" ] && [ "$_dowwwBU" -eq 1 ] && doFinalBU
 
-	local t_options=''
-	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
-	eval iptables $t_options -F "$YAMON_IP4"
-	[ "$_includeIPv6" -eq "1" ] && eval ip6tables $t_options -F "$YAMON_IP6"
+	$(eval iptables $_tMangleOption -F "$YAMON_IP4")
+    $(eval iptables $_tMangleOption -A "$YAMON_IP4" -j "RETURN" -s $_generic_ipv4 -d $_generic_ipv4)
 
+	if [ "$_includeIPv6" -eq "1" ] ; then
+        $(eval ip6tables $_tMangleOption -F "$YAMON_IP6")
+        $(eval ip6tables $_tMangleOption -A "$YAMON_IP6" -j "RETURN" -s $_generic_ipv6 -d $_generic_ipv6)
+    fi
 	send2log "
 	=====================================
 	\`yamon.sh\` has been stopped.
@@ -754,11 +782,11 @@ getDeviceName()
 		local nvr=$(nvram show 2>&1 | grep -i "static_leases=")
 		#local result=$(echo "$nvr" | grep -io "$mac=.\{1,\}=" | cut -d= -f2)
 		local result=$(echo "$nvr" | grep -io "$mac[^=]*=.\{1,\}=.\{1,\}=" | cut -d= -f2)
-	elif [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] ; then
+	elif [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] ; then
 		# thanks to Robert Micsutka for providing this code & easywinclan for suggesting & testing improvements!
 		local ucihostid=$(uci show dhcp | grep -i $mac | cut -d. -f2)
 		[ -n "$ucihostid" ] && local result=$(uci get dhcp.$ucihostid.name)
-	elif [ "$_firmware" -eq "2" ] ; then
+	elif [ "$_firmware" -eq "2" ] || [ "$_firmware" -eq "5" ] ; then
 		#thanks to Chris Dougherty for providing this code
 		local nvr=$(nvram show 2>&1 | grep -i "dhcp_staticlist=")
 		local nvrt=$nvr
@@ -1026,9 +1054,9 @@ updateUsage()
 	send2log "=== updateUsage ($cmd/$chain)=== " 0
 	local hr=$(date +%H)
 	_ud_list=''
-    local t_options=''
-	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
-	local iptablesData=$(eval $cmd $t_options -L "$chain" -vnxZ | tail -n +3 | tr -s '-' ' ' | grep -v "0 0 RETURN" | cut -d' ' -f3,8,9)
+
+    local iptablesData=$(eval $cmd $_tMangleOption -L "$chain" -vnxZ | tail -n +3 | tr -s '-' ' ' | grep -v "0 0 RETURN" | cut -d' ' -f3,8,9)
+
 	if [ -z "$iptablesData" ] ; then
 		send2log "	>>> $cmd returned no data... returning " 0
 		return
@@ -1173,7 +1201,7 @@ _liveusage=''
 _ndAMS=0
 _ndAMS_dailymax=24
 _generic_ipv4="0.0.0.0/0"
-_generic_ipv6="0/0 "
+_generic_ipv6="::/0"
 _generic_mac="un:kn:ow:n0:0m:ac"
 started=0
 sl_max=""

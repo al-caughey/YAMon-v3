@@ -1,19 +1,18 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 	<head>
-		<meta http-equiv="cache-control" content="no-cache" />
 		<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 		<!--meta name="viewport" content="width=device-width"-->
 		<!--meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=3.0"-->
 		<title>YAMon:: Usage monitoring by group and device...</title>
 		<meta name="description" content="Internet Usage Statistics" />
 		<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
-		<script type="text/javascript" src="./js/config3.js"></script>
+		<script type="text/javascript" src="./js/config3.3.js"></script>
 		<script type="text/javascript" src="//code.jquery.com/jquery-latest.min.js"></script>
 		<script type="text/javascript" src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 		<script type="text/javascript">
-			var _html_version='3.2.0'
-			if(typeof(_file_version)=='undefined') var _file_version='3.2'
+			var _html_version='3.3.1'
+			if(typeof(_file_version)=='undefined') var _file_version='3.3'
 			var args=window.location.search.replace('?','').split('&'),ver=args[1]||_file_version,domain='',path=''
 			if(typeof(_doLocalFiles)=='undefined'||_doLocalFiles=='0'){
 				path = (args[0] || 'current') + '/'
@@ -26,8 +25,7 @@
 		</script>
 		<script src="https://www.gstatic.com/charts/loader.js"></script>
 		<script type="text/javascript">
-			ver='3.2'
-			//$.ajaxSetup({'cache':true});  //Uncomment this line if your router does not like the timestamps appended to URLs
+			$.ajaxSetup({'cache':true});  //Comment out this line if your router requires timestamps appended to data URLs
 			google.charts.load('current', {'packages':['corechart', 'gauge'], 'callback' : function(){
 				$.ajax({crossDomain: true, url: domain + path + 'js/util' + ver+ '.js',dataType: "script", cache:false})
 				.done(function(){
@@ -266,12 +264,12 @@
 										</td>
 									</tr>
 									<tr id="blank-summary-row" class='hidden'>
-										<td class="st-i br bl"><span class="interval a-c"/></td>
-										<td class="downloads st-d num"/>
-										<td class="uploads st-u num br"/>
-										<td class="tByts st-t num br"/>
-										<td class="percent st-c is-cap br2"/>
-										<td class="a-c st-pt del-row btn num"/>
+										<td class="st-i br bl"><span class="interval a-c"></span></td>
+										<td class="downloads st-d num"></td>
+										<td class="uploads st-u num br"></td>
+										<td class="tByts st-t num br"></td>
+										<td class="percent st-c is-cap br2"></td>
+										<td class="a-c st-pt del-row btn num"></td>
 									</tr>
 								</thead>
 								<tbody>
@@ -286,7 +284,7 @@
 					<h2>Daily Usage Report</h2>
 					<div class='sp-sldr p-r'>
 						<p class="p-report-interval">
-							<span class='rs-date a-r pre-btn'></span><span class='sp-current-date'><span class='current-date'></span></span><span class='re-date a-l post-btn a-l'></span>
+							<span class='rs-date a-r pre-btn'></span><span class='sp-current-date'><span class='current-date'></span><span class='re-date a-l post-btn a-l'></span>
 						</p>
 						 <p class="p-report-date">
 							<span class='pre-btn a-r'>
@@ -346,7 +344,7 @@
 										<td class='info-td p-a' colspan=100%>
 											<div class='info-s p-r hidden' >
 											<span class='close btn p-a'></span>
-											<p class='info-d'>The hourly usage file was updated:<span id='sp_hourly_updated' class='imp-text'></spalass='info-d'/>
+											<p class='info-d'>The hourly usage file was updated:<span id='sp_hourly_updated' class='imp-text'></span><p class='info-d'></p>
 											<p class='info-d'>Click a `group` or `device` name to see the data usage by date on the `Monthly Breakdown` tab</p>
 											<p class='info-d'>Click <span class="item-e"></span> to the left of a `group` name to expand or collapse the devices in that group.  This will adjust the display of the 	 beside and below this table</p>
 											<p class='info-d'>Click <span class="legend-colour" style="background-color:MediumAquaMarine"></span> to the left of a `device` name to include or exclude that device in the 	</p>
@@ -359,7 +357,7 @@
 												<input type="text" id="cf-desc" placeholder='Reason for correction' title='Enter a brief reason for the correction'>
 												<input class='a-r cf-d' type="text" id='cf-d' name="cf-d" placeholder='Down' title='Enter missing downloads in MB'>
 												<input class='a-r cf-u' type="text" id='cf-u' name="cf-u" placeholder='Up' title='Enter missing uploads in MB'> MB
-												<button id='remove-correction' class='btn'onclick='removecorrection()' title='Click to delete this correction'>Remove correction</button>.
+												<button id='remove-correction' class='btn' onclick='removecorrection()' title='Click to delete this correction'>Remove correction</button>.
 											</p>
 											<p class='ts-d is-isp'>Enter your ISP usage data:
 												<input class='i-isp a-r' type="text" id="d-isp-d" placeholder='Down' title='Enter ISP downloads in MB'>
@@ -373,24 +371,24 @@
 											<span class="item-e"></span>
 											<span class="userName"></span>
 										</td>
-										<td class="downloads num"/>
-										<td class="uploads num br"/>
-										<td class="isUL ul-down num"/>
-										<td class="isUL ul-up num br"/>
-										<td class="tByts br2 num"/>
-										<td class="percent br"/>
+										<td class="downloads num"></td>
+										<td class="uploads num br"></td>
+										<td class="isUL ul-down num"></td>
+										<td class="isUL ul-up num br"></td>
+										<td class="tByts br2 num"></td>
+										<td class="percent br"></td>
 									</tr>
 									<tr id="blank-device-row" class="hidden">
-										<td class="deviceName br bl"/>
+										<td class="deviceName br bl">
 											<span class="legend-colour" title='Click to add/remove this device from the graphs'></span>
 											<span class="thedevice"></span>
 										</td>
-										<td class="downloads num"/>
-										<td class="uploads num br"/>
-										<td class="isUL ul-down num"/>
-										<td class="isUL ul-up num br"/>
-										<td class="tByts br2 num"/>
-										<td class="percent br"/>
+										<td class="downloads num"></td>
+										<td class="uploads num br"></td>
+										<td class="isUL ul-down num"></td>
+										<td class="isUL ul-up num br"></td>
+										<td class="tByts br2 num"></td>
+										<td class="percent br"></td>
 									</tr>
 								</thead>
 								<tbody id="DailyData"> </tbody>
@@ -419,6 +417,15 @@
 										<td class="isUL ul-up num br"></td>
 										<td class="tByts br2 num"></td>
 										<td class="a-c percent br"></td>
+									</tr>
+									<tr id="LocalFooter">
+										<td class="a-r br bl">Local Traffic:</td>
+										<td class="downloads num"></td>
+										<td class="uploads num br"></td>
+										<td class="isUL a-c">-</td>
+										<td class="isUL a-c br">-</td>
+										<td class="tByts br2 num"></td>
+										<td class="a-c percent br">-</td>
 									</tr>
 									<tr id="RouterFooter">
 										<td class="a-r br bl">Measured @ Router:</td>
@@ -484,6 +491,84 @@
 						</article>
 
 					</section>
+					<div id="hourly-table-div" class="">
+                        <h2 class='tab-name'><button type="button" class="pDBtn" title="Go to the previous day in this interval"></button>&nbsp;Hourly Traffic for <span class='current-date'></span> <button type="button" class="nDBtn" title="Go to the next day in this interval"></button></h2>
+                        <table id='hourly-table' class='data-table'>
+                            <thead>
+                                <tr class='header-row'>
+                                    <th rowspan=2>Group</th>
+                                    <th rowspan=2>Name</th>
+                                    <th class='header AM btn' colspan=12>AM</th>
+                                    <th class='header PM btn' colspan=12>PM</th>
+                                </tr>
+                                <tr class='header-row'>
+                                    <th class='AM'>12</th>
+                                    <th class='AM'>1</th>
+                                    <th class='AM'>2</th>
+                                    <th class='AM'>3</th>
+                                    <th class='AM'>4</th>
+                                    <th class='AM'>5</th>
+                                    <th class='AM'>6</th>
+                                    <th class='AM'>7</th>
+                                    <th class='AM'>8</th>
+                                    <th class='AM'>9</th>
+                                    <th class='AM'>10</th>
+                                    <th class='AM'>11</th>
+                                    <th class='PM'>12</th>
+                                    <th class='PM'>1</th>
+                                    <th class='PM'>2</th>
+                                    <th class='PM'>3</th>
+                                    <th class='PM'>4</th>
+                                    <th class='PM'>5</th>
+                                    <th class='PM'>6</th>
+                                    <th class='PM'>7</th>
+                                    <th class='PM'>8</th>
+                                    <th class='PM'>9</th>
+                                    <th class='PM'>10</th>
+                                    <th class='PM'>11</th>
+                                </tr>
+                                <tr class='hourly-row hidden'>
+                                    <td class='group-name'>-</td>
+                                    <td class='reports-name'>-</td>
+                                    <td class='hr AM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr AM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr AM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr AM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr AM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr AM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr AM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr AM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr AM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr AM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr AM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr AM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
+                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>                     
+                                </tr>
+                            </thead>
+                            <tbody id='hourly-tbody'></tbody>
+                            <tfoot id='hourly-tfoot'>
+                                <tr class='no-data hidden' id='hourly-no-data'>
+                                    <td colspan=100%>No data for this date</td>
+                                </tr>
+                                <tr class='coming-soon' id='hourly-coming-soon'>
+                                    <td colspan=100%>Coming soon... a table showing usage per device per hour (like the graph below but a table)</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    
+                    
+                    </div>
 					<div id="hourlyGraph" class="p-r">Hourly Data Graph</div>
 					<p id='bnav' class='p-r'>
 						<button type="button" id="bpDBtn" class='pDBtn' title='Go to the previous day in this interval'></button>
@@ -594,7 +679,7 @@
 											<option value="ALL" selected>ALL Traffic By Day</option>
 										</select>
 										<span class='info-w p-a'>
-											<a class='export btn' title='Export to CSV'/></a>
+											<a class='export btn' title='Export to CSV'></a>
 											<span class='info btn'></span>
 										</span>
 									</th>
@@ -659,7 +744,7 @@
 					</section>
 					<hr/>
 					<h2><span id='graphsfor'></span>  [ <span id='rld-mbd-g' class='btn' onclick="drawGraphs()" title='Re-draw these graphs'></span> ]</h2>
-					<p class='a-c'><a id='all-	'>All</a> <a id='no-	'>None</a>
+					<p class='a-c'><a id='all-graphs'>All</a> <a id='no-graphs'>None</a>
 						<label for='cb-down'><input type='checkbox' id='cb-down' class='gr-cb' checked>Downloads</label>
 						<label for='cb-up'><input type='checkbox' id='cb-up' class='gr-cb' checked>Uploads</label>
 						<label for='cb-tot'><input type='checkbox' id='cb-tot' class='gr-cb' checked>Totals</label>
@@ -862,7 +947,7 @@
 									<th class='bt br a-c' colspan=2>
 										Updated
 										<span class='info-w p-a'>
-											<a class='export btn' title='Export `users.js`'/></a>
+											<a class='export btn' title='Export `users.js`'></a>
 											<span class='info btn'></span>
 											<span class='ts btn'></span>
 										</span>
@@ -878,27 +963,27 @@
 											<p class='info-d'>Click anywhere else in a row to edit the group, name and/or colour for the device</p>
 											<p class='info-d'><span class='editted'></span> indicates that the Group/Device Name information has been editted (i.e., it has been changed from what appears in your users.js file)</p>
 											<p class='info-d'>If you have not enabled the database options on the `Settings` tab, any changes you make on this tab will not be reflected on other computers/devices or in other browsers </p>
-											<p class='info-d'>If you do not want to use the database integration but do want view the YAMon reports from multiple devices, click the export icon (<a class='export btn' title='Export `users.js`'/></a>) and save the file to your router. <b>NB</b> - you must stop the yamon*.sh script on your router before replacing or editing `users.js`!</p>
+											<p class='info-d'>If you do not want to use the database integration but do want view the YAMon reports from multiple devices, click the export icon (<a class='export btn' title='Export `users.js`'></a>) and save the file to your router. <b>NB</b> - you must stop the yamon*.sh script on your router before replacing or editing `users.js`!</p>
 											<p class='ts-d'>Devices: <span class='nad imp-text'>Show All</span> </p>
 
 											<hr class='ts-d'/>
-											<p class='ts-d'>To copy your device customizations into your `users.js` file on your router, click the export icon (<a class='export btn' title='Export `users.js`'/></a>) and save the file to your router. <b>NB</b> - you must stop the yamon*.sh script on your router before replacing or editing `users.js`!</p>
+											<p class='ts-d'>To copy your device customizations into your `users.js` file on your router, click the export icon (<a class='export btn' title='Export `users.js`'></a>) and save the file to your router. <b>NB</b> - you must stop the yamon*.sh script on your router before replacing or editing `users.js`!</p>
 										</div>
 									</td>
 								</tr>
 								<tr id="blank-devices-row" class="hidden">
-									<td class="group bl"/>
+									<td class="group bl"></td>
 									<td class="deviceName">
 										<span class="legend-colour"></span>
 										<span class="thedevice"></span>
 									</td>
-									<td class="deviceMAC"/>
-									<td class="deviceIP"/>
-									<td class="deviceIPv6 ip6"/>
-									<td class="tByts bl br2 num"/>
+									<td class="deviceMAC"></td>
+									<td class="deviceIP"></td>
+									<td class="deviceIPv6 ip6"></td>
+									<td class="tByts bl br2 num"></td>
 									<td class="percent br2">0</td>
-									<td class="updated a-c"/>
-									<td class="edit-d br" title="Click to edit the owner/name/colour for this device"/>
+									<td class="updated a-c"></td>
+									<td class="edit-d br" title="Click to edit the owner/name/colour for this device"></td>
 								</tr>
 							</thead>
 							<tbody id="devicesData"></tbody>
@@ -944,10 +1029,10 @@
 							<h1><span class='settings-tab settings'></span>Required Settings</h1>
 							<p>The `Settings` tab allows you to configure how data is presented in the reports.  Before you can see yours, you must first:</p>
 							<ol>
-								<li>select whether you have unlimited data or a monthly usage cap: </p>
+								<li>select whether you have unlimited data or a monthly usage cap:
 									<p id='intro-bw_cap'></p>
 								</li>
-								<li class='isUL'>set your `Bonus Data` limits:</p>
+								<li class='isUL'>set your `Bonus Data` limits:
 									<p id='intro-bonus_cap'></p>
 								</li>
 							</ol>
@@ -984,7 +1069,7 @@
 							<h1>Last but not least...</h1>
 							<p>Please show your appreciation and support future development of this tool by <a href='https://www.paypal.me/YAMon/25' target='_blank'>donating</a> or by clicking one of the ads on the <a href='http://usage-monitoring.com' target='_blank'>usage-monitoring.com</a> site.</p>
 							<div class='_detanod amount'></div>
-							Anything that you can contribute is greatly appreciated.  Thanks!</p>
+							<p>Anything that you can contribute is greatly appreciated.  Thanks!</p>
 						</div>
 						<p class='intro-btn btn a-c'><button id='intro-p'><< Back</button><button id='intro-n'>Next >></button> </p>
 					</div>
@@ -994,11 +1079,11 @@
 						<p>The settings are password protected!</p>
 						<p id='p-settings_pswd'>
 							<label for="settings_pswd">Settings Password:
-							<input type="password" name="settings_pswd" id="settings_pswd" size='24'/></label>
+							<input type="password" name="settings_pswd" id="settings_pswd" size='24'></label>
 						</p>
 						<p id='p-settings_pswd_cb'>
 							<label for="settings_pswd_cb">
-							<input type="checkbox" name="settings_pswd_cb" id="settings_pswd_cb"/> Remember the password on this device</label>
+							<input type="checkbox" name="settings_pswd_cb" id="settings_pswd_cb"> Remember the password on this device</label>
 						</p>
 					</div>
 					<h3>You must specify and/or confirm the value for all <span class=' required'> required</span> fields.  The others are optional (or you can accept the defaults).</h3>
@@ -1051,7 +1136,7 @@
 								</select>
 							</p>
 							<p title='Show/Hide devices within each `owner` grouping (default: selected)'>
-								<input type="checkbox" id="ShowDevices" checked />
+								<input type="checkbox" id="ShowDevices" checked>
 								<label for="ShowDevices">Show Devices</label>
 							</p>
 							<p title='Show/Hide devices with no traffic  (default: not selected)'>
@@ -1064,7 +1149,7 @@
 							</p>
 							<p title='Interval to auto refresh the reports (in seconds)'>
 								<label for="RefreshInterval">Refresh Interval:</label>
-								<input type="number" pattern='^[1-9][0-9]*$' size="4" name="Refresh" id="RefreshInterval" class='linked a-r' value="120"/> sec.
+								<input type="number" pattern='^[1-9][0-9]*$' size="4" name="Refresh" id="RefreshInterval" class='linked a-r' value="120"> sec.
 							</p>
 							<p>
 								<label for="dateFMT">Date Format:</label>
@@ -1102,7 +1187,7 @@
 							<p id='dbkey-needtoclick'>Click the `Get Key` button below to create a database for your settings at usage-monitoring.com.</p>
 							<p id='dbkey-sharing' class='hidden'>Your  router has been configured to share all of the YAMon settings with all devices that access these reports.</p>
 							<p class='a-c'><button id='getKey' onclick='createdb()'>Get Key</button></p>
-							<p title='This is your database key... the value is set in `config3.js`'><input type='text' size=36 disabled='disabled' id='dbkey'/></p>
+							<p title='This is your database key... the value is set in `config3.js`'><input type='text' size=36 disabled='disabled' id='dbkey'></p>
 							<p id='dbkey-clicked'>Copy the string from the field above and paste it into `config.file` on your router.<br/>
 							Then run `restart.sh` on your router and all of your devices will share the same YAMon settings.</p>
 							<p id='p-useHTTPS'><input type='checkbox' id='useHTTPS'><label for='useHTTPS'> Use HTTPS</label></p>
@@ -1116,12 +1201,12 @@
 								<label for="showISP" checked>Show ISP Columns</label>
 							</p>
 							 <p class='showISP ti-17' title='Name of your ISP (e.g.,Rogers, Verizon, etc.)... for display only'>
-								<label for="isp-name">ISP Name:</label>
+								<label>ISP Name:</label>
 								<select id='isp-format' name='isp-format'></select>
 							</p>
 							 <p class='showISP ti-17' title='URL to ISP usage report'>
 								<label for="isp-url">Usage URL:</label>
-								<input type="url" name="isp-url" id="isp-url" class='linkedURL' size='18' placeholder="URL to ISP report"/>
+								<input type="url" name="isp-url" id="isp-url" class='linkedURL' size='18' placeholder="URL to ISP report">
 								<a class="isp-url hidden" target="_blank">Link</a>
 							</p>
 							 <p class='showISP ti-17' title='Last time you updated data'>
@@ -1182,7 +1267,7 @@
 								<th class='rest-name bt bl'>Restriction Name</th>
 								<th class='rest-days bt'>Restricts access on the following days</th>
 								<th class='rest-time bt'>Between</th>
-								<th class='rest-groups p-r bt br' colspan=2>For<span class='rest-new btn p-a'/></th>
+								<th class='rest-groups p-r bt br' colspan=2>For<span class='rest-new btn p-a'></span></th>
 							</tr>
 							<tr class='edit-restrictions hidden'>
 								<td class='rest-name bl'>
@@ -1260,7 +1345,7 @@
 					<p><label class='edl a-r'>Device Mac:</label><span id='ed-mac'>00:00:00:00:00:00</span></p>
 					<p id="sp-group-list"><label class='edl a-r' for='ed-owner'>Owner:</label><input id='ed-owner' placeholder='Set device owner'><select id="group-list" size=5></select></p>
 					<p><label class='edl a-r' for='ed-name'>Name:</label><input id='ed-name' placeholder='Set device name'></p>
-					<p class='ed-key'><label class='edl a-r for='ed-key'>Key:</label><input id='ed-key' placeholder='Device Key'></p>
+					<p class='ed-key'><label class='edl a-r' for='ed-key'>Key:</label><input id='ed-key' placeholder='Device Key'></p>
 					<p><label class='edl a-r' for='ed-colour'>Colour:</label><input type='color' id='ed-colour' placeholder='Pick device colour' title='Enter the HTML colour name or a valid hex colour code or pick from the options below'></p>
 					<h3>Pick colors:</h3>
 					<p><span class="dc-p btn c-p" id='bl'>Blacks</span><span class="dc-p btn c-p" id='gr'>Grays</span><span class="dc-p btn c-p" id='blu'>Blues</span><span class="dc-p btn c-p" id='gre'>Greens</span><span class="dc-p btn c-p" id='ye'>Yellows</span><span class="dc-p btn c-p" id='br'>Browns</span><span class="dc-p btn c-p" id='or'>Oranges</span><span class="dc-p btn c-p" id='re'>Reds</span><span class="dc-p btn c-p" id='pi'>Pinks</span><span class="dc-p btn c-p" id='pu'>Purples</span></p>

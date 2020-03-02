@@ -30,7 +30,7 @@ source "$_configFile"
 loadconfig
 source "$d_baseDir/strings/$_lang/strings.sh"
 
-np=$(ps | grep -v grep | grep -c yamon$_version)
+np=$(ps | grep -v grep | grep -c yamon$_file_version)
 if [ "$np" -gt "0" ] || [ -d "$_lockDir" ] ; then
 	echo "$_s_running"
 	exit 0
@@ -42,6 +42,7 @@ delay=$1
 echo "
 $los
 YAMon will be started following a delay of $delay seconds.
+
 NB - depending on your router and firmware, you may have to increase
 	 this delay (to allow  other processes to startup properly),
 	 or you may be able to eliminate the delay altogether.

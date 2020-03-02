@@ -25,16 +25,14 @@ source "$d_baseDir/strings/$_lang/strings.sh"
 
 # stop the script by removing the locking directory
 
-_oldLockDir="/tmp/YAMon3-running"
-
 ir=$(ps | grep -v "grep" | grep -c "yamon$_file_version")
 if [ ! -d $_lockDir ] && [ "$ir" -eq "0" ]; then
 	echo "$_s_notrunning"
 	exit 0
 fi
 
-[ -d "$_oldLockDir" ] && rmdir $_oldLockDir
-[ -d $_lockDir ] && rmdir $_lockDir
+rmdir $_lockDir
+
 if [ "$ir" -eq "0" ]; then
 	echo "$_s_stopped"
 	exit 0

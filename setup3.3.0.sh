@@ -10,19 +10,7 @@
 ##########################################################################
 
 #HISTORY
-# 3.1.1 (2016-10-10): added etc/init.d/yamon3 for OpenWrt as per michaeljprentice @ http://www.dd-wrt.com/phpBB2/viewtopic.php?p=1046901#1046901
-# 3.1.2 (2016-10-15): added cchecks for missing parameters; fixed /tmp/www prompts; removed extra declarations for Lede;
-#	   (2016-10-23): replaced busybox call with command -v
-# 3.1.6 (2016-11-19): added a logging info to setup.log
-# 3.1.8 (2016-12-15): add version to util.sh
-# 3.2.0 (2017-01-22): added options for ftp_dir parameter
-# 3.2.1 (2017-01-28): added rm for index.html & call to setWebDirectories
-# 3.2.2 (2017-01-29): added check for DHCP
-# 3.2.3 (2017-02-05): _setupWebIndex & symlink cleanup
-# 3.2.4 (2017-02-20): no changes... updated for consistency
-# 3.2.5 (2017-03-06): no changes... updated for consistency
-# 3.2.6 (2017-03-24): tidied up Tomato functionality
-# 3.2.7 (2017-03-24): updated for consistency
+# 3.3.0 (2017-06-18): bumped minor version; added xwrt, Turris
 
 d_baseDir="$YAMON"
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
@@ -60,7 +48,7 @@ $los
 "
 
 _logDir='logs/'
-_logfilename="${d_baseDir}$_logDir"'setup.log'
+_logfilename="${d_baseDir}${_logDir}setup$_version.log"
 echo "Log file:  \`$_logfilename\`."
 [ ! -d "${d_baseDir}$_logDir" ] && mkdir -p "${d_baseDir}$_logDir"
 [ ! -f "$_logfilename" ] && touch "$_logfilename"
@@ -213,7 +201,9 @@ prompt '_firmware' 'Which of the *WRT firmware variants is your router running?'
     1 -> OpenWrt
     2 -> Asuswrt-Merlin
     3 -> Tomato
-    4 -> LEDE' $_firmware ^[0-4]$
+    4 -> LEDE
+    5 -> Xwrt-Vortex
+    6 -> Turris' $_firmware ^[0-6]$
 t_wid=1
 prompt 't_wid' "Is your \`data\` directory in \`$d_baseDir\`?" "$yn_y" $t_wid $zo_r
 [ "$t_wid" -eq 0 ] && prompt '_dataDir' "Enter the path to your data directory" "Options:
@@ -266,10 +256,10 @@ if [ ! -z "$ipv6_enable" ] && [ "$ipv6_enable" -eq "1" ] ; then
 	fi
 fi
 prompt '_symlink2data' 'Create symbollic links to the web data directories?' "$yn_y" '1' $zo_r
-[ "$_firmware" -eq "2" ] && prompt '_wwwPath' 'Specify the path to the web directories?' 'The path must start with a \`/\`' '/tmp/var/wwwext/' $re_path
+[ "$_firmware" -eq "2" ] || [ "$_firmware" -eq "5" ] && prompt '_wwwPath' 'Specify the path to the web directories?' 'The path must start with a \`/\`' '/tmp/var/wwwext/' $re_path
 
 [ -h "${_wwwPath}index.html" ] && rm -fv ${_wwwPath}index.html
-[ -h "${_wwwPath}${_setupWebIndex}" ] && rm -fv ${_wwwPath}${_setupWebIndex}
+
 if [ "${_dataDir:0:1}" == "/" ] ; then
     _dataPath=$_dataDir
 else
@@ -302,7 +292,7 @@ else
 	prompt '_doDailyBU' 'Enable daily backup of data files?' "$yn_y" '1' $zo_r
 	[ "$_doDailyBU" -eq 1 ] && prompt '_tarBUs' 'Compress the backups?' "$yn_y" '1' $zo_r
 fi
-if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] ; then
+if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] ; then
 	updateConfig "_dnsmasq_conf" "/tmp/etc/dnsmasq.conf"
 	updateConfig "_dnsmasq_leases" "/tmp/dhcp.leases"
     _dnsmasq_conf="/tmp/etc/dnsmasq.conf"
@@ -395,7 +385,7 @@ t_www=0
 t_perm="770"
 t_perm_msg="e.g., $t_perm(*)-> rwxrwx---"
 perm_r=^[0-7][0-7][0-7]$
-if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] ; then
+if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] ; then
 	t_perm="a+rX"
 	perm_r=^[a-zA-z+][a-zA-z+][a-zA-z+][a-zA-z+]$
 	prompt 't_www' "Do you want to set directory permissions for \`${_wwwPath}\`?" "$yn_y" '1' $zo_r

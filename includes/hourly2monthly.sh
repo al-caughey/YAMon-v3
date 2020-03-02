@@ -84,8 +84,8 @@ updateHourly2Monthly()
 		uptime=$(getCV "$pnd" "uptime")
 		down=$(getCV "$pnd" "down")
 		up=$(getCV "$pnd" "up")
-		send2log "  hr-->$hr  uptime-->$uptime  down-->$down  up-->up" -1
-		if [ "$uptime" -gt "$p_uptime" ] ; then
+		send2log "  hr-->$hr  uptime-->$uptime  down-->$down  up-->up" 0
+		if [ "$uptime" -ge "$p_uptime" ] ; then
 			svd=$(digitSub "$down" "$p_pnd_d")
 			svu=$(digitSub "$up" "$p_pnd_u")
 			if [ "$svd" \< "0" ] ; then

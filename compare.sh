@@ -8,6 +8,10 @@
 ##########################################################################
 
 directory='current'
+d_baseDir="$YAMON"
+[ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
+source "${d_baseDir}/includes/versions.sh"
+
 
 getlatest()
 {
@@ -160,7 +164,12 @@ elif [ ! -z "$allMatch" ] && [ "$param" == 'verify' ] ; then
 elif [ ! -z "$allMatch" ] ; then
 	echo "One or more of your files is out-of-date and should be updated.
   Either re-run this script and hit \`s\` to sync all files, or
-  visit \`http://usage-monitoring.com/manualInstall.php\` to update selectively."
+  visit \`http://usage-monitoring.com/manualInstall.php\` to update selectively.
+  
+  NB - I recently learned that some firmware variants include a buggy version 
+  of the wget function... If the compare results show that just yamon$_version.sh and 
+  yamon$_file_version.html differ, you could have the affected firmware.  
+  Use the manual install process instead... sorry!"
 fi
 
 [ -z "$param" ] && echo "

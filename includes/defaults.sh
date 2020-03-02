@@ -7,14 +7,16 @@
 #
 # History
 # 3.2.2 - moved _version and _file_version to versions.sh
-#
+# 3.3.1 - changed YAMON_IP4, YAMON_IP6, d_configWWW
+#       - added d_use_nf_conntrack
+#       - removed unused d_lan_iface_only, d_enable_db
 ##########################################################################
 
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
 _lockDir="/tmp/YAMon$_file_version-running"
 
-YAMON_IP4='YAMONv4'
-YAMON_IP6='YAMONv6'
+YAMON_IP4='YAMON33v4'
+YAMON_IP6='YAMON33v6'
 
 _PRIVATE_IP4_BLOCKS='10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
 _PRIVATE_IP6_BLOCKS='fc00::/7'
@@ -39,7 +41,7 @@ d_wwwBU="wwwBU/"
 d_usersFileName="users.js"
 d_hourlyFileName="hourly_data.js"
 d_usageFileName="mac_data.js"
-d_configWWW="config3.js"
+d_configWWW="config$_file_version.js"
 d_symlink2data=1
 d_enableLogging=1
 d_log2file=1
@@ -55,7 +57,6 @@ d_dailyBUPath="daily-bu/"
 d_unlimited_usage=0
 d_unlimited_start="02:00"
 d_unlimited_end="08:00"
-d_lan_iface_only=0
 d_settings_pswd=''
 d_dnsmasq_conf="/tmp/dnsmasq.conf"
 d_dnsmasq_leases="/tmp/dnsmasq.leases"
@@ -81,9 +82,7 @@ d_ftp_user=''
 d_ftp_pswd=''
 d_ftp_dir=''
 d_useTMangle=0
-d_enable_db=0
-d_db_url=''
-d_db_name=''
+d_use_nf_conntrack=1
 d_path2MSMTP=/opt/usr/bin/msmtp
 d_MSMTP_CONFIG=/opt/scripts/msmtprc
 

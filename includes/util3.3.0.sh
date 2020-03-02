@@ -6,13 +6,8 @@
 # various utility functions (shared between one or more scripts)
 #
 # History
-# 3.2.1 (2017-01-28): moved setWebDirectories from yamon.x.sh to util.3.2
-# 3.2.2 (2017-01-29): removed write2log; removed unused debugging calls
-# 3.2.3 (2017-01-29): added line to remove symlink
-# 3.2.4 (2017-02-20): no changes... updated for consistency
-# 3.2.5 (2017-02-20): added generic user 0.0.0.0/0
-# 3.2.6 (2017-02-26): spacing in prompt
-# 3.2.7 (2017-05-07): clean-up so that yamon3.2 can run concurrently with 3.3... this will likely be the last update to YAMon3.2013-present.
+# 3.3.0 (2017-06-18): bumped minor version; added xwrt
+#
 ##########################################################################
 
 _enableLogging=1
@@ -159,7 +154,7 @@ send2log()
 setWebDirectories()
 {
 	send2log "=== setWebDirectories ===" -1
-	[ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] && [ ! -h "$_wwwPath" ] && ln -s "/tmp/www" "$_wwwPath"
+	[ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] && [ ! -h "$_wwwPath" ] && ln -s "/tmp/www" "$_wwwPath"
 	if [ "$_symlink2data" -eq "1" ] ; then
 		if [ ! -d "$_wwwPath" ] ; then
 			mkdir -p "$_wwwPath"
@@ -178,8 +173,8 @@ setWebDirectories()
 		local ljs=${_wwwData%/}
 		local llogs='logs'
 
-		[ -h "${_wwwPath}${_setupWebIndex}" ]  && rm -fv "${_wwwPath}${_setupWebIndex}"
-		[ -h "${_wwwPath}${ldata}" ]  && rm -fv "${_wwwPath}${ldata}"
+		[ -h "${_wwwPath}${_setupWebIndex}" ] && rm -fv "${_wwwPath}${_setupWebIndex}"
+		[ -h "${_wwwPath}${ldata}" ] && rm -fv "${_wwwPath}${ldata}"
 
 		[ ! -h "$_wwwPath$lcss" ] && ln -s "${_baseDir}$_setupWebDir$lcss" "$_wwwPath$lcss"
 		[ ! -h "$_wwwPath$limages" ] && ln -s "${_baseDir}$_setupWebDir$limages" "$_wwwPath$limages"
@@ -192,7 +187,7 @@ setWebDirectories()
 		copyfiles "${_baseDir}$_setupWebDir*" "$_wwwPath"
 	fi
 
-	if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ]  ; then
+	if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] ; then
 		local lan_ip=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
 	else
 		local lan_ip=$(nvram get lan_ipaddr)
@@ -202,7 +197,7 @@ setWebDirectories()
 
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	~  Your reports URL: http://${lan_ip}/user/$_setupWebIndex
-    ~     (subject to some firmware peculiarities)
+    ~    (subject to some firmware variant oddities)
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	send2log "Reports URL: http://${lan_ip}/user/$_setupWebIndex" 1
 }
@@ -266,7 +261,7 @@ getField()
 }
 getCV()
 {
-	send2log "=== getCV ===" 0
+	send2log "=== getCV === $2" 0
 	send2log "	  arguments:  $1  $2" -1
 	local result=$(echo "$1" | grep -io "\"$2\":[\"0-9]\{1,\}" | grep -o "[0-9]\{1,\}");
 	[ -z $result ] && result=0
@@ -316,7 +311,6 @@ _hourlyUsageDB: $_hourlyUsageDB" > "$manifest"
 		send2log "  >>> Compressed back-ups for $bu_ds to $bupath"'bu-'"$bu_ds.tar" 0
 		local bp="${bupath}bu-$bu_ds.tar"
 		if [ "$_enableLogging" -eq "1" ] ; then
-
 			tar -czf "$bp" "$manifest" "$_usersFile" "$_macUsageDB" "$_hourlyUsageDB" "$_logfilename" &
 		else
 			tar -czf "$bp" "$manifest" "$_usersFile" "$_macUsageDB" "$_hourlyUsageDB" &
@@ -374,7 +368,7 @@ createUDList(){
 		[ ! -z "$isy" ] && continue
 		[ "$f1" -eq '0' ] && continue
 		send2log "  >>> f1-->$f1	f2-->$f2   f3-->$f3   " -1
-		if [ "$f2" == "0.0.0.0/0" ] || [ "$f2" == "::/0" ] ; then
+		if [ "$f2" == "$_generic_ipv4" ] || [ "$f2" == "::/0" ] ; then
 			add2UDList $f3 $f1 0
 		else
 			add2UDList $f2 0 $f1
@@ -439,21 +433,19 @@ checkIPTableEntries()
 		local ip=$3
 		[ "$ip" == "$g_ip" ] && return
 		while [ true ]; do
-			local dup_num=$(eval $cmd $t_options -vnxL "$chain" --line-numbers | grep -m 1 -i "\b$ip\b" | cut -d' ' -f1)
+			local dup_num=$(eval $cmd $_tMangleOption -vnxL "$chain" --line-numbers | grep -m 1 -i "\b$ip\b" | cut -d' ' -f1)
 			[ -z "$dup_num" ] && break
-			$(eval $cmd $t_options -D "$chain" $dup_num)
+			$(eval $cmd $_tMangleOption  -D "$chain" $dup_num)
 		done
 	}
 	addIP(){
 		local cmd=$1
 		local chain=$2
 		local ip=$3
-		clearIPs "$cmd" "$chain" "$g_ip\s*$g_ip"
-		$(eval $cmd $t_options -I "$chain" -s "$ip" -j RETURN)
-		$(eval $cmd $t_options -I "$chain" -d "$ip" -j RETURN)
-		$(eval $cmd $t_options -A "$chain" -s "$g_ip" -j RETURN)
-		$(eval $cmd $t_options -A "$chain" -d "$g_ip" -j RETURN)
+		$(eval $cmd $_tMangleOption -I "$chain" -s "$ip" -j RETURN)
+		$(eval $cmd $_tMangleOption -I "$chain" -d "$ip" -j RETURN)
 	}
+
 	send2log "=== checkIPTableEntries === " 0
 	cmd=$1
 	chain=$2
@@ -462,8 +454,6 @@ checkIPTableEntries()
 	g_ip="$_generic_ipv4"
 	[ "$cmd" == 'ip6tables' ] && g_ip="$_generic_ipv6"
 
-    local t_options=''
-	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
 	if [ "$nm" -eq "0" ]; then
 		send2log "  >>> Added rules to $chain for $mac-->$ip" 1
 		addIP "$cmd" "$chain" "$ip"
@@ -475,48 +465,49 @@ checkIPTableEntries()
 }
 checkIPChain()
 {
-	send2log "=== checkIPChain === " 0
 	local cmd="$1"
-	local chain=$2
-	local rule=$3
-	send2log "=== check $cmd for $chain ===" 0
+	local chain="$2"
+	local base="$3"
+	local rule="${base}Entry"
+	send2log "=== checkIPChain check $cmd for $chain === " 0
 
-    local t_options=''
-	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
-	local rules=$(eval $cmd $t_options -nL "$rule" --line-numbers | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5)
-
-	foundRule=$(eval $cmd $t_options -L | grep -ic "chain $rule")
-	foundChain=$(eval $cmd $t_options -L "$chain" | grep -ic "\b$rule\b")
-	if [ "$foundChain" -eq "1" ]; then
-		send2log "  >>> Rule $rule exists in chain $chain ==> $foundChain" 0
-	elif [ "$foundChain" -eq "0" ]; then
-		send2log "  >>> Created rule $rule in chain $chain ==> $foundChain" 2
-		[ "$foundRule" -eq "0" ] && $(eval $cmd $t_options -N $rule)
-		$(eval $cmd $t_options -I "$chain" -j "$rule")
-	else
-		send2log "  !!! Found $foundChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99
-		local i=1
-		while [  "$i" -le "$foundChain" ]; do
-			local dup_num=$(eval $cmd $t_options -L $chain --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
-			$(eval $cmd $t_options -D $chain $dup_num)
-			i=$(($i+1))
-		done
-		$(eval $cmd $t_options -I $chain -j $rule)
-	fi
+    local oldRuleinChain=$(eval $cmd $_tMangleOption -L "$chain" | grep -ic "\b$base\b")
+    local i=1
+    while [  "$i" -le "$oldRuleinChain" ]; do
+        local dup_num=$(eval $cmd $_tMangleOption -L "$chain" --line-numbers | grep -m 1 -i "\b$base\b" | cut -d' ' -f1)
+        $(eval $cmd $_tMangleOption -D "$chain" $dup_num)
+        i=$(($i+1))
+    done
+    
+    local foundRuleinChain=$(eval $cmd $_tMangleOption -L "$chain" | grep -ic "\b$rule\b")
+    if [ "$foundRuleinChain" -eq "1" ]; then
+        send2log "  >>> Rule $rule exists in chain $chain ==> $foundRuleinChain" 0
+    elif [ "$foundRuleinChain" -eq "0" ]; then
+        send2log "  >>> Created rule $rule in chain $chain ==> $foundRuleinChain" 2
+        $(eval $cmd $_tMangleOption -I "$chain" -j "$rule")
+    else
+        send2log "  !!! Found $foundRuleinChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99
+        local i=1
+        while [  "$i" -le "$foundRuleinChain" ]; do
+            local dup_num=$($cmd -L "$chain" --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
+            $(eval $cmd $_tMangleOption -D "$chain" $dup_num)
+            i=$(($i+1))
+        done
+        $(eval $cmd $_tMangleOption -I "$chain" -j "$rule")
+    fi
 }
 getMACIPList(){
 	local cmd=$1
 	local rule=$2
 	send2log "=== getMACIPList ($cmd/$rule) === " 0
 
-	local t_options=''
-	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
-	local rules=$(eval $cmd $t_options -nL "$rule" --line-numbers | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5)
+    local rules=$(eval "$cmd $_tMangleOption -nL "$rule" --line-numbers" | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5)
 
 	if [ -z "$rules" ] ; then
 		send2log "	$rule returned nothing?!?" 2
-		checkIPChain $cmd "FORWARD" $rule
-		checkIPChain $cmd "INPUT" $rule
+		checkIPChain $cmd "FORWARD" "$rule"
+		checkIPChain $cmd "INPUT" "$rule"
+        checkIPChain $cmd "OUTPUT" "$rule"
 	fi
 	send2log "	  rules-->
 $rules" -1
@@ -546,21 +537,23 @@ $mac $ip"
 getForwardData(){
 	local cmd="$1"
 	local chain="$2"
-    local t_options=''
-	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
-	local fc=$(eval $cmd $t_options -L FORWARD -vnx | tr -s '-'  ' ' | sed 's~^\s*~~')
-	ym=$(echo "$fc" | grep "\b$chain\b" | cut -d' ' -f2)
+    
+    local lc=$(eval $cmd $_tMangleOption -L "${chain}Local" -vnx | tr -s '-'  ' ' | sed 's~^\s*~~')
+	loco=$(echo "$lc" | grep "RETURN" | cut -d' ' -f2)
+ 	[ -z "$loco" ] && loco=0   
+    local fc=$(eval $cmd $_tMangleOption -L FORWARD -vnx | tr -s '-'  ' ' | sed 's~^\s*~~')
+	ym=$(echo "$fc" | grep "$chain" | cut -d' ' -f2)
 	[ -z "$ym" ] && ym=0
 	l2w=$(echo "$fc" | grep "lan2wan" | cut -d' ' -f2)
 	[ -z "$l2w" ] && l2w=0
-	dp=$($cmd -L -vnx | tr -s '-' ' ' | sed 's~^\s*~~' | grep "DROP" | cut -d' ' -f2)
+	dp=$(eval $cmd $_tMangleOption -L -vnx | tr -s '-' ' ' | sed 's~^\s*~~' | grep "DROP" | cut -d' ' -f2)
 	IFS=$'\n'
 	local tot=0
 	for line in $(echo "$dp")
 	do
 		tot=$(digitAdd "$tot" "$line")
 	done
-	echo ", '$cmd': {\"$chain\":$ym,\"lan2wan\":$l2w,\"DROP\":$tot}"
+	echo ", '$cmd': {\"$chain\":$ym,\"lan2wan\":$l2w,\"DROP\":$tot,\"local\":$loco}"
 }
 save2File(){
 	send2log "=== save2File === " 0

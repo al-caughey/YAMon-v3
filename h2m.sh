@@ -65,13 +65,13 @@ an asterisk (*).  To accept this default, simply hit enter;
 otherwise type your preferred value (and then hit enter).
 "
 
-local yn_y="Options: 0->No -or- 1->Yes(*)"
-local yn_n="Options: 0->No(*) -or- 1->Yes"
-local zo_r=^[01]$
-local zot_r=^[012]$
+yn_y="Options: 0->No -or- 1->Yes(*)"
+yn_n="Options: 0->No(*) -or- 1->Yes"
+zo_r=^[01]$
+zot_r=^[012]$
 
-local mo=$(date +%m)
-local rYear=$(date +%Y)
+mo=$(date +%m)
+rYear=$(date +%Y)
 prompt 'mo' "Enter the month number of the reporting interval for which your are missing data:" '(Jan-->1, Feb-->2... Dec-->12)' "$mo" ^[1-9]$\|^[1][0-2]$
 prompt 'rYear' "Enter the year:" '' "$rYear" ^20[1-9][0-9]$
 prompt 'just' "Do you want to update the entire month or just one specific day?" 'Select 0 for the entire month or input the day number' "0" ^[0-9]$\|^[12][0-9]$\|^[3][01]$
@@ -84,26 +84,26 @@ rDay=$(printf %02d $_ispBillingDay)
 rMonth=$(printf %02d $mo)
 
 if [ "${_dataDir:0:1}" == "/" ] ; then
-	local _dataPath=$_dataDir
+	_dataPath=$_dataDir
 else
-	local _dataPath="${_baseDir}$_dataDir"
+	_dataPath="${_baseDir}$_dataDir"
 fi
 case $_organizeData in
 	(*"0"*)
-		local savePath="$_dataPath"
+		savePath="$_dataPath"
 	;;
 	(*"1"*)
-		local savePath="$_dataPath$rYear/"
+		savePath="$_dataPath$rYear/"
 	;;
 	(*"2"*)
-		local savePath="$_dataPath$rYear/$rMonth/"
+		savePath="$_dataPath$rYear/$rMonth/"
 	;;
 esac
 
 [ ! -d "$savePath" ] && mkdir -p "$savePath"
 
 if [ "$ap" -eq "0" ] ; then
-	local fn=$(echo "$_usageFileName" | cut -d'.' -f1)
+	fn=$(echo "$_usageFileName" | cut -d'.' -f1)
 	_usageFileName="${fn}2.js"
 fi
 
@@ -122,26 +122,26 @@ echo "
 Processing data files for billing interval: $rYear-$rMonth-$rDay"
 echo ">>> saving to: $_macUsageDB"
 if [ "$just" -ne "0" ] ; then
-	local jd=$(printf %02d $just)
-	local jm=$mo
-	local jy=$rYear
+	jd=$(printf %02d $just)
+	jm=$mo
+	jy=$rYear
 	if [ "$just" -lt "$_ispBillingDay" ] ; then
 		if [ "$mo" -eq "12" ]; then
 			jm='01'
 			jy=$(($rYear+1))
 		else
-			local jm=$(($mo+1))
+			jm=$(($mo+1))
 			jm=$(printf %02d $jm)
 		fi
 	fi
 	echo ">>> just: $jy-$jm-$jd"
 fi
 
-local i=$_ispBillingDay
+i=$_ispBillingDay
 while [  "$i" -le "31" ]; do
 	[ "$just" -ne "0" ] && [ "$just" -ne "$i" ] && i=$(($i+1)) && continue
 
-	local d=$(printf %02d $i)
+	d=$(printf %02d $i)
 	updateHourly2Monthly "$rYear" "${rMonth#0}" "$d"
 	i=$(($i+1))
 done
@@ -151,7 +151,7 @@ if [ "$mo" -eq "12" ]; then
 	rMonth='01'
 	rYear=$(($rYear+1))
 else
-	local nm=$(($mo+1))
+	nm=$(($mo+1))
 	rMonth=$(printf %02d $nm)
 fi
 
