@@ -43,7 +43,13 @@ loadconfig()
 
 sleep $delay
 
-_logfilename="${d_baseDir}/${_logDir}glc.log"
+if [ "${_logDir:0:1}" == "/" ] ; then
+   _logfilename="${_logDir}/glc.log"
+else
+   _logfilename="${d_baseDir}/${_logDir}/glc.log"
+fi 
+_logfilename=${_logfilename//\/\//\/}
+
 echo "Log info will be written to $_logfilename"
 [ ! -f "$_logfilename" ] && touch "$_logfilename"
 $send2log  "Log file:  \`$_logfilename\`" 1

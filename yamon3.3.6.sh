@@ -28,7 +28,7 @@
 # 3.3.2 (2017-07-19): replaced `command` with `which`; removed ls -e; some Tomato fixes
 # 3.3.3 (2017-09-25): tidied up d_baseDir; monthly files are now year-mo (without date); added option to archive live updates
 # 3.3.4 (2017-10-11): fixed issues in setup.sh; fixed _liveFilePath
-# 3.3.5a (2017-11-17): fixed addLocalIPs
+# 3.3.6 (2017-11-17): fixed addLocalIPs
 # ==========================================================
 #				  Functions
 # ==========================================================

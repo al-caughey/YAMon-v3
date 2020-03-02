@@ -10,6 +10,7 @@
 # 3.3.1 - changed YAMON_IP4, YAMON_IP6, d_configWWW
 #       - added d_use_nf_conntrack
 #       - removed unused d_lan_iface_only, d_enable_db
+# 3.4.0 - uprev'd for new release; some values tweaked & some house keeping
 ##########################################################################
 
 _has_nvram=0
@@ -23,11 +24,12 @@ _canClear=$(which clear)
 
 _lockDir="/tmp/YAMon$_file_version-running"
 
-YAMON_IP4='YAMON33v4'
-YAMON_IP6='YAMON33v6'
+YAMON_IP4='YAMON34v4'
+YAMON_IP6='YAMON34v6'
 
-_PRIVATE_IP4_BLOCKS='10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
-_PRIVATE_IP6_BLOCKS='fc00::/7'
+_PRIVATE_IP4_BLOCKS='172.16.0.0/12,10.0.0.0/8,192.168.0.0/16'
+_LOCAL_IPS='255.255.255.255,224.0.0.1,127.0.0.1'
+_PRIVATE_IP6_BLOCKS='fc00::/7,ff02::/7'
 
 #global defaults
 d_firmware=0
@@ -45,8 +47,6 @@ d_wwwJS="js/"
 d_wwwCSS="css/"
 d_wwwImages='images/'
 d_wwwData="data"
-d_dowwwBU=0
-d_wwwBU="wwwBU/"
 d_usersFileName="users.js"
 d_hourlyFileName="hourly_data.js"
 d_usageFileName="mac_data.js"
@@ -84,17 +84,20 @@ d_sendAlerts=0
 d_organizeData=2
 d_allowMultipleIPsperMAC=0
 d_includeIPv6=0
-d_path2ip='ip'
 d_enable_ftp=0
 d_ftp_site=''
 d_ftp_user=''
 d_ftp_pswd=''
 d_ftp_dir=''
 d_useTMangle=0
+d_logNoMatchingMac=0
 d_use_nf_conntrack=1
 d_path2MSMTP=/opt/usr/bin/msmtp
 d_MSMTP_CONFIG=/opt/scripts/msmtprc
 
+_generic_ipv4="0.0.0.0/0"
+_generic_ipv6="::/0"
+_generic_mac="un:kn:ow:n0:0m:ac"
 loadconfig()
 {
 	#if the parameters are missing then set them to the defaults
@@ -116,12 +119,18 @@ loadconfig()
 	* $line ($dv)"
 	done
 	
+	updateUsage="updateUsage_"$_includeIPv6
+	doliveUpdates="doliveUpdates_"$_doLiveUpdates
+	save2File="save2File_"$_enable_ftp
+	copyfiles="copyfiles_"$_symlink2data
+	checkUnlimited="checkUnlimited_"$_unlimited_usage
+	checkIPv6="checkIPv6_"$_includeIPv6
+
 	if [ "$_enableLogging" -eq "0" ] ; then
 		send2log="send2log_"$_enableLogging
 	else
 		send2log="send2log_"$_enableLogging"_"$_log2file
 	fi
-
 	if [ "$_sendAlerts" -eq "0" ] ; then
 		sendAlert="sendAlert_$_sendAlerts" 
 	elif [ -z "$_sendAlertTo" ] ; then
@@ -132,18 +141,20 @@ loadconfig()
 	fi
 	[ ! -z "$dirty" ] && echo "
 ###########################################################
-NB - One or more parameters were missing in your config.file!$mfl
+NB - One or more parameters are missing in your config.file!$mfl
 The missing entries have been assigned the defaults from \`default_config.file\`.
 
-See \`default_config.file\` for more info about these values and/or run setup.sh
-again to update your config.file.
+Run setup.sh again to update your config.file and see \`default_config.file\`
+for more info about these parameters.
+
+See also http://usage-monitoring.com/help/?t=missing_parameters 
+
 ###########################################################
 "
 	if [ "$_unlimited_usage" -eq "1" ] ; then
 		_ul_start=$(date -d "$_unlimited_start" +%s);
 		_ul_end=$(date -d "$_unlimited_end" +%s);
 		[ "$_ul_end" -lt "$_ul_start" ] && _ul_start=$((_ul_start - 86400))
-		#$send2log "	  _unlimited_usage-->$_unlimited_usage ($_unlimited_start->$_unlimited_end / $_ul_start->$_ul_end)" 1
 	fi
 
 	local ipv6_enable=''

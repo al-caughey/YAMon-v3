@@ -12,7 +12,7 @@
 		<script type="text/javascript" src="//code.jquery.com/jquery-latest.min.js"></script>
 		<script type="text/javascript" src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 		<script type="text/javascript">
-			var _html_version='3.3.5'
+			var _html_version='3.3.7'
 			if(typeof(_file_version)=='undefined') var _file_version='3.3'
 			var args=window.location.search.replace('?','').split('&'),ver=args[1]||_file_version,domain='',path=''
 			if(typeof(_doLocalFiles)=='undefined'||_doLocalFiles=='0'){
@@ -1106,124 +1106,137 @@
 								</p>
 							</fieldset>
 						</div>
-						<fieldset id='settings-col_2'>
-							<legend>Display Options</legend>
+						<div id='settings-col_2'>
+							<fieldset>
+								<legend>Display Options</legend>
 
-							<p><label for="defvu">Default View:</label>
-								<select id='defvu'></select>
-							</p>
-							<p title='Select the base units for values in the report (default: Automatic)'>
-								<label for="displayUnits">Display Units:</label>
-								<select name="displayUnits" id="displayUnits">
-									<option value="Auto" title='Show traffic in KB/MB/GB as appropriate'>Automatic</option>
-									<option value="B" title='Show all traffic in bytes'>Bytes</option>
-									<option value="KB" title='Show all traffic in KB'>Kilobytes</option>
-									<option value="MB" title='Show all traffic in MB'>Megabytes</option>
-									<option value="GB" title='Show all traffic in GB'>Gigabytes</option>
-									<option value="TB" title='Really!'>Terabytes</option>
-									<option value="PB" title='Really! Really?!?'>Petabytes</option>
-								</select>
-							</p>
-						   <p title='Select the number of decimal places to display'>
-								<label for="NumDecimals"># Decimals:</label>
-								<select name="NumDecimals" id="NumDecimals">
-									<option value="0">0</option>
-									<option value="1">1</option>
-									<option value="2">2</option>
-								</select>
-							</p>
-							<p title='Show/Hide devices within each `owner` grouping (default: selected)'>
-								<input type="checkbox" id="ShowDevices" checked>
-								<label for="ShowDevices">Show Devices</label>
-							</p>
-							<p title='Show/Hide devices with no traffic  (default: not selected)'>
-								<input type="checkbox" id="ShowZeroes">
-								<label for="ShowZeroes">Show Zero Bandwidth</label>
-							</p>
-							<p title='Show/Hide table rows and graph entries for total traffic measured at the router (default: selected)'>
-								<input id='ShowRD' type='checkbox'>
-								<label for='ShowRD'>Show Data at Router</label>
-							</p>
-							<p title='Interval to auto refresh the reports (in seconds)'>
-								<label for="RefreshInterval">Refresh Interval:</label>
-								<input type="number" pattern='^[1-9][0-9]*$' size="4" name="Refresh" id="RefreshInterval" class='linked a-r' value="120"> sec.
-							</p>
-							<p>
-								<label for="dateFMT">Date Format:</label>
-								<select name="dateFMT" id="dateFMT">
-									<option id='dateFMT-1' value="0">Mon Sep 15 2014</option>
-									<option id='dateFMT-2' value="1">Mon 15 Sep 2014</option>
-									<option id='dateFMT-3' value="2">Mon 15 09 2014</option>
-								</select>
-							</p>
-							<p>
-								<label for="dateSep">Date Separator:</label>
-								<select name="dateSep" id="dateSep">
-									<option value=' '> </option>
-									<option value='-'>-</option>
-									<option value='/'>/</option>
-								</select>
-							</p>
-							<p title='Show/Hide updating popups'>
-								<input type="checkbox" id="SuppressUpdates">
-								<label for="SuppressUpdates">Suppress loading alerts</label>
-							</p>
-							<p title='Check whether YAMons files have been updated'>
-								Check for updates: <select name="check4Updates" id="check4Updates">
-									<option value='n' title='Never check for updates... *not* recommended!'>Never</option>
-									<option value='a' title='Check at most once per day'>Every time</option>
-									<option value='w' title='Check weekly'>Weekly</option>
-									<option value='m' title='Check monthly'>Monthly</option>
-								</select>
-								<button onClick='checkFiles()'>Now!</button>
-							</p>
-						</fieldset>
-						<fieldset id='settings-col_3'>
-							<legend>Database Integration</legend>
-							<p class='settings-desc'><b>Share settings between devices:</b></p>
-							<p id='dbkey-needtoclick'>Click the `Get Key` button below to create a database for your settings at usage-monitoring.com.</p>
-							<p id='dbkey-sharing' class='hidden'>Your  router has been configured to share all of the YAMon settings with all devices that access these reports.</p>
-							<p class='a-c'><button id='getKey' onclick='createdb()'>Get Key</button></p>
-							<p><input type='text' size=36 disabled='disabled' id='dbkey'></p>
-							<p id='dbkey-clicked'>Copy the string from the field above and paste it into `config.file` on your router.<br/>
-							Then run `restart.sh` on your router and all of your devices will share the same YAMon settings.</p>
-							<p id='p-useHTTPS'><input type='checkbox' id='useHTTPS'><label for='useHTTPS'> Use HTTPS</label></p>
-							<p id='p-autoSave'><input type='checkbox' id='autoSave'><label for='autoSave'> Auto save any changes</label></p>
-						</fieldset>
-						<fieldset id='settings-col_4'>
-							<legend>ISP Settings</legend>
-							<p class='settings-desc'>Use these settings to incorporate data from your ISP into the YAMon reports.</p>
-							<p title='Show/Hide the ISP data elements in the tables and graphs (default: not selected)'>
-								<input type="checkbox" id="showISP">
-								<label for="showISP" checked>Show ISP Columns</label>
-							</p>
-							 <p class='showISP ti-17' title='Name of your ISP (e.g.,Rogers, Verizon, etc.)... for display only'>
-								<label>ISP Name:</label>
-								<select id='isp-format' name='isp-format'></select>
-							</p>
-							 <p class='showISP ti-17' title='URL to ISP usage report'>
-								<label for="isp-url">Usage URL:</label>
-								<input type="url" name="isp-url" id="isp-url" class='linkedURL' size='18' placeholder="URL to ISP report">
-								<a class="isp-url hidden" target="_blank">Link</a>
-							</p>
-							 <p class='showISP ti-17' title='Last time you updated data'>
-								<label>Last update:</label>  <span id='isp-lcd'>xxx</span>
+								<p><label for="defvu">Default View:</label>
+									<select id='defvu'></select>
+								</p>
+								<p title='Select the base units for values in the report (default: Automatic)'>
+									<label for="displayUnits">Display Units:</label>
+									<select name="displayUnits" id="displayUnits">
+										<option value="Auto" title='Show traffic in KB/MB/GB as appropriate'>Automatic</option>
+										<option value="B" title='Show all traffic in bytes'>Bytes</option>
+										<option value="KB" title='Show all traffic in KB'>Kilobytes</option>
+										<option value="MB" title='Show all traffic in MB'>Megabytes</option>
+										<option value="GB" title='Show all traffic in GB'>Gigabytes</option>
+										<option value="TB" title='Really!'>Terabytes</option>
+										<option value="PB" title='Really! Really?!?'>Petabytes</option>
+									</select>
+								</p>
+							   <p title='Select the number of decimal places to display'>
+									<label for="NumDecimals"># Decimals:</label>
+									<select name="NumDecimals" id="NumDecimals">
+										<option value="0">0</option>
+										<option value="1">1</option>
+										<option value="2">2</option>
+									</select>
+								</p>
+								<p title='Show/Hide devices within each `owner` grouping (default: selected)'>
+									<input type="checkbox" id="ShowDevices" checked>
+									<label for="ShowDevices">Show Devices</label>
+								</p>
+								<p title='Show/Hide devices with no traffic  (default: not selected)'>
+									<input type="checkbox" id="ShowZeroes">
+									<label for="ShowZeroes">Show Zero Bandwidth</label>
+								</p>
+								<p title='Show/Hide table rows and graph entries for total traffic measured at the router (default: selected)'>
+									<input id='ShowRD' type='checkbox'>
+									<label for='ShowRD'>Show Data at Router</label>
+								</p>
+								<p title='Interval to auto refresh the reports (in seconds)'>
+									<label for="RefreshInterval">Refresh Interval:</label>
+									<input type="number" pattern='^[1-9][0-9]*$' size="4" name="Refresh" id="RefreshInterval" class='linked a-r' value="120"> sec.
+								</p>
+								<p>
+									<label for="dateFMT">Date Format:</label>
+									<select name="dateFMT" id="dateFMT">
+										<option id='dateFMT-1' value="0">Mon Sep 15 2014</option>
+										<option id='dateFMT-2' value="1">Mon 15 Sep 2014</option>
+										<option id='dateFMT-3' value="2">Mon 15 09 2014</option>
+									</select>
+								</p>
+								<p>
+									<label for="dateSep">Date Separator:</label>
+									<select name="dateSep" id="dateSep">
+										<option value=' '> </option>
+										<option value='-'>-</option>
+										<option value='/'>/</option>
+									</select>
+								</p>
+								<p title='Show/Hide updating popups'>
+									<input type="checkbox" id="SuppressUpdates">
+									<label for="SuppressUpdates">Suppress loading alerts</label>
+								</p>
+								<p title='Check whether YAMons files have been updated'>
+									Check for updates: <select name="check4Updates" id="check4Updates">
+										<option value='n' title='Never check for updates... *not* recommended!'>Never</option>
+										<option value='a' title='Check at most once per day'>Every time</option>
+										<option value='w' title='Check weekly'>Weekly</option>
+										<option value='m' title='Check monthly'>Monthly</option>
+									</select>
+									<button onClick='checkFiles()'>Now!</button>
+								</p>
+							</fieldset>
+						</div>
+						<div id='settings-col_3'>
+							<fieldset>
+								<legend>Database Integration</legend>
+								<p class='settings-desc'><b>Share settings between devices:</b></p>
+								<p id='dbkey-needtoclick'>Click the `Get Key` button below to create a database for your settings at usage-monitoring.com.</p>
+								<p id='dbkey-sharing' class='hidden'>Your  router has been configured to share all of the YAMon settings with all devices that access these reports.</p>
+								<p class='a-c'><button id='getKey' onclick='createdb()'>Get Key</button></p>
+								<p><input type='text' size=36 disabled='disabled' id='dbkey'></p>
+								<p id='dbkey-clicked'>Copy the string from the field above and paste it into `config.file` on your router.<br/>
+								Then run `restart.sh` on your router and all of your devices will share the same YAMon settings.</p>
+								<p id='p-useHTTPS'><input type='checkbox' id='useHTTPS'><label for='useHTTPS'> Use HTTPS</label></p>
+								<p id='p-autoSave'><input type='checkbox' id='autoSave'><label for='autoSave'> Auto save any changes</label></p>
+							</fieldset>
+							<fieldset>
+								<legend>Other Items</legend>
+								<p>Show field to <a class='getMessage btn' data-msg='show-key'>enter donation key</a></p>
+								<p><a href="mailto:questions@usage-monitoring.com?subject=Please send my YAMon donation key&body=Al - I recently made a donation and haven't gotten my key yet... can you send it to me please?" target='_blank'>Pester Al to get a donation key</p>
+								<p><a href='//usage-monitoring.com/sign-up.php' target='_blank'>Sign up to get updates notifications</a></p>
+								<p class='hidden'>Share `<a class='shareRouter btn'>router.js</a>` data</a></p>
+							</fieldset>
+						</div>
+						<div id='settings-col_4'>
+							<fieldset>
+								<legend>ISP Settings</legend>
+								<p class='settings-desc'>Use these settings to incorporate data from your ISP into the YAMon reports.</p>
+								<p title='Show/Hide the ISP data elements in the tables and graphs (default: not selected)'>
+									<input type="checkbox" id="showISP">
+									<label for="showISP" checked>Show ISP Columns</label>
+								</p>
+								 <p class='showISP ti-17' title='Name of your ISP (e.g.,Rogers, Verizon, etc.)... for display only'>
+									<label>ISP Name:</label>
+									<select id='isp-format' name='isp-format'></select>
+								</p>
+								 <p class='showISP ti-17' title='URL to ISP usage report'>
+									<label for="isp-url">Usage URL:</label>
+									<input type="url" name="isp-url" id="isp-url" class='linkedURL' size='18' placeholder="URL to ISP report">
+									<a class="isp-url hidden" target="_blank">Link</a>
+								</p>
+								 <p class='showISP ti-17' title='Last time you updated data'>
+									<label>Last update:</label>  <span id='isp-lcd'>xxx</span>
 
-							</p>
-							<p class='showISP ti-17' title='Reminders about ISP data'>
-								<label  for="isp-reminders">Reminders:</label> <select name="isp-reminders" id="isp-reminders">
-									<option value='n' title='Never remind... *not* recommended!'>Never</option>
-									<option value='a' title='Remind at most once per day'>Every time</option>
-									<option value='w' title='Remind weekly'>Weekly</option>
-									<option value='b' title='Remind bi-weekly'>Bi-weekly</option>
-									<option value='m' title='Remind monthly'>Monthly</option>
-								</select>
-							</p>
-							 <p class='showISP a-c' title='Import ISP data'>
-								<button onclick="settings('isp')">Import Data</button>
-							</p>
-						</fieldset>
+								</p>
+								<p class='showISP ti-17' title='Reminders about ISP data'>
+									<label  for="isp-reminders">Reminders:</label> <select name="isp-reminders" id="isp-reminders">
+										<option value='n' title='Never remind... *not* recommended!'>Never</option>
+										<option value='a' title='Remind at most once per day'>Every time</option>
+										<option value='w' title='Remind weekly'>Weekly</option>
+										<option value='b' title='Remind bi-weekly'>Bi-weekly</option>
+										<option value='m' title='Remind monthly'>Monthly</option>
+									</select>
+								</p>
+								 <p class='showISP a-c' title='Import ISP data'>
+									<button onclick="settings('isp')">Import Data</button>
+								</p>
+							</fieldset>
 
+						</div>
 					</div>
 					<p class='settings-btns a-c p-r'>
 						<button onclick="settings('export')">Export Settings</button>

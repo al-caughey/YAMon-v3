@@ -1,9 +1,9 @@
-Yet Another Monitor (version 3.3.6)
-Last updated: Nov 17, 2017
+Yet Another Monitor (version 3.4.3)
+Last updated: 2018-03-09
 
 Yet Another Monitor (YAMon) records and reports on the traffic (downloads and uploads) for all of the devices connecting to your router.  The data is aggregated by hour, day and month (within your ISP billing interval) and can be rolled-up into arbitrary groups (e.g., by family member, function, location or by any other logical grouping of devices).  
 
-YAMon runs on routers that have been `flashed` to one of the *WRT firmware variants (e.g., DD-WRT, OpenWRT, LEDE, TurrisOS, AsusWRT, Tomato,X-WRT, etc.) and gives you an unprecedented view of the traffic on your network.  The reports allow you to see 
+YAMon runs on routers that have been `flashed` to one of the *WRT firmware variants (e.g., DD-WRT, LEDE/OpenWRT, TurrisOS, GNU/Linux, AsusWRT, Tomato, X-WRT, etc.) and gives you an unprecedented view of the traffic on your network.  The reports allow you to see 
 - which devices used how much bandwidth, when - e.g., did your kids really go to school?  did they shut off their devices at bedtime?  
 - who is consuming the most bandwidth on which device(s)
 - whether you are at risk of exceeding your data usage cap for your ISP billing interval (allowing you to throttle consumption before you get hit with a large overage fee).  
@@ -17,7 +17,7 @@ For a more detail explanation of YAMon's features and benefits, please go to htt
 SHORT REQUIREMENTS CHECKLIST FOR YAMon
 --------------------------------------
 These instructions presume that 
-1) you have a router running a supported firmware variant (e.g., DD-WRT, OpenWRT, Turris Omnia, Tomator, X-wrt, AsusWRT, etc.).  See your firmware discussion forums, if you have any questions about installing or configuring the firmware.
+1) you have a router running a supported firmware variant (e.g., DD-WRT, LEDE/OpenWRT, Turris Omnia, GNU/Linux, Tomator, X-wrt, AsusWRT, etc.).  See your firmware discussion forums, if you have any questions about installing or configuring the firmware.
 
 2) you have a permanent storage location for YAMon's data files.  This is easiest if you are able to plug a USB drive directly into your router.  If your router does not have a USB port, do not despair as it is possible to mount a shared volume on your network and use that instead - however, you'll have to deviate somewhat from the default installation steps describe below (and this document does not cover those configuration steps).  
 
@@ -158,16 +158,16 @@ THANK YOU ***VERY*** MUCH TO EVERYONE WHO HAS CONTRIBUTED... see http://usage-mo
 IN CONCLUSION
 -------------
 
-If you have any difficulties, please let me know and I'll do my best to help figure things out.  Or, post a comment on the DD-WRT forum... there's lots of smart folks there.  Your feedback is appreciated.
+If you have any difficulties, please let me know and I'll do my best to help figure things out.  Post a comment on the YAMon Facebook page (LEDE) or send details to questions@usage-monitoring.com).  All feedback is appreciated!
 
 Thanks!
 
 Al Caughey
-al@caughey.ca
+al@usage-monitoring.ca
 
-----------
-DISCLOSURE
-----------
+-----------
+DISCLOSURES
+-----------
 By default, the standard YAMon reports which you are adding to your router contain references JavaScript (JS) and Cascading Style Sheet (CSS) files that are hosted at my domain (http://usage-monitoring.com).  My ISP provides me with visitor traffic reports which that means that I get anonymous usage statistics relating to this content.
 
 A number of users have raised this as a legitimate (yet, IMHO, unfounded) privacy/web tracking concern.  To address this, I  
@@ -175,21 +175,19 @@ A number of users have raised this as a legitimate (yet, IMHO, unfounded) privac
 2. have added an optional parameter to 'config.file' that will copy the files to your router so that you can host the files locally on your router.
 
 Why do I host the JS and CSS files?  
-First and foremost because it allows me to make corrections and updates to the reports in a much faster fashion.  I do not have to create a new zip archive for every update and I do not have take as much time to craft update notifications in the DD-WRT forum.  It also means that:
+First and foremost because it allows me to make corrections and updates to the reports in a much faster fashion.  I do not have to create a new zip archive for every update and I do not have take as much time to craft update notifications.  It also means that:
 - less space is required on your router to store these files
 - you always see the latest/greatest version of the reports, and
 - you only have to update your router when there are changes within the bash scripts (which is becoming increasingly infrequent). 
 
-As indicated above, my ISP provides me with anonymous usage information (typical of any web server).  I do get ISP addresses but more often than not, those are internal - e.g., 192.168.1.1, etc.  The server logs do *NOT* give any information about your yamon configuration, the internal workings of your router or the traffic on your network... and quite honestly, if I was really interested in gathering that info, it'd be far more efficient/effective if I hid that functionality in the bash script on your router rather than in a JavaScript file on an external server.  (And I stress that I have *NOT* done that!) 
+As indicated above, my ISP provides me with anonymous usage information (typical of any web server).  I do get ISP addresses but more often than not, those are internal - e.g., 192.168.1.1, etc.  The server logs do *NOT* give any information about your YAMon configuration, the internal workings of your router or the traffic on your network... and quite honestly, if I was really interested in gathering that info, it'd be far more efficient/effective if I hid that functionality in the bash script on your router rather than in a JavaScript file on an external server.  (And I stress that I have *NOT* done that!) 
 
 Please note that I also use other external JavaScript libraries in the reports - in particular, jQuery (for general dynamic functionality) and the Google Visualize libraries (for the graphs and gauges).  Rest assured that at least one of those two organizations has access to far better tracking technology than what I get from my ISP.
 
 I am not trying minimize these concerns... they are legitimate. But please trust me, when I say that I'm not hosting the content because I want to track your usage in any way.
 
-In version 2.0.17, I added an optional feature that will allow you to share all of your setting across all devices that access the YAMon reports.  This is accomplished by setting up a database table at my usage-monitoring.com domain.  When you save your settings, a copy of the the localStorage values on that machine are written to your database.  All users who enable this option have their data saved into separate database table. I have a table that records which IP address created which table but otherwise do not capture any personal information.  If you object to this, do not enable this option.
+The optional database integration feature (in the reports on the Settings tab) allows you to share all of your settings across all devices you use to access the YAMon reports.  With this feature enabled, when you change your settings, a copy of the the localStorage values on that machine are written to your (private) database at my usage-monitoring.com domain. If you object to this, do not enable this option. 
 
-In version 2.0.18, I added an optional feature that will send alerts if new devices are added to your users.js file (or if your iptables settings are messed up).  Rather than wrestling with configuring settings for everyone's mail options, the alerts are sent via the mail server on usage-monitoring.com.  To prevent abuse of this mail server, I keep a log of when alerts were sent, from which IP address and to whom they were sent.  If you object to this, do not enable this option.
-
-In version 2.2, I added a feature in the Current Connections table on the Live Usage tab that performs a geo-location look-up for the IP addresses in that table i.e., it returns the organization name and city & country for the IP addresses.  Those look-ups are completed using functionality at usage-monitoring.com.  There is also an option that will anonymously share the IP address information across users (so that you do not have to look up addresses I've already checked).  If you object to this, do not click that link!
+Another optional feature will send alerts if new devices are added to your users.js file (or if other alert conditions are detected).  Rather than wrestling with configuring settings for everyone's mail options, the alerts are sent via my mail server on usage-monitoring.com.  To prevent abuse of this mail server, I keep a log of when alerts were sent, from which IP address and to whom they were sent.  If you object to this, again, do not enable this option.
 
 Thank you for your understanding.

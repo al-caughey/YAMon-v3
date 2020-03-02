@@ -9,19 +9,9 @@
 #
 ##########################################################################
 
-# version 3.0.0 - added _path2ip, _scrlevel
-# version 3.0.2 - added _lang; change options for `_doLocalFiles` to just 0||1; added 3 to data files/paths to prevent clashes with v2
-# version 3.0.5 - corrected spelling of `_allowMultipleIPsperMAC`
-# version 3.0.7 - added _debug
-# version 3.0.11 - modified notes for _dnsmasq_conf & _dnsmasq_leases for OpenWrt
-# version 3.1.0 - added _ftp_site, _ftp_user, _ftp_pswd
-# version 3.2.0 - added _ftp_dir, _useTMangle
-# version 3.2.1 - set default for _useTMangle=0
-# version 3.2.2 - removed _debug
-# version 3.3.0 - updated minor version... no changes to this file
-# version 3.3.1 - added _use_nf_conntrack, remove unused _lan_iface_only, _enable_db
-# version 3.3.4 - removed no longer used _baseDir; added _doArchiveLiveUpdates
-# version 3.3.5 - added _wwwURL
+# version 3.4.0 - uprev'd for new release
+# version 3.4.1 - removed _bridgeIP, _path2ip; added _multipleIPMAC
+# version 3.4.2 - added _logNoMatchingMac
 
 _firmware='0'                                # which firmware is running on the router: permitted values: 0->DD-WRT(*) || 1->OpenWrt || 2->Asuswrt-Merlin
 _updatefreq='30'                             # number of seconds between updates (* default `15` sec)
@@ -47,10 +37,6 @@ _log2file='1'                                # send logs to screen or file: perm
 _loglevel='1'                                # amount of detail to include in the log: permitted values: -1->really verbose || 0->all || 1->most(*) || 2->serious only
 _scrlevel='1'                                # amount of detail to include in the screen updates: permitted values: -1->really verbose || 0->all || 1->most(*) || 2->serious only
                                              #   NB - only required if _log2file == 0 || 2...
-_dowwwBU=1                                   # whether or not to make backups of the www directory when the script is shut down - values: 1-->Yes(*) || 0->No
-_wwwBU='wwwBU/'                              # path to web backup directory  (* default `wwwBU/`)
-                                             #   NB - only required if _dowwwBU == 1...
-                                             #   NB - If _wwwBU starts with a slash it will be an absolute path (and d_baseDir will be ignored)
 _doDailyBU='1'                               # whether or not to make daily backups of user & usage data - values: 1-->Yes(*) || 0->No
 _dailyBUPath='daily-bu/'                     # path to back-ups directory (* default `daily bu/`)
                                              #   NB - only required if doDailyBU == 1...
@@ -65,6 +51,7 @@ _liveFileName='live_data3.js'                # file name for live usage data (* 
                                              #   NB - only required if _doLiveUpdates == 1
 _doArchiveLiveUpdates='0'                    # whether or not to retain a copy of all of the live data - values: 1-->Yes(*) || 0->No
                                              #   NB - only required if _doLiveUpdates == 1 & could get big!
+_monthlyDataCap='0'                          # Data cap as set by ISP ('0' default-->unlimited plan || '##'-->data cap in GB)
 _unlimited_usage='0'                         # whether or not you have an unlimited downloads time period: 0->No(*) || 1->Yes
 _unlimited_start='2:00'                      # the time (hours:minutes) when your unlimited downloads period starts
 _unlimited_end='8:00'                        # the time (hours:minutes) when your unlimited downloads period ends
@@ -76,21 +63,17 @@ _dnsmasq_leases='/tmp/dnsmasq.leases'        # path to dnsmasq.leases (* default
                                              #   NB - if _firmware==1 (OpenWrt), use `/tmp/dhcp.leases`
 _do_separator=''                             # a default separator character between owner and device name in static leases or dnsmasq values, e.g., Al-iPhone (* default ``)
 _includeBridge=0                             # whether or not there is a bridge in your wireless configuration - values: 0-->No(*) || 1->Yes
-_bridgeMAC='XX:XX:XX:XX:XX:XX'               # mac address for the bridge device
-                                             #   NB - only required if _includeBridge == 1
-_bridgeIP='192.168.###.###'                  # ip address for the bridge device...
+_bridgeMAC='XX:XX:XX:XX:XX:XX'               # mac address for the bridge device, or comma separated list if multiple bridges
                                              #   NB - only required if _includeBridge == 1
 _defaultOwner='Unknown'                      # default owner name for new devices
 _defaultDeviceName='New Device'              # default name for new devices if nothing can be found by the script
 _includeIPv6='0'                             # whether or not your router is configured for IPv6: 0->no(*) || 1->yes
-_path2ip='ip'                                # path to full version of `ip` (* default `ip` or `/opt/sbin/ip`)
-                                             #   NB - only required if _includeIPv6 == 1
 _doLocalFiles='0'                            # make a local copy of JS, CSS and images: 0->no(*recommended) || 1->yes
                                              #   NB - set to 1 if you do not want use the files hosted at my domain (usage-monitoring.com)
 _dbkey=''                                    # if not null, this option will sync settings across all of your devices... 
                                              #   NB - get the value for this parameter from the settings tab
 _ignoreGateway=0                             # whether or not to exclude any updates involving your gateway: 0->no(*) || 1->yes
-_gatewayMAC=''                               # mac address for the gateway
+_gatewayMAC=''                               # MAC address for the gateway
 _sendAlerts=0                                # whether or not to send alerts 0->no(*) || 1->yes (via usage-monitoring.com) || 2->via msmtp 
                                              #   NB - currently only when a new entry is added to users.js or if iptables is corrupted
 _sendAlertTo=''                              #   NB - only required if _sendAlerts == 1
@@ -98,6 +81,8 @@ _path2MSMTP=/opt/usr/bin/msmtp               #   NB - only required if _sendAler
 _MSMTP_CONFIG=/opt/scripts/msmtprc           #   NB - only required if _sendAlerts == 2
 _organizeData='2'                            # whether or not to organize data files - values: 0->no || 1->by year || 2->by year & month(*)
 _allowMultipleIPsperMAC=0                    # set to 1 if you have virtual machines with their own IP on a single MAC address - values: 0-->No(*) || 1->Yes
+_multipleIPMAC='XX:XX:XX:XX:XX:XX'           # base MAC address for the virtual machines, or comma separated list if multiple base MAC address
+                                             #   NB - only required if _allowMultipleIPsperMAC == 1
 _enable_ftp='0'                              # set to 1 if you have an FTP site to mirror the data - values: 0-->No(*) || 1->Yes
                                              #   NB - if _organizeData>0, you will have to create the subdirectories manually
 _ftp_site=''                                 # set to url to your FTP site... ***YOU*** must set up & configure your FTP server
@@ -106,3 +91,4 @@ _ftp_pswd=''                                 # set to the password for your FTP 
 _ftp_dir=''                                  # set to root directory path to your desired storage location
 _useTMangle=0                                # whether or not to use the `-t mangle` option for ipchain: 0->no(*) || 1->yes
 _use_nf_conntrack=1                          # use nf_conntrack rather than ip_conntrack: 0->no(*) || 1->yes
+_logNoMatchingMac=0                          # add an iptables entry to log unknown traffic: 0->no(*) || 1->yes

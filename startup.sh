@@ -48,5 +48,9 @@ while [ $i -lt $delay ] ; do
 done
 
 [ ! -z $_canClear ] && clear
-# launch the script
-${d_baseDir}/yamon${_version}.sh &
+# launch the script in nice mode (thanks to Jeff Page)
+if [ -z $(which nice) ] ; then
+	${d_baseDir}/yamon${_version}.sh &
+else
+	nice ${d_baseDir}/yamon${_version}.sh &
+fi
