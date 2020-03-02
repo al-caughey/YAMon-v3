@@ -86,25 +86,26 @@ local p3="$3"
 updateConfig(){
 	local vn=$1
 	local nv=$2
-    [ "${vn:0:2}" == 't_' ] && return
+	[ "${vn:0:2}" == 't_' ] && return
 	[ -z "$nv" ] && eval nv="\$$vn"
 	#echo "updateConfig: $vn--> $nv" >&2
 	local sv="$vn=.*#"
 	local rv="$vn=\'$nv\'"
 	local sm=$(echo "$configStr" | grep -o $sv)
-    #echo "updateConfig: sm--> $sm" >&2
-    local l1=${#sm}
-    local l2=${#rv}
-    local spacing='                                             '
+	#echo "updateConfig: sm--> $sm" >&2
+	local l1=${#sm}
+	local l2=${#rv}
+	local spacing='											 '
 	if [ -z "$sm" ] ; then
-        local pad=${spacing:0:$((40-$l2+1))}
-        configStr="$configStr
+		local pad=${spacing:0:$((40-$l2+1))}
+		configStr="$configStr
 $vn='$nv'$pad # Added"
-    #echo "updateConfig: $vn='$nv'$pad# Added" >&2
-    else 	
-        local pad=${spacing:0:$(($l1-$l2+1))}
-        configStr=$(echo "$configStr" | sed -e "s~$sv~$rv$pad#~g")
-    fi
+	#echo "updateConfig: $vn='$nv'$pad# Added" >&2
+	else
+		local pad=${spacing:0:$(($l1-$l2+1))}
+		configStr=$(echo "$configStr" | sed -e "s~$sv~$rv$pad#~g")
+	fi
+	#echo "updateConfig: configStr--> $configStr" >&2
 }
 getDefault(){
 	eval vv=\$"options$1"
@@ -168,7 +169,6 @@ sendAlert()
 	send2log "=== sendAlert ===" 0
 	local subj="$1"
 	local omsg="$2"
-
 	[ -z "$ndAMS" ] && ndAMS=0
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
 	msg="$omsg \n\n Message sent: $ds"
@@ -284,9 +284,9 @@ _hourlyUsageDB: $_hourlyUsageDB" > "$manifest"
 		local budir="$bupath"'bu-'"$bu_ds/"
 		send2log "  >>> Copy back-ups for $bu_ds to $budir" 1
 		[ ! -d "$bupath"'/bu-'"$bu_ds/" ] && mkdir -p "$budir"
-  		copyfiles "$_usersFile" "$budir"
-  		copyfiles "$_macUsageDB" "$budir"
-  		copyfiles "$_hourlyUsageDB" "$budir"
+		copyfiles "$_usersFile" "$budir"
+		copyfiles "$_macUsageDB" "$budir"
+		copyfiles "$_hourlyUsageDB" "$budir"
 		[ "$_enableLogging" -eq "1" ] && copyfiles "$_logfilename" "$budir"
 	fi
 }
@@ -314,29 +314,28 @@ $ip,$do,$up"
 	[ "$_debugging" -eq "1" ] && set -x
 }
 createUDList(){
-	send2log "=== createUDList ===" 0
+	send2log "=== createUDList ===" -1
 	send2log "	  arguments:  \$1-->$1" -1
 	local results=''
-	iptablesData=$1
+	iptablesData="$1"
 	IFS=$'\n'
 	for line in $(echo "$iptablesData")
 	do
-		local f2=$(echo "$line" | cut -d' ' -f2)
-		[ "$f2" == "YAMONv4" ] || [ "$f2" == "YAMONv6" ] || [ "$f2" == "chain" ] || [ "$f2" == "pkts" ] || [ "$f2" -eq "0" ] && continue 
-		local f8=$(echo "$line" | cut -d' ' -f8)
-		[ -z "$f8" ] && continue 
 		send2log "  >>> line-->$line" -1
-		local f9=$(echo "$line" | cut -d' ' -f9)
-		local bytes=$(echo "$line" | cut -d' ' -f3)
-		[ "$bytes" -eq '0' ] && continue
-		send2log "  >>> f8-->$f8   f9-->$f9   bytes-->$bytes" -1
-		if [ "$f8" == "0.0.0.0/0" ] || [ "$f8" == "::/0" ] ; then
-			add2UDList $f9 $bytes 0
+		local f1=$(echo "$line" | cut -d' ' -f1)
+		local f2=$(echo "$line" | cut -d' ' -f2)
+		local f3=$(echo "$line" | cut -d' ' -f3)
+		#[ "$f1" -eq '0' ] && continue
+		send2log "  >>> f1-->$f1	f2-->$f2   f3-->$f3   " -1
+		if [ "$f2" == "0.0.0.0/0" ] || [ "$f2" == "::/0" ] ; then
+			add2UDList $f3 $f1 0
 		else
-			add2UDList $f8 0 $bytes
+			add2UDList $f2 0 $f1
 		fi
 	done
 	unset IFS
+    #send2log "  >>> createUDList: _ud_list-->
+#$_ud_list" 1
 }
 doFinalBU()
 {

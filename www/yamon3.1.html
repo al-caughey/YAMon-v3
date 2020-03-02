@@ -9,26 +9,34 @@
 		<meta name="description" content="Internet Usage Statistics" />
 		<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
 		<script type="text/javascript" src="./js/config3.js"></script>
+		<script type="text/javascript" src="//code.jquery.com/jquery-latest.min.js"></script>
+		<script type="text/javascript" src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 		<script type="text/javascript">
-			if(typeof(_file_version)=='undefined')_file_version='3.1'
+			var _html_version='3.1.3' 
+			if(typeof(_file_version)=='undefined') var _file_version='3.1'
 			var args=window.location.search.replace('?','').split('&'),ver=args[1]||_file_version,domain='',path=''
 			if(typeof(_doLocalFiles)=='undefined'||_doLocalFiles=='0'){
 				path = (args[0] || 'current') + '/'
 				domain=(location.protocol=='http:')?'http://usage-monitoring.com/':'https://usagemonitoringcom.ipage.com/'
 			}
-			document.write('<link rel="stylesheet" type="text/css" href="' + domain + path + 'css/normalize.css"/>')
-			document.write('<link rel="stylesheet" type="text/css" href="' + domain + path + 'css/yamon' + ver + '.css"/>')
-			document.write('<' + 'link rel="shortcut icon" href="' + domain + path + 'images/favicon.png"/>')
+			$("<link/>", {rel: "stylesheet", type: "text/css", href: domain + path + 'css/normalize.css'}).appendTo("head");
+			$("<link/>", {rel: "stylesheet", type: "text/css", href: domain + path + 'css/yamon' + ver + '.css'}).appendTo("head");
+			$("<link/>", {rel: "shortcut icon",href: domain + path + 'images/favicon.png'}).appendTo("head");
+			(typeof(_settings_pswd)!='undefined') && $.ajax({url: domain + path + 'js/jquery.md5.min.js', dataType: "script"});
 		</script>
-		<script type="text/javascript" src="//code.jquery.com/jquery-latest.min.js"></script>
-		<script type="text/javascript" src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 		<script src="https://www.gstatic.com/charts/loader.js"></script>
 		<script type="text/javascript">
-			document.write('<' + 'script src="' + domain + path + 'js/util' + ver+ '.js"><' + '/script>')
-			document.write('<' + 'script src="' + domain + path + 'js/yamon' + ver + '.js"><' + '/script>')
-			if(typeof(_settings_pswd)!='undefined') document.write('<' + 'script src="' + domain + path + 'js/jquery.md5.min.js"><' + '/script>')
-			google.charts.load('current', {'packages':['corechart', 'gauge']});
-			//$.ajaxSetup({'cache':true});
+			//$.ajaxSetup({'cache':true});  //Uncomment this line if your router does not like the timestamps appended to URLs
+			//document.write('<' + 'script src="' + domain + path + 'js/util' + ver+ '.js"><' + '/script>')
+			//document.write('<' + 'script src="' + domain + path + 'js/yamon' + ver + '.js"><' + '/script>')
+			google.charts.load('current', {'packages':['corechart', 'gauge'], 'callback' : function(){
+				$.ajax({crossDomain: true, url: domain + path + 'js/util' + ver+ '.js',dataType: "script", cache:false})
+				.done(function(){
+					$.ajax({crossDomain: true, url: domain + path + 'js/yamon' + ver+ '.js',dataType: "script", cache:false});
+				});
+			}});
+			$(document).ready(function(){
+			})
 		</script>
 
 		<link rel="stylesheet" type="text/css" href="css/custom.css"/>
@@ -145,7 +153,7 @@
 									<p class='' id='sp_curSL'></p>
 									<p><span class='gradient'></span></p>
 									<p class=''><span id='sp_minSL' class='p-a'></span><span id='sp_maxSL' class='p-a'></span></p>
-                                </td>
+								</td>
 							</tr>
 							<tr>
 								<td class='a-r fw-b br bl'>Free Memory:</td>
@@ -1262,19 +1270,72 @@
 
 				<div id="settings-tab-section" class="tab-div p-r hidden">
 					<div class='_detanod amount'></div>
-                    <div class='intro tab-div p-r hidden'>
-                        <h1>Welcome to the `<i>Yet Another Monitor</i>` reports...</h1>
-                        <p>The good news is that you've gotten to this page so it looks like everything has been installed properly!</p>
-                        <p>Before you can [finally!] see your bandwidth utilization reports, you must first confirm or specify a couple of the `Settings` tab (look for the green checkmarks <span class='mval'> &#x2714; </span> below).  In particular, you must select whether you have unlimited bandwidth or a monthly usage cap (in the `Bandwidth & ISP Settings` section). <span class='isUL'>You must also set `Bonus Data` your limits.</span></p>
-                        <p>A couple of other settings to consider...,</p>
-                        <ul>
-                            <li>by default, your YAMon report settings and customizations are available only on *this* computer and in *this* browser (because they are stored in a `<a href='http://www.w3schools.com/html/html5_webstorage.asp' target='_blank'>localStorage</a>` variable).  If you are going to to view these reports in a different browser or on different devices, I recommend that you look at the `Database Integration` settings below.</li>
-                            <li>if you want to compare the YAMon traffic reports with those provided by your ISP, check out the ISP Settings too.</li>
-                        </ul>
-                        <p>If you have any troubles with the reports, please visit <a href='http://usage-monitoring.com' target='_blank'>http://usage-monitoring.com</a> or the<a href='http://www.dd-wrt.com/phpBB2/viewtopic.php?t=289324' target='_blank'>YAMon thread</a> at the DD-WRT forum.  If you have any questions/suggestions or find an error, drop me a <a href="mailto:questions@usage-monitoring.com?subject=Yet Another Monitor Questions%2FComments">line</a>...  I'll do my best to respond ASAP!</p>
-                        
-                        <p class='intro-reminder'>Last but not least, I maintain and support YAMon on an unpaid basis.  Please show your appreciation and support future development by <a href='https://www.paypal.me/YAMon/25' target='_blank'>donating</a> or by clicking one of the ads on the <a href='http://usage-monitoring.com' target='_blank'>usage-monitoring.com</a> site. Anything that you can contribute will be greatly appreciated.  Thanks!</p>
-                    </div>
+					<div class='intro p-r hidden'>
+						<div class='intro-t'>
+							<h1>Welcome to the `<i>Yet Another Monitor</i>` reports!</h1>
+							<p>The good news is that you've gotten to this page so it looks like everything has been installed properly!</p>
+							<p>Just a few more clicks and you can see the reports.</p>
+						</div>
+						<div class='intro-t'>
+							<h1>Navigation</h1>
+							<p>The tabs across the top of the page allow you to see various views of the data from your site.</p>
+							<p><img src='//usage-monitoring.com/images/report-tabs.png'></p>
+							<p>See the <a href='http://usage-monitoring.com/reports.php' target='_blank'>Reports</a> page at http://usage-monitoring.com/ for a more detailed description of each report.</p>
+						</div>
+						<div class='intro-t'>
+							<h1>Date Selection</h1>
+							<p>The reports will open showing data for the current date. The date selection slider allows you to easily navigate to any date in the current ISP billing interval.</p>
+							<p><img src='//usage-monitoring.com/images/date-selection.png'></p>
+							<p>The buttons to the left and right of the slider allow you see date for the previous/next day, first/last day of the current interval or the previous/next intervals.</p>
+						</div>
+						<div class='intro-t req-settings'>
+							<h1><span class='settings-tab settings'></span>Required Settings</h1>
+							<p>The `Settings` tab allows you to configure how data is presented in the reports.  Before you can see yours, you must first:</p>
+							<ol>
+								<li>select whether you have unlimited data or a monthly usage cap: </p>
+									<p id='intro-bw_cap'></p>
+								</li>
+								<li class='isUL'>set your `Bonus Data` limits:</p>
+									<p id='intro-bonus_cap'></p>
+								</li>
+							</ol>
+							<p>Click the <span class='mval'> &#x2714; </span> to confirm your selection is correct.  You can return to the `Settings` tab at any time to adjust these settings.</p>
+						</div>
+						<div class='intro-t'>
+							<h1><span class='settings-tab settings'></span>Optional Settings</h1>
+							<p>There are a couple of other options on the `<b><i>Settings</i></b>` tab that you might want to consider:</p>
+							<ol>
+								<li>
+									<p>If you are going to to view these reports in a different browser or on different devices, I recommend that you look at the `Database Integration` settings.</p>
+									<p>By default, your YAMon report settings and customizations are stored in a `localStorage` variable which means that are available only on *this* computer and in *this* browser. (More about <a href='http://www.w3schools.com/html/html5_webstorage.asp' target='_blank'>localStorage</a> variables)</p>
+									<p>The `Database Integration` feature shares your settings with any device used to view these reports.</p>
+								</li>
+								<li>
+									<p>If you want to compare your YAMon traffic reports with those provided by your ISP, check out the `ISP Settings` too.</p>
+									<p>This will allow you to see how YAMon's values differ from what your ISP reports.  (Generally my ISP's totals are ~3-5% higher than YAMon.)</p>
+									<p>See detailed instructions <a href='http://usage-monitoring.com/help/?t=isp-data' target='_blank'>here</a>.</p>
+								</li>
+							</ol>
+						</div>
+						<div class='intro-t'>
+							<h1><span class='settings-tab devices'></span>Customizing Device Names & Groups</h1>
+							<p>When a new device is detected on your router, it will appear in the reports usually as `New Device` in the `Unknown` group (although you might get more information depending on how the user has named their device).</p>
+							<p>You can customize this information in the `Groups & Devices` table on the `Devices` tab by simply clicking the <span class='edit-d'></span> icon at the far right side of the table.  See detailed instructions <a href='http://usage-monitoring.com/help/?t=users-js' target='_blank'>here</a></p>
+							<p>Once you've tweaked all of the values as appropriate for your network, you can export the information by clicking the <span class='intro-export'></span> icon.  This will generate a new `users.js` file that you can copy to your router.  See detailed instructions <a href='http://usage-monitoring.com/help/?t=export-users' target='_blank'>here</a>.</p>
+						</div>
+						<div class='intro-t'>
+							<h1>Getting Help</h1>
+							<p>If you have any troubles with the reports, please visit <a href='http://usage-monitoring.com' target='_blank'>http://usage-monitoring.com</a> or the<a href='http://www.dd-wrt.com/phpBB2/viewtopic.php?t=289324' target='_blank'>YAMon thread</a> at the DD-WRT forum.  If you have any questions/suggestions or find an error, drop me a <a href="mailto:questions@usage-monitoring.com?subject=Yet Another Monitor Questions%2FComments">line</a>...  I'll do my best to respond ASAP!
+							</p>
+						</div>
+						<div class='intro-t'>
+							<h1>Last but not least...</h1>
+							<p>Please show your appreciation and support future development of this tool by <a href='https://www.paypal.me/YAMon/25' target='_blank'>donating</a> or by clicking one of the ads on the <a href='http://usage-monitoring.com' target='_blank'>usage-monitoring.com</a> site.</p>
+							<div class='_detanod amount'></div>
+							Anything that you can contribute is greatly appreciated.  Thanks!</p>
+						</div>
+						<p class='intro-btn btn a-c'><button id='intro-p'><< Back</button><button id='intro-n'>Next >></button> </p>
+					</div>
 
 					<h2>Settings</h2>
 					<div id='d-settings_pswd'>
@@ -1308,10 +1369,10 @@
 								<label class='required'>Bandwidth Allowance Cap</label>:<br/>&nbsp;&nbsp;<label for='bandwidth-u'><input type=radio id='bandwidth-u' name="bandwidth" value="unlimited"> Unlimited</label>&nbsp;or&nbsp;
 								<input type=radio id='bandwidth-l' name="bandwidth" value="limited"> <input type='number' pattern='^[0-9]{1,3}$' id='bw_cap' name='bw_cap' class='a-r' size=4> GB/mo
 							</p>
-                            <p class='is-cap ti-6 hidden' title='Select this checkbox if only downloads (and not uploads) count against your usage cap'>
+							<p class='is-cap ti-6 hidden' title='Select this checkbox if only downloads (and not uploads) count against your usage cap'>
 								<input type="checkbox" id="cb-dl-o">
 								<label for="cb-dl-o">Only Downloads count towards cap</label>
-                            </p>		
+							</p>		
 							<p class='isUL' id='p-bonus_cap' title='Bonus data your ISP allows you to use each month (in GB)' >
 								<label class='required'>`<i>Bonus Data</i>` Allowance Cap <br/>(between <span id='bd-start'></span> & <span id='bd-end'></span>)</label>:<br/>&nbsp;&nbsp;<label for='bonusdata-u'><input type=radio id='bonusdata-u' name="bonusdata" value="unlimited"> Unlimited</label>&nbsp;or&nbsp;
 								<input type=radio id='bonusdata-l' name="bonusdata" value="limited"> <input type='number' pattern='^[0-9]{1,3}$' id='bonus_cap' name='bonus_cap' class='a-r' size=4> GB/mo
@@ -1390,12 +1451,12 @@
 							<p class='a-c'><button id='getKey' onclick='createdb()'>Get Key</button></p>
 							<p title='This is your database key... the value is set in `config3.js`'><input type='text' size=36 disabled='disabled' id='dbkey'/></p>
 							<p id='dbkey-clicked'>Copy the string from the field above and paste it into `config.file` on your router.<br/>
-                            Then run `restart.sh` on your router and all of your devices will share the same YAMon settings.</p>
+							Then run `restart.sh` on your router and all of your devices will share the same YAMon settings.</p>
 							<p id='p-useHTTPS'><input type='checkbox' id='useHTTPS'><label for='useHTTPS'> Use HTTPS</label></p>
 							<p id='p-autoSave'><input type='checkbox' id='autoSave'><label for='autoSave'> Auto save any changes</label></p>
 						</fieldset>
 						<fieldset id='settings-col_4'>
-                            <legend>ISP Settings</legend>
+							<legend>ISP Settings</legend>
 							<p class='settings-desc'>Use these settings to incorporate data from your ISP into the YAMon reports.</p>
 							<p title='Show/Hide the ISP data elements in the tables and graphs (default: not selected)'>
 								<input type="checkbox" id="showISP">
@@ -1404,21 +1465,21 @@
 							 <p class='showISP ti-17' title='Name of your ISP (e.g.,Rogers, Verizon)... for display only'>
 								<label for="isp-name">ISP Name:</label>
 								<select id='isp-format' name='isp-format'>
-                                    <option value='0'></option>
-                                    <option value='1'>Rogers</option>
-                                    <option value='2'>Electronic Box</option>
-                                </select>
+									<option value='0'></option>
+									<option value='1'>Rogers</option>
+									<option value='2'>Electronic Box</option>
+								</select>
 							</p>
 							 <p class='showISP ti-17' title='URL to ISP usage report'>
 								<label for="isp-url">Usage URL:</label>
 								<input type="url" name="isp-url" id="isp-url" class='linkedURL' size='18' placeholder="URL to ISP report"/> 
-                                <a class="isp-url hidden" target="_blank">Link</a>
+								<a class="isp-url hidden" target="_blank">Link</a>
 							</p>
-                            <textarea id='isp-in' class='showISP' placeholder='Paste your ISP data here and then click `Process`'></textarea>
-                            <textarea class='hidden' id='isp-out' placeholder='The processed results will appear here (for debug purposes only)'></textarea>
-                            <p class='a-c showISP'><button class='disabled' id='process-isp'>Process</button></p>
+							<textarea id='isp-in' class='showISP' placeholder='Paste your ISP data here and then click `Process`'></textarea>
+							<textarea class='hidden' id='isp-out' placeholder='The processed results will appear here (for debug purposes only)'></textarea>
+							<p class='a-c showISP'><button class='disabled' id='process-isp'>Process</button></p>
 						</fieldset>
-                        
+						
 					</div>
 					<p class='settings-btns a-c'>
 						<button onclick="settings('export')">Export Settings</button>
@@ -1426,7 +1487,6 @@
 						<button onclick="settings('reset')">Reset Settings</button>
 						<button id='sv-btn' onclick="saveSettings2db()">Save Settings</button>
 					</p>
-                    <h3 class='hidden' id='missing-txt'></h3>
 				</div>
 
 				<div id="help-tab-section" class="tab-div p-r hidden">

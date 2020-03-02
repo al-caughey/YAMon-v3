@@ -25,6 +25,7 @@
 # 3.0.17 (2016-25-28): tweaks; Tomato updates as per Todd Saylor (in getDeviceName)
 # 3.1.0 (2016-10-05): bumped to 3.1 because of breaking changes to yamon.html; FTP functionality; added checks for LAN & WAN IP addresses; fixed IP address regex
 # 3.1.1 (2016-10-10): tweaks not caught in 3.1.0; added arp, added init script for OpenWrt (in setup.sh)
+# 3.1.2 (2016-10-10): fixes in defaults.sh to set missing values in config.file to defaults
 
 # ==========================================================
 #				  Functions
@@ -65,7 +66,7 @@ setInitValues(){
 	local string="${months%$lmm*}"
 	local lmmno=$(printf %02d $((${#string}/4 + 1)))
 	local sortStr=''
-	local canSort=$(echo $(busybox) | grep -c 'sort')
+	local cansort=$([ -z "$(command -v sort)" ] && echo '0' || echo '1')
 	[ "$canSort" -gt "0" ] && sortStr=" | sort -k2"
 	
 	local tip=$($_path2ip -4 neigh show)
@@ -102,7 +103,7 @@ setLogFile()
 setWebDirectories()
 {
 	send2log "=== setWebDirectories ===" 0
-	[ "$_firmware" -eq "1" ] && [ ! -h "/www/user" ] &&ln -s "/tmp/www" "/www/user"
+	[ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] && [ ! -h "/www/user" ] && ln -s "/tmp/www" "/www/user"
 	if [ "$_symlink2data" -eq "1" ] ; then
 		if [ ! -d "$_wwwPath" ] ; then
 			mkdir -p "$_wwwPath"
@@ -526,7 +527,7 @@ checkIPv4()
 {
 	send2log "=== checkIPv4 ===" 0
 	[ "$_debugging" -eq "1" ] && set +x 
-	local ipl="$(eval $_getIP4List)"
+	local ipl="$(eval "$_getIP4List")"
 	local ipv4=$(getMACIPList "iptables" "$YAMON_IP4" "$ipl")
 	[ "$_debugging" -eq "1" ] && set -x 
 	send2log "	>>> ipv4 -> 
@@ -545,7 +546,7 @@ checkIPv6()
 {
 	send2log "=== checkIPv6 ===" 0
 	[ "$_debugging" -eq "1" ] && set +x
-	local ipl="$(eval $_getIP6List)"	
+	local ipl="$(eval "$_getIP6List")"	
 	local ipv6=$(getMACIPList "ip6tables" "$YAMON_IP6" "$ipl")
 	[ "$_debugging" -eq "1" ] && set -x
 	send2log "	>>> ipv6 ->
@@ -721,7 +722,7 @@ getDeviceName()
 		#local result=$(echo "$nvr" | grep -io "$mac=.\{1,\}=" | cut -d= -f2)
 		local result=$(echo "$nvr" | grep -io "$mac[^=]*=.\{1,\}=.\{1,\}=" | cut -d= -f2) 
 		[ "$_debugging" -eq "1" ] && set -x
-	elif [ "$_firmware" -eq "1" ] ; then
+	elif [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] ; then
 		# thanks to Robert Micsutka for providing this code & easywinclan for suggesting & testing improvements!
 		local ucihostid=$(uci show dhcp | grep -i $mac | cut -d. -f2) 
 		[ -n "$ucihostid" ] && local result=$(uci get dhcp.$ucihostid.name)
@@ -1109,7 +1110,7 @@ _iteration=0
 
 [ -d "$_lockDir" ] && echo "$_s_running" && exit 0
 
-local oc=$(iptables -L FORWARD | grep 3temp)
+oc=$(iptables -L FORWARD | grep 3temp)
 [ ! -z "$oc" ] && iptables -E "3temp" "$YAMON_IP4"
 
 [ -x /usr/bin/clear ] && clear 
@@ -1129,9 +1130,8 @@ send2log "
 *  YAMon $_version was started
 **********************************************************
 " 2
-
 write2log
-local timealign=$(($_updatefreq-$(date +%s)%$_updatefreq))
+timealign=$(($_updatefreq-$(date +%s)%$_updatefreq))
 send2log "  >>> Delaying ${timealign}s to align updates" 1
 sleep  "$timealign";
 _p_hr=$(date +%H)
