@@ -15,6 +15,7 @@
 # version 3.4.4 - re-added _path2ip; renamed _webDir & _webIndex
 # version 3.4.5 - added _local_ip6
 # version 3.4.6 - added _includeIncomplete, _append_PPPOE & see note below
+# version 3.4.8 - added _guest_iface --> see note below
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\  ***  NOTE  ***  \\\\\\\\\\\\\\\\\\\\\\\\\\\#
 # NB - yamon.sh reloads these settings automatically if this file changes.
@@ -104,3 +105,4 @@ _path2ip=''                                  # path to the full version of ip if
 _local_ip6='fe80:'	                         # preface for local ip6 addresses (entered as a comma separated list)
 _includeIncomplete='0'	                     # option to include incomplete MAC entries from arp calls 0->exclude(*) || 1->include
 _append_PPPOE='0'	                         # option to append a PPPOE entry to the ifconfig list - 0->exclude(*) || 1->include (currently unused)
+_guest_iface=''          					 # interface name for guest network, or comma separated list if multiple interfaces

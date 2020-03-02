@@ -24,22 +24,15 @@ source "$d_baseDir/strings/$_lang/strings.sh"
 
 np=$(ps | grep -v grep | grep -c yamon$_file_version)
 if [ "$np" -gt "0" ] || [ -d "$_lockDir" ] ; then
-	echo "$_s_running"
+	echo -e "$_s_running"
 	exit 0
 fi
 # wait for a bit (10 seconds)... depending on your router you can make this longer or shorter
 delay=$1
 [ -z "$delay" ] && delay=10
 
-echo "
-$los
-YAMon will be started following a delay of $delay seconds.
-
-NB - depending on your router and firmware, you may have to increase
-	 this delay (to allow  other processes to startup properly),
-	 or you may be able to eliminate the delay altogether.
-$los
-"
+echo -e "${los}${_nl}YAMon will be started following a delay of $delay seconds.${_nl}
+NB - depending on your router and firmware, you may have to increase${_nlsp}this delay (to allow other processes to startup properly),${_nlsp}or you may be able to eliminate the delay${_nlsp}altogether.${los}${_nl}"
 i=0
 while [ $i -lt $delay ] ; do
   echo -n '.'

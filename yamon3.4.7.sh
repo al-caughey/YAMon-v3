@@ -20,12 +20,13 @@
 # 3.4.6 (2018-08-11): added option to exclude failed/incomplete entries; check static leases on launch; detach from terminal
 # 3.4.6a (2019-01-25): added check for firmware in updateStaticLeases()	
 # 3.4.6b (2019-01-26): suppressed the error output from crippled ip function; fixed owner replacement in updateStaticLeases()
+# 3.4.7 (2019-01-29): fixed lingering _updated_ in users.js; better handling of cripple ip function for IPv6
 
 # ==========================================================
 #				  Functions
 # ==========================================================
 setupIPChains(){
-	$send2log "setupIPChains ($cmd/$rule)" 0
+	$send2log "setupIPChains ($cmd/$rule/$_includeIPv6)" 0
 	ip6chains_0()
 	{	#_includeIPv6=0
 		$send2log "ip6chains_0" 0
@@ -120,7 +121,16 @@ setInitValues(){
 	_configFile="$d_baseDir/config.file"
 	source "$_configFile"
 	loadconfig
-
+	$(ip -6 neigh show >> /tmp/ipv6.text 2>&1)
+	if [ $? -ne 0 ] ; then
+		_includeIPv6=0
+		echo "  
+*** _includeIPv6 changed to 0 because the installed version of the ip function
+    does not support IPv6 or the neigh parameter.
+*** Please check your config.file and/or your version of busybox.
+" >&2 
+	fi
+	rm /tmp/ipv6.text
 	source "$d_baseDir/strings/$_lang/strings.sh"
 	setLogFile
 
@@ -159,13 +169,11 @@ setInitValues(){
 	[ "$_includeIncomplete" -eq "1" ] && iginc=''
 	
 	[ -z "$_path2ip" ] && _path2ip=$(which ip)
-	if [ "$_firmware" -eq "4" ] || [ -z "$_path2ip" ] ; then
+	if [ "$_firmware" -eq "4" ] ; then
 		_getIP4List="cat /proc/net/arp | grep '^[0-9]' | $iginc tr -s ' ' | cut -d' ' -f1,4 | tr 'A-Z' 'a-z' $sortStr"
 
 	else
-		#local tip=$(echo "$($_path2ip -4 neigh show)")
-		$(ip -4 neigh show >> /tmp/ip.text 2>&1)
-		#if [ -z "$tip" ] ; then
+		$($_path2ip -4 neigh show >> /tmp/ipv4.text 2>&1)
 		if [ $? -eq 0 ] ; then
 			$send2log  "Using ip to detect active IP/MAC combinations" 1
 			_getIP4List="$_path2ip -4 neigh | cut -d' ' -f1,5 | tr 'A-Z' 'a-z' $sortStr"
@@ -173,9 +181,11 @@ setInitValues(){
 			_getIP4List="cat /proc/net/arp | grep '^[0-9]' | $iginc tr -s ' ' | cut -d' ' -f1,4 | tr 'A-Z' 'a-z' $sortStr"
 			$send2log  "Using arp to detect active IP/MAC combinations" 1
 		fi
+		rm  '/tmp/ipv4.text'
+
 	fi
-	
 	$send2log "_getIP4List-->$_getIP4List" 0
+
 	if [ "$_includeIPv6" -eq "1" ] ; then
 		_local_ip6=${_local_ip6//,/|}
 		_getIP6List="$_path2ip -6 neigh | grep -Evi \"$_local_ip6\" | cut -d' ' -f1,5 | tr 'A-Z' 'a-z' $sortStr" 
@@ -1379,6 +1389,9 @@ $leases" 0
 		CheckUsersJS $mac "$ip" 0 "$owner" "$name"
 	done
 	if [ "$_changesInUsersJS" -gt "0" ] ; then
+		local ds=$(date +"%Y-%m-%d %H:%M:%S")
+		_currentUsers=$(echo "$_currentUsers" | sed -e "s~_updated_~$ds~Ig")
+
 		$send2log ">>> $_changesInUsersJS changes in users.js" 99
 		$save2File "$_currentUsers" "$_usersFile"
 	fi
@@ -1532,7 +1545,7 @@ checkChainEntries()
 		#setUsers
 		local fc=$(iptables -nL FORWARD)
 		local yc=$(iptables -L | grep "Chain YAMON")
-		$send2log "checkChainEntries: Resstarting because iptables is in a bad state -->$2 returned only $nr entries?!? 
+		$send2log "checkChainEntries: Restarting because iptables is in a bad state -->$2 returned only $nr entries?!? 
 FORWARD Chain:
 $fc
 

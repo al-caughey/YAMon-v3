@@ -11,6 +11,8 @@
 #       - added d_use_nf_conntrack
 #       - removed unused d_lan_iface_only, d_enable_db
 # 3.4.0 - uprev'd for new release; some values tweaked & some house keeping
+# 3.4.7 - updates for crippled ipv6
+# 3.4.8 - added d_guest_iface
 ##########################################################################
 
 _has_nvram=0
@@ -95,14 +97,18 @@ d_use_nf_conntrack=1
 d_path2MSMTP=/opt/usr/bin/msmtp
 d_MSMTP_CONFIG=/opt/scripts/msmtprc
 d_includeIncomplete='0'
+d_guest_iface=''
 
 _generic_ipv4="0.0.0.0/0"
 _generic_ipv6="::/0"
 _generic_mac="un:kn:ow:n0:0m:ac"
+
 loadconfig()
 {
+	local caller=$0
+
 	#if the parameters are missing then set them to the defaults
-	local dirty=''
+	local dirty=0
 	local mfl=''
 	local p_list=$(cat "${d_baseDir}/default_config.file" | grep -o "^_[^=]\{1,\}")
 
@@ -114,19 +120,28 @@ loadconfig()
 		local dvn="d$line"
 		eval dv=\"\$$dvn\"
 		[ -z "$dv" ] && continue
-		dirty="true"
+		dirty=$(($dirty+1))
 		eval $line=\"\$$dvn\"
 		mfl="$mfl
 	* $line ($dv)"
 	done
-	
+
+	[ -z "$(which ftpput)" ] && [ "$_enable_ftp" -eq 1 ] && _enable_ftp=0 && echo -e "${_uhoh}the value of '_enable_ftp' has been changed to 0${_nlsp}because command ftpput was not found?!?${_nls}Please check your config.file${nl}" >&2
+	save2File="save2File_"$_enable_ftp
+
+	[ -z "$_path2ip" ] && _path2ip=$(which ip)
+	if [ "$_includeIPv6" -eq "1" ] ; then
+		$($_path2ip -6 neigh show >> /tmp/ipv6.txt 2>&1)
+		if [ $? -ne 0 ] ; then
+			_includeIPv6=0
+			[ ! -z $(echo $caller | grep "yamon") ] && echo -e "${_uhoh}the value of '_includeIPv6' has been changed to 0 because your${nlsp}installed version of the ip function does not support IPv6 or the neigh parameter.${nls}Please check your config.file and/or your version of busybox.${nlsp}See also http://usage-monitoring.com/help/?t=ipv6-changed${nl}" >&2 
+			rm /tmp/ipv6.txt
+		fi 
+	fi 
+
 	updateUsage="updateUsage_"$_includeIPv6
 	doliveUpdates="doliveUpdates_"$_doLiveUpdates
-	[ -z "$(which ftpput)" ] && [ "$_enable_ftp" -eq 1 ] && _enable_ftp=0 && echo "
-*** _enable_ftp changed to 0 because command ftpput was not found?!?
-*** Please check your config.file
-" >&2
-	save2File="save2File_"$_enable_ftp
+
 	copyfiles="copyfiles_"$_symlink2data
 	checkUnlimited="checkUnlimited_"$_unlimited_usage
 	checkIPv6="checkIPv6_"$_includeIPv6
@@ -144,18 +159,8 @@ loadconfig()
 	else
 		sendAlert="sendAlert_1"
 	fi
-	[ -n "$dirty" ] && echo "
-###########################################################
-NB - One or more parameters are missing in your config.file!$mfl
-The missing entries have been assigned the defaults from \`default_config.file\`.
-
-Run setup.sh again to update your config.file and see \`default_config.file\`
-for more info about these parameters.
-
-See also http://usage-monitoring.com/help/?t=missing_parameters 
-
-###########################################################
-"
+	[ "$dirty" -gt 0 ] && echo -e "${_uhoh}$dirty parameter(s) are missing in your config.file!$mfl${_nlsp}The missing entries have been assigned the defaults from \`default_config.file\`.${_nlsp}Run setup.sh again to update your config.file and see \`default_config.file\`${_nlsp}for more info about these parameters.${_nlsp}See also http://usage-monitoring.com/help/?t=missing_parameters ${_nl}"
+	
 	if [ "$_unlimited_usage" -eq "1" ] ; then
 		_ul_start=$(date -d "$_unlimited_start" +%s);
 		_ul_end=$(date -d "$_unlimited_end" +%s);

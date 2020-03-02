@@ -22,7 +22,7 @@ source "${d_baseDir}/strings/$_lang/strings.sh"
 source "$d_baseDir/includes/getLocalCopies.sh"
 
 clear
-echo "$_s_title"
+echo -E "$_s_title"
 echo "
 ******************************************************************
 

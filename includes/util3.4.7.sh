@@ -42,43 +42,42 @@ prompt()
 	local topic="$6"
 	[ -z  "$topic" ] && topic="$vn"
 	echo -e "
-********************************
-#$_qn. $p2
-" >&2
-	p3="$(echo -e "    >>> For more info, see http://usage-monitoring.com/help/?t=$topic
-		$3
-	"| sed -re 's~[\t]+~    ~g')"
+#$_qn. $p2" >&2
+	p3="$(echo -e "    $3
+	"| sed -re 's~[\t]+~    ~g')
+    "
 	if [ -z "$nv" ] && [ -z "$df" ] ; then
 		nv='n/a'
 		df='n/a'
-		readStr="$p3- type your preferred value --> "
+		readStr="    Enter your preferred value: "
 	elif [ -z "$df" ] ; then
-		readStr="$p3- hit <enter> to accept the current value: \`$nv\`, or
-    - type your preferred value --> "
+		readStr="${p3}Hit <enter> to accept the current value (\`$nv\`),
+      or enter your preferred value: "
 	elif [ -z "$nv" ] ; then
 		nv='n/a'
-		readStr="$p3- hit <enter> to accept the default: \`$df\`, or
-    - type your preferred value --> "
+		readStr="${p3}Hit <enter> to accept the default (\`$df\`),
+      or enter your preferred value: "
 	elif [ "$df" == "$nv" ] ; then
-		readStr="$p3- hit <enter> to accept the current/default value: \`$df\`, or
-    - type your preferred value --> "
+		readStr="${p3}Hit <enter> to accept the current/default value (\`$df\`),
+      or enter your preferred value: "
 	else
-		readStr="$p3- hit <enter> to accept the current value: \`$nv\`, or
-    - type \`d\` for the default: \`$df\`, or
-    - type your preferred value --> "
+		readStr="${p3}Hit <enter> to accept the current value: \`$nv\`, \`d\` for the default (\`$df\`)
+      or enter your preferred value: "
 	fi
+
 	local tries=0
 	while true; do
 		read -p "$readStr" resp
-		[ ! "$df" == 'n/a' ] && [ "$resp" == 'd' ] && resp="$df" && break
-		[ ! "$nv" == 'n/a' ] && [ -z "$resp" ] && resp="$nv" && break
-		[ "$nv" == 'n/a' ] && [ ! "$df" == 'n/a' ] && [ -z "$resp" ] && resp="$df" && break
+		[ ! "$df" == 'n/a' ] && [ "$resp" == 'd' ] && resp="$df" && rt="accepted default" && break
+		[ ! "$nv" == 'n/a' ] && [ -z "$resp" ] && resp="$nv" && rt="accepted current" && break
+		[ "$nv" == 'n/a' ] && [ ! "$df" == 'n/a' ] && [ -z "$resp" ] && resp="$df" && rt="accepted default" && break
 		if [ -n "$regex" ] ;  then
 			ig=$(echo "$resp" | grep -E $regex)
-			[ ! "$ig" == '' ] && [ "$resp" == 'n' ] || [ "$resp" == 'N' ] && resp="0" && break
-			[ ! "$ig" == '' ] && [ "$resp" == 'y' ] || [ "$resp" == 'Y' ] && resp="1" && break
-			[ ! "$ig" == '' ] && break
+			[ ! "$ig" == '' ] && [ "$resp" == 'n' ] || [ "$resp" == 'N' ] && resp="0" && rt="typed 0" && break
+			[ ! "$ig" == '' ] && [ "$resp" == 'y' ] || [ "$resp" == 'Y' ] && resp="1" && rt="typed 1" && break
+			[ ! "$ig" == '' ] && rt="typed $resp" && break
 		else
+		    rt="else" 
 			break
 		fi
 		tries=$(($tries + 1))
@@ -86,18 +85,21 @@ prompt()
 			echo "*** Strike three... you're out!" >&2
 			exit 0
 		fi
-		echo "   Please enter one of the specified values!" >&2
+		$send2log "Bad value for $vn --> $resp" 1
+		echo "
+    *** \`$resp\` is not a permitted value for this variable!  Please try again.
+     >>> For more info, see http://usage-monitoring.com/help/?t=$topic" >&2
 	done
 	eval $vn=\"$resp\"
-	updateConfig $vn "$resp"
+	updateConfig $vn "$resp" "$rt"
 }
 updateConfig(){
-	$send2log "updateConfig:  $1	$2" 0
+	$send2log "updateConfig:  $1	$2	$3" 0
 	local vn=$1
 	local nv=$2
+	echo "	  $vn --> $nv	($rt)" >> $_logfilename
 	[ "${vn:0:2}" == 't_' ] && return
 	[ -z "$nv" ] && eval nv="\$$vn"
-	echo "	  $vn --> $nv" >> $_logfilename
 	local sv="$vn=.*#"
 	local rv="$vn=\'$nv\'"
 	local sm=$(echo "$configStr" | grep -o $sv)
@@ -305,12 +307,12 @@ setWebDirectories()
 	reports="http://${reports//\/\//\/}"
 	echo "
 
-   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   ~  Your reports URL: $reports
-   ~  (subject to some firmware variant oddities)
-   ~  If your reports do not open properly, see
-   ~     http://usage-monitoring.com/help/?t=reports-help
-   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    ~  Your reports URL: $reports
+    ~  (subject to some firmware variant oddities)
+    ~  If your reports do not open properly, see
+    ~     http://usage-monitoring.com/help/?t=reports-help
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	$send2log "Reports URL: $reports" 1
 	$send2log "Paths:
 $(ls -la $_wwwPath)" 0

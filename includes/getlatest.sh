@@ -9,6 +9,7 @@
 #   Updated: 2016-06-19 - fixed previous changes
 #   Updated: 2016-11-04 - added wd.sh
 #   Updated: 2016-12-30 - added purge.sh
+#   Updated: 2019-08-02 - added checkusers.sh
 #
 ##########################################################################
 
@@ -78,6 +79,7 @@ getlatest 'wd.sh'
 getlatest 'purge.sh'
 getlatest 'organize.sh'
 getlatest 'compare.sh'
+getlatest 'checkusers.sh'
 
 getlatest "setup$_version.sh"
 [ -f "${YAMON}setup.sh" ] && rm "${YAMON}setup.sh"

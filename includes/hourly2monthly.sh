@@ -10,7 +10,8 @@
 #
 ##########################################################################
 
-#to do...  update last-seen in users.js
+#to do...
+# auto delete log files if the disk is full...
 
 calcMonthlyTotal()
 {
@@ -132,7 +133,7 @@ $rotf" > $_macUsageDB
 	emu: $emu GB" 0
 	[ "$au" -gt "$mcap" ] && $send2log "Usage has exceeded your monthly cap!!! used: $au GB / cap: $_monthlyDataCap GB" 99 && return
 	[ "$_monthlyDataCap" -eq "0" ] && [ "$emu" -gt 1000 ] && $send2log "Expected monthly usage could exceed 1TB ($emu GB)" 99 && return
-	[ "$emu" -gt "$_monthlyDataCap" ] && $send2log "Expected monthly usage ($emu GB) could exceed your monthly cap of $_monthlyDataCap GB" 99 && return
+	[ "$_monthlyDataCap" -ne "0" ] && [ "$emu" -gt "$_monthlyDataCap" ] && $send2log "Expected monthly usage ($emu GB) could exceed your monthly cap of $_monthlyDataCap GB" 99 && return
 	$send2log "Based upon usage to date, expected monthly total is ~$emu GB" 1 && return
 }
 
@@ -296,11 +297,13 @@ $newline"
 		
 		local hrlyData=$(echo "$hrlyData" | grep "^hu")
 		$send2log "hrlyData: $hrlyData " -1
-		local macList=$(echo "$hrlyData" | grep -o '..:..:..:..:..:..' | tr 'A-Z' 'a-z' | sort -k1 | uniq -c | tr -s ' '| cut -d' ' -f3)
+		local macList=$(echo "$hrlyData" | grep -o "\"mac\":\"[^\"]\{1,\}\"" | tr 'A-Z' 'a-z'| sort -k1| uniq -c | cut -d'"' -f4)
 		$send2log "macList: $macList " -1
 		IFS=$'\n'
 		local gt_down=0
 		local gt_up=0
+		local gt_ul_down=0
+		local gt_ul_up=0
 		for mac in $(echo "$macList")
 		do
 			[ -z "$showProgress" ] || echo -n '.' >&2
@@ -390,62 +393,83 @@ $dgt"
 	$send2log "hrlyData: $hrlyData" -1
 	$send2log ">>> reading from $_prevhourlyUsageDB & writing to $_macUsageDB" 0
 
-	local hr=''
+	local pnd=$(echo "$hrlyData" | grep "^pnd")
+	local start=$(echo "$pnd" | grep -i '"start"')
+	$send2log "Start: $start" 0
+	local p_uptime=0
+	local guest_str=''
+	local t_do=0
+	local t_up=0
 	local nreboots=0
-	local down=0
-	local up=0
-	local uptime=0
+	local s_uptime=$(getCV "$start" "uptime")
+	local p_uptime=$s_uptime
+	local s_d=$(getCV "$start" "down")
+	local s_u=$(getCV "$start" "up")
+	if [ ! "$_guest_iface" == '' ] ; then
+		local s_gd=$(getCV "$start" "guest-down")
+		local s_gu=$(getCV "$start" "guest-up")
+		local guest_str=" / guest-down: $s_gd / guest-up: $s_gu"
+		local t_gdo=0
+		local t_gup=0
+	fi
 
-	local pnd=$(echo "$hrlyData" | grep -i '"start"')
-	local p_uptime=$(getCV "$pnd" "uptime")
-	local p_pnd_d=$(getCV "$pnd" "down")
-	local p_pnd_u=$(getCV "$pnd" "up")
-	$send2log "Initial: p_uptime-->$p_uptime  p_pnd_d-->$p_pnd_d  p_pnd_u-->$p_pnd_u" -1
+	$send2log "uptime: $s_uptime / down: $s_d / up: $s_u $guest_str" -1
+
 	IFS=$'\n'
-	[ -z "$showProgress" ] || echo -n "$_pYear-$_pMonth-$_pDay
-	PND: " >&2
-	for pnd in $(echo "$hrlyData" | grep "^pnd" | grep -v "\"start\"")
+	for line in $(echo "$pnd" | grep -v "\"start\"")
 	do
-		[ -z "$showProgress" ] || echo -n '.' >&2
-		$send2log "pnd-->$pnd" -1
-		hr=$(getCV "$pnd" "hour")
-		uptime=$(getCV "$pnd" "uptime")
-		down=$(getCV "$pnd" "down")
-		up=$(getCV "$pnd" "up")
-		$send2log "hr-->$hr  uptime-->$uptime  down-->$down  up-->up" 0
-		if [ "$uptime" -ge "$p_uptime" ] ; then
-			svd=$(digitSub "$down" "$p_pnd_d")
-			svu=$(digitSub "$up" "$p_pnd_u")
-			if [ "$svd" \< "0" ] ; then
-				$send2log ">>> svd rolled over --> $svd" 0
-				svd=$(digitSub "$_maxInt" "$svd")
-			fi
-			if [ "$svu" \< "0" ] ; then
-				$send2log ">>> svu rolled over --> $svu" 0
-				svu=$(digitSub "$_maxInt" "$svu")
-			fi
+		c_uptime=$(getCV "$line" "uptime")
+		c_u=$(echo $c_uptime | cut -d. -f1)
+		p_u=$(echo $p_uptime | cut -d. -f1)
+		if [ "$c_u" -gt "$p_u" ] ; then
+			p_uptime=$c_uptime
+			p_line=$line
+			continue
 		else
-			svd=$down
-			svu=$up
+			$send2log "reboot: $nreboots" -1
 			nreboots=$(($nreboots + 1))
-			$send2log ">>> Server rebooted... $hr - partial update	uptime:$uptime	p_uptime:$p_uptime	reboots:$nreboots" 2
+
+			s_uptime=$c_uptime
+			c_d=$(getCV "$p_line" "down")
+			c_u=$(getCV "$p_line" "up")
+			t_do=$(( $t_do + $c_d - $s_d  ))
+			t_up=$(( $t_up + $c_u - $s_u  ))
+			s_d=0
+			s_u=0
+			t_guest=''
+			if [ ! "$_guest_iface" == '' ] ; then
+				c_gd=$(getCV "$p_line" 'guest-down')
+				c_gu=$(getCV "$p_line" 'guest-up')
+				t_gdo=$(( $t_gdo + $c_gd - $s_gd  ))
+				t_gup=$(( $t_gup + $c_gu - $s_gu  ))
+				s_gd=0
+				s_gu=0
+				t_guest=" / t_gdo: $t_gdo / t_gup: $t_gup"
+			fi
+			$send2log "t_do: $t_do / t_up: $t_up $t_guest" 0
 		fi
-		p_do_tot=$(digitAdd "$p_do_tot" "$svd")
-		p_up_tot=$(digitAdd "$p_up_tot" "$svu")
-		$send2log ">>> hr: $hr	uptime: $uptime	 p_uptime: $p_uptime	svd: $svd	svu: $svu " -1
-		$send2log ">>> p_do_tot: $p_do_tot	p_up_tot: $p_up_tot " -1
-		p_pnd_d=$down
-		p_pnd_u=$up
-		p_uptime=$uptime
+		p_uptime=$c_uptime
+		p_line=$line
 	done
-	unset IFS
-	pnd_results="
-dtp({\"day\":\"$_pDay\",\"down\":$p_do_tot,\"up\":$p_up_tot,\"reboots\":$nreboots})"
+	$send2log "Last line: $p_line" 0
+	c_d=$(getCV "$p_line" "down")
+	c_u=$(getCV "$p_line" "up")
+	t_do=$(( $t_do + $c_d - $s_d  ))
+	t_up=$(( $t_up + $c_u - $s_u  ))
+	if [ ! "$_guest_iface" == '' ] ; then
+		c_gd=$(getCV "$p_line" 'guest-down')
+		c_gu=$(getCV "$p_line" 'guest-up')
+		t_gdo=$(( $t_gdo + $c_gd - $s_gd  ))
+		t_gup=$(( $t_gup + $c_gu - $s_gu  ))
+		t_guest=",\"guest-down\":$t_gdo,\"guest-up\":$t_gup"
+	fi
+
+	pnd_results="dtp({\"day\":\"$_pDay\",\"down\":$t_do,\"up\":$t_up$t_guest,\"reboots\":$nreboots})"
 	save2File "$pnd_results" "$_macUsageDB" "append"
 
 	local hr_results=''
-	[ -z "$showProgress" ] || echo -n '
-	Hourly: ' >&2
+	local ddd=$(date)
+	[ -z "$showProgress" ] || echo -n "    $_pDay --> Hourly: " >&2
 
 	dgt_fn="getDGT_$_unlimited_usage"
 	eval "$tallyHourlyData"

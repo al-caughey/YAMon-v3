@@ -21,19 +21,19 @@ source "$d_baseDir/strings/$_lang/strings.sh"
 
 ir=$(ps | grep -v "grep" | grep -c "yamon$_file_version")
 if [ ! -d $_lockDir ] && [ "$ir" -eq "0" ]; then
-	echo "$_s_notrunning"
+	echo -e "$_s_notrunning"
 	exit 0
 fi
 
 rmdir $_lockDir
 
 if [ "$ir" -eq "0" ]; then
-	echo "$_s_stopped"
+	echo -e "$_s_stopped"
 	exit 0
 fi
 
 if [ "$ir" -gt "0" ]; then
-	echo "$_s_stopping"
+	echo -e "$_s_stopping"
 	n=0
 	while [ true ] ; do
 		n=$(($n + 1))
@@ -45,19 +45,17 @@ if [ "$ir" -gt "0" ]; then
 fi
 ir=$(ps | grep -v "grep" | grep -c "yamon$_file_version")
 if [ "$ir" -gt "0" ]; then
-	echo "$ir Zombie processes need to be killed?!?"
-	echo "$(ps | grep -v 'grep' | grep 'yamon$_file_version')"
+	echo -e "${_nl}Killing $ir Zombie process(es)?!?"
+	echo -e "$(ps | grep -v 'grep' | grep 'yamon$_file_version')"
 	while [ true ] ; do
 		pid=$(ps | grep -v grep | grep yamon$_file_version | cut -d' ' -f1)
 		[ -z "$pid" ] && break
-		[ "$o_pid" == "$pid" ] && echo "did not kill process: $pid ?!? try rebooting your router" && break
+		[ "$o_pid" == "$pid" ] && echo -e "Uh-oh! did not kill process: $pid ?!? try rebooting your router" && break
 		kill $pid
-		echo "killed process: $pid"
+		echo -e "killed process: $pid"
 		sleep 1
 		o_pid=$pid
 	done
 fi
 logger "YAMON:" "Shutdown"
-echo "
-
-$_s_stopped"
+echo -e "$_s_stopped"
