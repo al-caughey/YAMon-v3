@@ -16,7 +16,8 @@
 
 d_baseDir=`dirname $0`
 
-source "$d_baseDir/includes/defaults.sh"
+source "${d_baseDir}/includes/versions.sh"
+source "${d_baseDir}/includes/defaults.sh"
 if [ -f "$d_baseDir/includes/util$_version.sh" ] ; then
 	source "$d_baseDir/includes/util$_version.sh"
 else
@@ -29,7 +30,8 @@ source "$_configFile"
 loadconfig
 source "$d_baseDir/strings/$_lang/strings.sh"
 
-if [ -d "$_lockDir" ] ; then
+np=$(ps | grep -v grep | grep -c yamon)
+if [ "$np" -gt "0" ] || [ -d "$_lockDir" ] ; then
 	echo "$_s_running"
 	exit 0
 fi

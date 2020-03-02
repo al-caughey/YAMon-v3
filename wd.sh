@@ -14,7 +14,8 @@ _debugging=0
 d_baseDir=`dirname $0`
 _configFile="$d_baseDir/config.file"
 source "$_configFile"
-source "$d_baseDir/includes/defaults.sh"
+source "${d_baseDir}/includes/versions.sh"
+source "${d_baseDir}/includes/defaults.sh"
 loadconfig
 
 send2log()

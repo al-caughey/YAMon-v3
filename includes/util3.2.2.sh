@@ -7,6 +7,7 @@
 #
 # History
 # 3.2.1 (2017-01-28): moved setWebDirectories from yamon.x.sh to util.3.2
+# 3.2.2 (2017-01-29): removed write2log; removed unused debugging calls
 ##########################################################################
 
 _enableLogging=1
@@ -16,14 +17,12 @@ _loglevel=0
 
 showmsg()
 {
-	[ "$_debugging" -eq "1" ] && set +x 
 	local wm=$1
 	msg="$(cat "$d_path2strings$wm" )"
 	[ ! -z "$2" ] && msg=$(echo "$msg" | sed -e "s~\%1\%~$2~g" )
 	[ ! -z "$3" ] && msg=$(echo "$msg" | sed -e "s~\%2\%~$3~g" )
 	[ ! -z "$4" ] && msg=$(echo "$msg" | sed -e "s~\%3\%~$4~g" )
 	echo -e "$msg"
-	[ "$_debugging" -eq "1" ] && set -x 
 }
 
 prompt() 
@@ -140,7 +139,6 @@ db()
 
 send2log()
 {
-	[ "$_debugging" -eq "1" ] && set +x
 	local ll=$2
 	[ -z "$ll" ] && ll=0
 	if [ "$_enableLogging" -gt "0" ] ; then
@@ -151,15 +149,6 @@ send2log()
 		[ "$ll" -ge "$_scrlevel" ] && [ "$_log2file" -ne "1" ] && echo -e "$ts $ll $1" >&2
 		[ "$ll" -eq "99" ] && [ "$_sendAlerts" -gt "0" ] && sendAlert "YAMon Alert..." "$1"
 	fi
-	[ "$_debugging" -eq "1" ] && set -x
-}
-write2log()
-{
-	#send2log "=== write2log ===" 0
-	#[ -z "$_log_str" ] && return
-	#echo "$_log_str" >> $_logfilename
-	#_log_str=''
-    break;
 }
 setWebDirectories()
 {
@@ -170,14 +159,22 @@ setWebDirectories()
 			mkdir -p "$_wwwPath"
 			chmod -R a+rX "$_wwwPath"
 		fi
+        if [ "${_logDir:0:1}" == "/" ] ; then
+            local lfpath=$_logDir
+        else
+            local lfpath="${_baseDir}$_logDir"
+        fi
+
 		[ ! -d "$_wwwPath$_wwwJS" ] && mkdir -p "$_wwwPath$_wwwJS"
 		local lcss=${_wwwCSS%/}
 		local limages=${_wwwImages%/}
 		local ldata=${_wwwData%/}
 		local ljs=${_wwwData%/}
+		local llogs='logs'
 		[ ! -h "$_wwwPath$lcss" ] && ln -s "${_baseDir}$_setupWebDir$lcss" "$_wwwPath$lcss"
 		[ ! -h "$_wwwPath$limages" ] && ln -s "${_baseDir}$_setupWebDir$limages" "$_wwwPath$limages"
 		[ ! -h "$_wwwPath$ldata" ] && ln -s "$_dataPath" "$_wwwPath$ldata"
+		[ ! -h "$_wwwPath$llogs" ] && ln -s "$lfpath" "$_wwwPath$llogs"
 		[ ! -h "$_wwwPath$_setupWebIndex" ] && ln -s "${_baseDir}$_setupWebDir$d_setupWebIndex" "$_wwwPath$_setupWebIndex"
 		[ ! -h "$_wwwPath$_wwwJS$_configWWW" ] && ln -s "${_baseDir}$_setupWebDir$_wwwJS$_configWWW" "$_wwwPath$_wwwJS$_configWWW"
 	elif [ "$_symlink2data" -eq "0"  ] ; then
@@ -259,9 +256,7 @@ getCV()
 {
 	send2log "=== getCV ===" 0
 	send2log "	  arguments:  $1  $2" -1
-	[ "$_debugging" -eq "1" ] && set +x
 	local result=$(echo "$1" | grep -io "\"$2\":[\"0-9]\{1,\}" | grep -o "[0-9]\{1,\}");
-	[ "$_debugging" -eq "1" ] && set -x
 	[ -z $result ] && result=0
 	
 	echo "$result"
@@ -337,7 +332,6 @@ add2UDList(){
 	local ip=$1
 	local do=$2
 	local up=$3
-	[ "$_debugging" -eq "1" ] && set +x
 	local le=$(echo "$_ud_list" | grep -i "$ip\b")
 	send2log "	  le-->$le" -1
 	if [ -z "$le" ] ; then
@@ -351,7 +345,6 @@ $ip,$do,$up"
 		local tip=${ip//\./\\.}	
 		_ud_list=$(echo "$_ud_list" | sed -e "s~^$tip\b.*~$ip,$do,$up~Ig")
 	fi
-	[ "$_debugging" -eq "1" ] && set -x
 }
 createUDList(){
 	send2log "=== createUDList ===" -1
@@ -521,13 +514,11 @@ getMACIPList(){
 	local cmd=$1
 	local rule=$2
 	send2log "=== getMACIPList ($cmd/$rule) === " 0
-	[ "$_debugging" -eq "1" ] && set +x
     if [ "$_useTMangle" -eq "0" ] ; then
         local rules=$(echo "$($cmd -nL "$rule" --line-numbers )" | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5) 
     else
         local rules=$(echo "$($cmd -t mangle -nL "$rule" --line-numbers )" | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5) 
     fi
-	[ "$_debugging" -eq "1" ] && set -x
 	if [ -z "$rules" ] ; then 
 		send2log "	$rule returned nothing?!?" 2
 		checkIPChain $cmd "FORWARD" $rule
@@ -540,12 +531,10 @@ $rules" -1
 	IFS=$'\n'
 	for line in $(echo "$list")
 	do
-		[ "$_debugging" -eq "1" ] && set +x
 		local ip=$(echo "$line" | cut -d' ' -f1)
 		local tip=${ip//\./\\.}
 		local mac=$(echo "$line" | cut -d' ' -f2)
 		local nm=$(echo "$rules" | grep -ic "\b$tip\b" )
-		[ "$_debugging" -eq "1" ] && set -x
 		checkIPTableEntries $cmd $rule $ip $nm
 		
 		local me=$(echo "$result" | grep $mac )

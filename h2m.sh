@@ -11,12 +11,16 @@
 
 d_baseDir="`dirname $0`"
 delay=$1
-_debugging=0
 [ -z $delay ] && delay=5
 
+source "${d_baseDir}/includes/versions.sh"
 source "${d_baseDir}/includes/defaults.sh"
 source "${d_baseDir}/strings/$_lang/strings.sh"
-source "${d_baseDir}/includes/util.sh"
+if [ -f "$d_baseDir/includes/util$_version.sh" ] ; then
+	source "$d_baseDir/includes/util$_version.sh"
+else
+	source "$d_baseDir/includes/util.sh"
+fi
 source "${d_baseDir}/includes/hourly2monthly.sh"
 
 _cYear=$(date +%Y)
@@ -79,16 +83,20 @@ mo=${mo#0}
 rDay=$(printf %02d $_ispBillingDay)
 rMonth=$(printf %02d $mo)
 
-local savePath="${_baseDir}$_dataDir"
+if [ "${_dataDir:0:1}" == "/" ] ; then
+	local _dataPath=$_dataDir
+else 
+	local _dataPath="${_baseDir}$_dataDir"
+fi
 case $_organizeData in
 	(*"0"*)
-		local savePath="${_baseDir}$_dataDir"
+		local savePath="$_dataPath"
 	;;
 	(*"1"*)
-		local savePath="${_baseDir}$_dataDir$rYear/"
+		local savePath="$_dataPath$rYear/"
 	;;
 	(*"2"*)
-		local savePath="${_baseDir}$_dataDir$rYear/$rMonth/"
+		local savePath="$_dataPath$rYear/$rMonth/"
 	;;
 esac
 
@@ -171,5 +179,3 @@ NB - you do *not* have to stop the main script to copy the data from
 the new file into your active hourly data file.
 
 "
-
-write2log

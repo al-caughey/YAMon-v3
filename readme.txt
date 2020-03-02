@@ -1,5 +1,5 @@
-Yet Another Monitor (version 3.2.0)
-Last updated: Jan 22, 2017
+Yet Another Monitor (version 3.2.3)
+Last updated: Feb 15, 2017
 
 Yet Another Monitor (YAMon) records and reports on the traffic (downloads and uploads) for all of the devices connecting to your router.  The data is aggregated by hour, day and month (within your ISP billing interval) and can be rolled-up into arbitrary groups (e.g., by family member, function, location or by any other logical grouping of devices).  
 

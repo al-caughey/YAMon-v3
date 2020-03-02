@@ -29,16 +29,21 @@ updateHourly2Monthly()
 	fi
 	_pMonth=$(printf %02d $_pMonth)
 	rMonth=$(printf %02d $rMonth)
-	local savePath="$_baseDir$_dataDir"
+
+	if [ "${_dataDir:0:1}" == "/" ] ; then
+		local _dataPath=$_dataDir
+	else 
+		local _dataPath="${_baseDir}$_dataDir"
+	fi
 	case $_organizeData in
 		(*"0"*)
-			local savePath="$_baseDir$_dataDir"
+			local savePath="$_dataPath"
 		;;
 		(*"1"*)
-			local savePath="$_baseDir$_dataDir$rYear/"
+			local savePath="$_dataPath$rYear/"
 		;;
 		(*"2"*)
-			local savePath="$_baseDir$_dataDir$rYear/$rMonth/"
+			local savePath="$_dataPath$rYear/$rMonth/"
 		;;
 	esac
 	_macUsageDB="$savePath$rYear-$rMonth-$rday-$_usageFileName"
