@@ -33,6 +33,7 @@
 # 3.1.6 (2016-11-17): changed br_u/br_d for hr=start in new 'getStartPND' (to roll over values from previous day); fixed issue in sendAlerts
 # 3.1.7 (2016-11-20): changed fixed 'getStartPND' _br_u/_br_d
 # 3.1.8 (2016-12-14): added DrMona's fix for ips across the bridge; disabled function write2log 
+# 3.1.9 (2016-12-17): chasing bridge IP issue... added dumpUsers max once per hour; config3.js is now symlinked and also copied to FTP server automatically if options enabled
 # ==========================================================
 #				  Functions
 # ==========================================================
@@ -117,17 +118,20 @@ setWebDirectories()
 			mkdir -p "$_wwwPath"
 			chmod -R a+rX "$_wwwPath"
 		fi
+		[ ! -d "$_wwwPath$_wwwJS" ] && mkdir -p "$_wwwPath$_wwwJS"
 		local lcss=${_wwwCSS%/}
 		local limages=${_wwwImages%/}
 		local ldata=${_wwwData%/}
+		local ljs=${_wwwData%/}
 		[ ! -h "$_wwwPath$lcss" ] && ln -s "${_baseDir}$_setupWebDir$lcss" "$_wwwPath$lcss"
 		[ ! -h "$_wwwPath$limages" ] && ln -s "${_baseDir}$_setupWebDir$limages" "$_wwwPath$limages"
 		[ ! -h "$_wwwPath$ldata" ] && ln -s "$_dataPath" "$_wwwPath$ldata"
 		[ ! -h "$_wwwPath$_setupWebIndex" ] && ln -s "${_baseDir}$_setupWebDir$_setupWebIndex" "$_wwwPath$_setupWebIndex"
+		[ ! -h "$_wwwPath$_wwwJS$_configWWW" ] && ln -s "${_baseDir}$_setupWebDir$_wwwJS$_configWWW" "$_wwwPath$_wwwJS$_configWWW"
 	elif [ "$_symlink2data" -eq "0"  ] ; then
+		[ ! -d "$_wwwPath$_wwwJS" ] && mkdir -p "$_wwwPath$_wwwJS"
 		copyfiles "${_baseDir}$_setupWebDir*" "$_wwwPath"
 	fi
-	[ ! -d "$_wwwPath$_wwwJS" ] && mkdir -p "$_wwwPath$_wwwJS"
 }
 setDataDirectories()
 {
@@ -263,7 +267,7 @@ getHourlyHeader(){
 	local bufferMem=$(getMI "$meminfo" "Buffers")
 	local cacheMem=$(getMI "$meminfo" "Cached")
 	local availMem=$(($freeMem+$bufferMem+$cacheMem))
-	local disk_utilization=$(df $_baseDir | grep -o "[0-9]\{1,\}%")
+	local disk_utilization=$(df ${_baseDir} | grep -o "[0-9]\{1,\}%")
 	[ "$_debugging" -eq "1" ] && set -x 
 	send2log "  getHourlyHeader:_totMem-->$_totMem" -1
 
@@ -439,7 +443,11 @@ checkBridge()
 setConfigJS()
 {
 	send2log "=== setConfigJS ===" -1
-	local configjs="$_wwwPath$_wwwJS$_configWWW"
+	if [ "$_symlink2data" -eq "0" ] ; then
+		local configjs="$_wwwPath$_wwwJS$_configWWW"
+	else
+		local configjs="$_baseDir$_setupWebDir$_wwwJS$_configWWW"
+	fi
 	local processors=$(grep -i processor /proc/cpuinfo -c)
 
 	#Check for directories
@@ -478,7 +486,9 @@ var _settings_pswd='$_md5_pswd'"
 	[ "$_debugging" -eq "1" ] && set +x 
 	[ ! "$_dbkey" == "" ] && configtxt="$configtxt
 var _dbkey='$_dbkey'"
+
 	save2File "$configtxt" "$configjs"
+	[ "$_enable_ftp" -eq 1 ] && send2FTP "$configjs"
 	
 	[ "$_debugging" -eq "1" ] && set -x 
 	send2log "  >>> configjs --> $configjs" -1
@@ -917,9 +927,9 @@ lostBytes()
 {
 	local nb=$2
 	[ -z "$nb" ] && nb=0
-	send2log "	  +++ lostBytes-->$_totalLostBytes ($2)" -1
+	send2log "	  +++ lostBytes-->$_totalLostBytes ($nb)" -1
 	_totalLostBytes=$(digitAdd "$_totalLostBytes" "$nb")
-	send2log "$1 (_totalLostBytes=$_totalLostBytes / $2)" 2
+	send2log "$1 (_totalLostBytes=$_totalLostBytes / $nb)" 2
 }
 update()
 {
@@ -952,7 +962,13 @@ update()
 			return
 		fi
 		lostBytes "	  !!! No matching entry in _currentUsers for $ip?!? returning " $bytes 
-		send2log "$_currentUsers" -1
+		if [ -z "$dumpUsers" ] ; then
+			send2log "cu_no_dup -->
+$cu_no_dup" 0
+			send2log "_currentUsers -->
+$_currentUsers" 0
+			dumpUsers=1
+		fi
 		return
 	elif [ "$cuc" -gt 1 ] ; then
 		lostBytes "	  !!! $cuc matching entries in _currentUsers for $ip?!? returning " $bytes 
@@ -996,9 +1012,9 @@ update()
 			send2log "	--- matched bridge mac but found $ipcount matching entries for $ip.  Data will be tallied under bridge mac" 1
 			if [ -z "$dumpUsers" ] ; then
 				send2log "cu_no_dup -->
-$cu_no_dup" 1
+$cu_no_dup" 0
 				send2log "_currentUsers -->
-$_currentUsers" 1
+$_currentUsers" 0
 				dumpUsers=1
 			fi
 		fi

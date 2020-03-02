@@ -61,8 +61,8 @@
 			<div id='error-notification' class='p-a'>
 				<h1>This text will go away once all of the data has loaded.</h1>
 				<h2>Ah nuts!  An unexpected JavaScript error has prevented the reports from opening properly.<br/>
-                Please go to the <a href='http://usage-monitoring.com/help/?t=error-notification' target='_blank'>Help</a> page to find out how you can help resolve this issue.</h2>
-            </div>
+				Please go to the <a href='http://usage-monitoring.com/help/?t=error-notification' target='_blank'>Help</a> page to find out how you can help resolve this issue.</h2>
+			</div>
 			<div id='myAlert' class='dlog hidden'>
 				<p>Alert
 					<span class='mab p-a'>
@@ -1444,6 +1444,15 @@
 							<p title='Show/Hide updating popups'>
 								<input type="checkbox" id="SuppressUpdates">
 								<label for="SuppressUpdates">Suppress loading alerts</label>
+							</p>
+							<p title='Check whether YAMons files have been updated'>
+								Check for updates: <select name="check4Updates" id="check4Updates">
+									<option value='n' title='Never check for updates... *not* recommended!'>Never</option>
+									<option value='a' title='Check at most once per day'>Every time</option>
+									<option value='w' title='Check weekly'>Weekly</option>
+									<option value='m' title='Check monthly'>Monthly</option>
+								</select>
+								<button onClick='checkFiles()'>Now!</button>
 							</p>
 						</fieldset>
 						<fieldset id='settings-col_3'>

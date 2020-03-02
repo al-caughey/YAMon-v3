@@ -1,13 +1,13 @@
 ##########################################################################
 # Yet Another Monitor (YAMon)
-# Copyright (c) 2013-2016 Al Caughey
+# Copyright (c) 2013-present Al Caughey
 # All rights reserved.
 #
 # default parameters - these values may be updated in readConfig()
 #
 ##########################################################################
 
-_version='3.1.8'
+_version='3.1.9'
 _file_version='3.1'
 
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
@@ -76,6 +76,8 @@ d_enable_ftp=0
 d_ftp_site=''
 d_ftp_user=''
 d_ftp_pswd=''
+d_ftp_dir=''
+d_useTMangle=0
 d_enable_db=0
 d_db_url=''
 d_db_name=''

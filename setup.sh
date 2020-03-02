@@ -2,23 +2,20 @@
 
 ##########################################################################
 # Yet Another Monitor (YAMon)
-# Copyright (c) 2013-2016 Al Caughey
+# Copyright (c) 2013-present Al Caughey
 # All rights reserved.
 #
 # Script to help set baseline values in config.file for YAMon3.x
 #
-#   2016-03-19 - see To Do below
-#
 ##########################################################################
 
-# To Do:
-# 
 #HISTORY
 # 3.1.1 (2016-10-10): added etc/init.d/yamon3 for OpenWrt as per michaeljprentice @ http://www.dd-wrt.com/phpBB2/viewtopic.php?p=1046901#1046901
 # 3.1.2 (2016-10-15): added cchecks for missing parameters; fixed /tmp/www prompts; removed extra declarations for Lede;
 #	   (2016-10-23): replaced busybox call with command -v
 # 3.1.6 (2016-11-19): added a logging info to setup.log
 # 3.1.8 (2016-12-15): add version to util.sh
+# 3.2.0 (2017-01-22): added options for ftp_dir parameter
 
 d_baseDir="$YAMON"
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
@@ -37,7 +34,7 @@ fi
 _enableLogging=1
 _log2file=1
 _loglevel=0
-
+los="******************************************************************"
 echo "$_s_title"
 sleep $delay
 echo "
@@ -46,11 +43,11 @@ This script will guide you through the process of setting up the
 basic parameters in your \`config.file\` for YAMon$_version.
 
 NB - a number of the advanced (aka less commonly used) settings
-	 are not currently addressed in this script.
+     are not currently addressed in this script.
 
-If you want to use any of those features, you can edit your
-\`config.file\` directly (without actually having to stop the
-YAMon script).
+     If you want to use any of those features, you can edit your
+     \`config.file\` directly (without actually having to stop the
+     YAMon script).
 $los
 "
 
@@ -81,13 +78,12 @@ elif [ -f "${d_baseDir}config.file" ] ; then
 else 
 	_configFile="${d_baseDir}default_config.file"
 fi
+configStr=$(cat "$_configFile")
 source "$_configFile"
 loadconfig()
 
-echo "Loading baseline settings from \`$_configFile\`." 
-send2log "Loading baseline settings from \`$_configFile\`." 2
-configStr=$(cat "$_configFile")
-
+echo "Loading baseline settings from \`$_configFile\`"
+send2log "Loading baseline settings from \`$_configFile\`" 2
 sleep $delay
 
 upnp_enable=$(nvram get upnp_enable)
@@ -166,6 +162,8 @@ yn_n="Options: \`0\` / \`n\` ==> No(*) -or- \`1\` / \`y\` ==> Yes"
 zo_r=^[01nNyY]$
 zot_r=^[012]$
 _qn=0
+re_path=^.*$
+re_path_slash=^.*/$
 
 write2log
 
@@ -190,10 +188,10 @@ prompt '_firmware' 'Which of the *WRT firmware variants is your router running?'
     3 -> Tomato
     4 -> LEDE' $_firmware ^[0-4]$
 t_wid=1
-prompt 't_wid' "Is your \`data\` directory in \`$d_baseDir\`?" "$yn_n" $t_wid $zo_r
+prompt 't_wid' "Is your \`data\` directory in \`$d_baseDir\`?" "$yn_y" $t_wid $zo_r
 [ "$t_wid" -eq 0 ] && prompt '_dataDir' "Enter the path to your data directory" "Options: 
     * to specify an absolute path, start with \`/\`
-    * the path *must* end with \`/\`" "data/" ^[a-z0-9\/]*/$
+    * the path *must* end with \`/\`" "data/" $re_path_slash
 prompt '_ispBillingDay' 'What is your ISP bill roll-over date?' 'Enter the day number [1-31]' '' ^[1-9]$\|^[12][0-9]$\|^[3][01]$
 prompt '_unlimited_usage' 'Does your ISP offer `Bonus Data`?\n	(i.e., uncapped data usage during offpeak hours)' "$yn_n" '0' $zo_r
 [ "$_unlimited_usage" -eq 1 ] && prompt '_unlimited_start' 'Start time for bonus data?' 'Enter the time in [hh:mm] format' '' ^[1-9]:[0-5][0-9]$\|^1[0-2]:[0-5][0-9]$
@@ -218,7 +216,7 @@ if [ "$ipv6_enable" -eq "1" ] ; then
 			t_ip=0
 			prompt 't_ip' 'Have you manually installed the full version of `ip` elsewhere on your router?' "$yn_n" $t_ip $zo_r
 			if [ "$t_ip" -eq 1 ] ; then
-			   prompt '_path2ip' 'Where is the full version of `ip` installed?' '' '/opt/sbin/ip' ^[a-z0-9\/]*$
+			   prompt '_path2ip' 'Where is the full version of `ip` installed?' 'The path must start with a \`/\`' '/opt/sbin/ip' $re_path
 
 				if [ ! -f "$_path2ip" ] ; then
 					send2log "path to full ip \`$_path2ip\` is not correct" 2
@@ -241,18 +239,26 @@ if [ "$ipv6_enable" -eq "1" ] ; then
 	fi
 fi
 prompt '_symlink2data' 'Create symbollic links to the web data directories?' "$yn_y" '1' $zo_r
-[ "$_firmware" -eq "2" ] && prompt '_wwwPath' 'Specify the path to the web directories?' "" '/tmp/var/wwwext/' ^[a-z0-9\/]*$
+[ "$_firmware" -eq "2" ] && prompt '_wwwPath' 'Specify the path to the web directories?' 'The path must start with a \`/\`' '/tmp/var/wwwext/' $re_path
 prompt '_organizeData' 'Organize the data files (into directories by year or year-month)?' 'Options: 0->No(*) -or- 1->by year -or- 2->by year & month' '0' $zot_r
 prompt '_enableLogging' 'Enable logging (for support & debugging purposes)?' "$yn_y" '1' $zo_r
 [ "$_enableLogging" -eq 1 ] && prompt '_log2file' 'Where do you want to send the logging info?' 'Options: 0->screen -or- 1->file(*) -or- 2->both' '1' $zot_r
 [ "$_enableLogging" -eq 1 ] && prompt '_loglevel' 'How much detail do you want in the logs?' 'Options: -1->really verbose -or- 0->all -or- 1->most(*) -or- 2->serious only' '1' ^[012]$\|^-1$
 [ "$_log2file" -eq 2 ] || [ "$_log2file" -eq 2 ] && prompt '_scrlevel' 'How much detail do you want shown on the screen?' 'Options: -1->really verbose -or- 0->all -or- 1->most(*) -or- 2->serious only' '1' ^[012]$\|^-1$
 
+_enable_ftp=0
 [ ! -z "$(command -v ftpput)" ] &&  prompt '_enable_ftp' 'Do you want to mirror a copy of your data files to an external FTP site? \n	NB - *YOU* must setup the FTP site yourself!' "$yn_n" '0' $zo_r
 if [ "$_enable_ftp" -eq "1" ] ; then
-	prompt '_ftp_site' 'What is the URL for your FTP site?' '' '' ''
+	prompt '_ftp_site' 'What is the URL for your FTP site?' 'Enter just the URL or IP address' '' ''
 	prompt '_ftp_user' 'What is the username for your FTP site?' '' '' ''
 	prompt '_ftp_pswd' 'What is the password for your FTP site?' '' '' ''
+	prompt '_ftp_dir' 'What is the path to your storage location?' 'Options: \"\"->root level -or- enter path' '' ''
+    [ "$_organizeData" -gt "0" ] && echo "
+    *******************************************************
+    *  You will have to manually create the year/month 
+    *  sub-directories on your FTP site for the data files.
+    *******************************************************
+    "
 else
 	prompt '_doDailyBU' 'Enable daily backup of data files?' "$yn_y" '1' $zo_r
 	[ "$_doDailyBU" -eq 1 ] && prompt '_tarBUs' 'Compress the backups?' "$yn_y" '1' $zo_r
