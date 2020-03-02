@@ -11,6 +11,7 @@
 # 3.2.3 (2017-01-29): added line to remove symlink
 # 3.2.4 (2017-02-20): no changes... updated for consistency
 # 3.2.5 (2017-02-20): added generic user 0.0.0.0/0
+# 3.2.6 (2017-02-26): spacing in prompt
 ##########################################################################
 
 _enableLogging=1
@@ -41,27 +42,27 @@ prompt()
 #$_qn. $2
 " >&2
 local p3="$3"
-[ ! -z "$p3" ] && p3="	$p3
+[ ! -z "$p3" ] && p3="    $p3
 "
 
 	if [ -z $nv ] && [ -z $df ] ; then
 		nv='n/a'
 		df='n/a'
-		readStr="$p3	- type your preferred value --> "
+		readStr="$p3    - type your preferred value --> "
 	elif [ -z $df ] ; then
-		readStr="$p3	- hit <enter> to accept the current value: \`$nv\`, or
-	- type your preferred value --> "
+		readStr="$p3    - hit <enter> to accept the current value: \`$nv\`, or
+    - type your preferred value --> "
 	elif [ -z $nv ] ; then
 		nv='n/a'
-		readStr="$p3	- hit <enter> to accept the default: \`$df\`, or
-	- type your preferred value --> "
+		readStr="$p3    - hit <enter> to accept the default: \`$df\`, or
+    - type your preferred value --> "
 	elif [ "$df" == "$nv" ] ; then
-		readStr="$p3	- hit <enter> to accept the current/default value: \`$df\`, or
-	- type your preferred value --> "
+		readStr="$p3    - hit <enter> to accept the current/default value: \`$df\`, or
+    - type your preferred value --> "
 	else
-		readStr="$p3	- hit <enter> to accept the current value: \`$nv\`, or
-	- type \`d\` for the default: \`$df\`, or
-	- type your preferred value --> "
+		readStr="$p3    - hit <enter> to accept the current value: \`$nv\`, or
+    - type \`d\` for the default: \`$df\`, or
+    - type your preferred value --> "
 	fi
 	local tries=0
 	while true; do
@@ -82,7 +83,7 @@ local p3="$3"
 			echo "*** Strike three... you're out!" >&2
 			exit 0
 		fi
-		echo "   Please enter one of the specified values!" >&2
+		echo "    Please enter one of the specified values!" >&2
 	done
 	eval $vn=\"$resp\"
 	updateConfig $vn "$resp"
@@ -99,15 +100,15 @@ updateConfig(){
 	local l1=${#sm}
 	local l2=${#rv}
 	#echo "updateConfig: sm--> $sm ($l1)// rv--> $rv ($l2)" >&2
-	local spacing='========================================='
+	local spacing='==================================================='
 	if [ -z "$sm" ] ; then
-		local pad=${spacing:0:$((45-$l2+1))}
+		local pad=${spacing:0:$((55-$l2+1))}
 		pad=${pad//=/ }
 		configStr="$configStr
 $vn='$nv'$pad # Added"
 	#echo "updateConfig: $vn='$nv'$pad# Added" >&2
 	else
-		local pad=${spacing:0:$(($l1-$l2+1))}
+		local pad=${spacing:0:$((55-$l2+1))}
 		pad=${pad//=/ }
 		configStr=$(echo "$configStr" | sed -e "s~$sv~$rv$pad#~g")
 	fi
@@ -157,7 +158,7 @@ send2log()
 setWebDirectories()
 {
 	send2log "=== setWebDirectories ===" -1
-	[ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] && [ ! -h "/www/user" ] && ln -s "/tmp/www" "/www/user"
+	[ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] && [ ! -h "$_wwwPath" ] && ln -s "/tmp/www" "$_wwwPath"
 	if [ "$_symlink2data" -eq "1" ] ; then
 		if [ ! -d "$_wwwPath" ] ; then
 			mkdir -p "$_wwwPath"
@@ -195,12 +196,13 @@ setWebDirectories()
 	else
 		local lan_ip=$(nvram get lan_ipaddr)
 	fi
+	local lwww=$(basename $_wwwPath)
 	echo "
 
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	~  Your reports URL: http://${lan_ip}/user/$_setupWebIndex
+	~  Your reports URL: http://${lan_ip}/$lwww/$_setupWebIndex
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-	send2log "Reports URL: http://${lan_ip}/user/$_setupWebIndex" 1
+	send2log "Reports URL: http://${lan_ip}/$lwww/$_setupWebIndex" 1
 }
 getMI()
 {
@@ -340,7 +342,7 @@ add2UDList(){
 	local ip=$1
 	local do=$2
 	local up=$3
-	local le=$(echo "$_ud_list" | grep -i "$ip\b")
+	local le=$(echo "$_ud_list" | grep -i "\b$ip\b")
 	send2log "	  le-->$le" -1
 	if [ -z "$le" ] ; then
 		_ud_list="$_ud_list

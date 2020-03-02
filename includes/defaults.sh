@@ -81,6 +81,7 @@ d_ftp_user=''
 d_ftp_pswd=''
 d_ftp_dir=''
 d_useTMangle=0
+d_includeLAN=0
 d_enable_db=0
 d_db_url=''
 d_db_name=''

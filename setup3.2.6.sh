@@ -21,6 +21,7 @@
 # 3.2.3 (2017-02-05): _setupWebIndex & symlink cleanup
 # 3.2.4 (2017-02-20): no changes... updated for consistency
 # 3.2.5 (2017-03-06): no changes... updated for consistency
+# 3.2.6 (2017-03-24): tidied up Tomato functionality
 
 d_baseDir="$YAMON"
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
@@ -145,7 +146,7 @@ $loh" && sleep 5
 
 ntp_enable=$(nvram get ntp_enable)
 send2log "ntp_enable --> $ntp_enable" 1
-[ "$ntp_enable" -ne "1" ] && echo "
+[ ! -z "$ntp_enable" ] && [ "$ntp_enable" -ne "1" ] && echo "
 $wrn
 $bl_a
   ##   \`NTP Client\` is not enabled in your DD-WRT config.
@@ -218,7 +219,7 @@ prompt 't_wid' "Is your \`data\` directory in \`$d_baseDir\`?" "$yn_y" $t_wid $z
     * to specify an absolute path, start with \`/\`
     * the path *must* end with \`/\`" "data/" $re_path_slash
 prompt '_ispBillingDay' 'What is your ISP bill roll-over date?' 'Enter the day number [1-31]' '' ^[1-9]$\|^[12][0-9]$\|^[3][01]$
-prompt '_unlimited_usage' 'Does your ISP offer `Bonus Data`?\n	(i.e., uncapped data usage during offpeak hours)' "$yn_n" '0' $zo_r
+prompt '_unlimited_usage' 'Does your ISP offer `Bonus Data`?\n    (i.e., uncapped data usage during offpeak hours)' "$yn_n" '0' $zo_r
 [ "$_unlimited_usage" -eq 1 ] && prompt '_unlimited_start' 'Start time for bonus data?' 'Enter the time in [hh:mm] format' '' ^[1-9]:[0-5][0-9]$\|^1[0-2]:[0-5][0-9]$
 [ "$_unlimited_usage" -eq 1 ] && prompt '_unlimited_end' 'End time?' 'Enter the time in [hh:mm] format' '' ^[1-9]:[0-5][0-9]$\|^[1][0-2]:[0-5][0-9]$
 prompt '_updatefreq' 'How frequently would you like to check the data?' 'Enter the interval in seconds [1-300 sec]' '30' ^[1-9]$\|^[1-9][0-9]$\|^[1-2][0-9][0-9]$\|^300$
@@ -226,7 +227,7 @@ prompt '_publishInterval' 'How many checks between updates in the reports?' 'Ent
 
 ipv6_enable=$(nvram get ipv6_enable)
 send2log "ipv6_enable --> $ipv6_enable" 1
-if [ "$ipv6_enable" -eq "1" ] ; then
+if [ ! -z "$ipv6_enable" ] && [ "$ipv6_enable" -eq "1" ] ; then
 	prompt '_includeIPv6' 'Do you want to include IPv6 traffic?\n	(i.e., you *must* have a full version if `ip` installed)' "$yn_n" '0' $zo_r
 	if [ "$_includeIPv6" -eq 1 ] ; then
 		tip=$(echo `ip -6 neigh show`)
@@ -301,9 +302,17 @@ else
 	[ "$_doDailyBU" -eq 1 ] && prompt '_tarBUs' 'Compress the backups?' "$yn_y" '1' $zo_r
 fi
 if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] ; then
-	[ "$_dnsmasq_conf" == "/tmp/dnsmasq.conf" ] && updateConfig "_dnsmasq_conf" "/tmp/etc/dnsmasq.conf"
-	[ "$_dnsmasq_leases" == "/tmp/dnsmasq.leases" ] && updateConfig "_dnsmasq_leases" "/tmp/dhcp.leases"
+	updateConfig "_dnsmasq_conf" "/tmp/etc/dnsmasq.conf"
+	updateConfig "_dnsmasq_leases" "/tmp/dhcp.leases"
+    _dnsmasq_conf="/tmp/etc/dnsmasq.conf"
+    _dnsmasq_leases="/tmp/dhcp.leases"
+elif [ "$_firmware" -eq "3" ] ; then
+	updateConfig "_dnsmasq_conf" "/tmp/etc/dnsmasq.conf"
+	updateConfig "_dnsmasq_leases" "/tmp/var/lib/misc/dnsmasq.leases"
+    _dnsmasq_conf="/tmp/etc/dnsmasq.conf"
+    _dnsmasq_leases="/tmp/var/lib/misc/dnsmasq.leases"
 fi
+
 [ ! -f "$_dnsmasq_conf" ] && echo "  >>> specified path to _dnsmasq_conf ($_dnsmasq_conf) does not exist"
 [ ! -f "$_dnsmasq_leases" ] && echo "  >>> specified path to _dnsmasq_leases ($_dnsmasq_leases) does not exist"
 
@@ -498,6 +507,7 @@ $sd"
 	fi
 fi
 
+#todo... fix for Tomato
 if [ "$_useTMangle" -eq "0" ] ; then
     $(iptables -F YAMONv4)
     [ "$_includeIPv6" -eg "1" ] && $(ip6tables -F YAMONv6)

@@ -40,6 +40,7 @@
 # 3.2.3 (2017-02-05): replace call to ip in line #91
 # 3.2.4 (2017-02-20): re-replaced call to ip in line #91
 # 3.2.5 (2017-02-20): added generic user (0.0.0.0/0) & mac (un:kn:ow:n0:0m:ac), fixed shutdown loop silliness; fixed issues for LEDE
+# 3.2.6 (2017-05-07): several small tweaks...
 # ==========================================================
 #				  Functions
 # ==========================================================
@@ -56,7 +57,7 @@ setInitValues(){
 	checkIPChain "iptables" "INPUT" "$YAMON_IP4"
 	checkIPChain "iptables" "OUTPUT" "$YAMON_IP4"
 	if [ "$_includeIPv6" -eq "1" ] ; then
-		_getIP6List="$_path2ip -6 neigh | grep 'lladdr' | cut -d' ' -f 1,5 | tr '[A-Z]' '[a-z]' $sortStr"
+		_getIP6List="$_path2ip -6 neigh | grep 'lladdr' | cut -d' ' -f1,5 | tr '[A-Z]' '[a-z]' $sortStr"
 		checkIPChain 'ip6tables' 'FORWARD' $YAMON_IP6
 		checkIPChain 'ip6tables' 'INPUT' $YAMON_IP6
 		checkIPChain 'ip6tables' 'OUTPUT' $YAMON_IP6
@@ -93,13 +94,13 @@ setInitValues(){
 
 	local p2ip=$(command -v ip)
 	if [ -z "$p2ip" ] ; then
-		_getIP4List="cat /proc/net/arp | grep '^[0-9]' | grep -v '00:00:00:00:00:00' | tr -s ' ' | cut -d' ' -f 1,4 | tr '[A-Z]' '[a-z]' $sortStr"
+		_getIP4List="cat /proc/net/arp | grep '^[0-9]' | grep -v '00:00:00:00:00:00' | tr -s ' ' | cut -d' ' -f1,4 | tr '[A-Z]' '[a-z]' $sortStr"
 	else
 		local tip=$(echo "$($p2ip -4 neigh show)")
 		if [ -z "$tip" ] ; then
-			_getIP4List="cat /proc/net/arp | grep '^[0-9]' | grep -v '00:00:00:00:00:00' | tr -s ' ' | cut -d' ' -f 1,4 | tr '[A-Z]' '[a-z]' $sortStr"
+			_getIP4List="cat /proc/net/arp | grep '^[0-9]' | grep -v '00:00:00:00:00:00' | tr -s ' ' | cut -d' ' -f1,4 | tr '[A-Z]' '[a-z]' $sortStr"
 		else
-			_getIP4List="$p2ip -4 neigh | grep 'lladdr' | cut -d' ' -f 1,5 | tr '[A-Z]' '[a-z]' $sortStr"
+			_getIP4List="$p2ip -4 neigh | grep 'lladdr' | cut -d' ' -f1,5 | tr '[A-Z]' '[a-z]' $sortStr"
 		fi
 	fi
 	_usersLastMod="$lmy-$lmmno-$lmd $lmt"
@@ -175,13 +176,14 @@ setDataDirectories()
 	[ "$_symlink2data" -eq "0" ] &&  [ "$(ls -A $_dataPath)" ] && copyfiles "$_dataPath*" "$_wwwPath$_wwwData"
 
 	_macUsageDB="$savePath$rYear-$rMonth-$rday-$_usageFileName"
+	#_macUsageDB="$savePath$rYear-$rMonth-$_usageFileName"
 	_macUsageWWW="$wwwsavePath$rYear-$rMonth-$rday-$_usageFileName"
 	[ ! -f "$_macUsageDB" ] && createMonthlyFile
 	[ "$_doLiveUpdates" -eq "1" ] && _liveFilePath="$_wwwPath$_wwwJS$_liveFileName"
 	[ ! -d "$_wwwPath$_wwwJS" ] && mkdir -p "$_wwwPath$_wwwJS"
-	if [ ! -f "$_liveFileName" ] ; then
-		touch $_liveFileName
-		chmod 666 $_liveFileName
+	if [ ! -f "$_liveFilePath" ] ; then
+		touch $_liveFilePath
+		chmod 666 $_liveFilePath
 	fi
 	_hourlyUsageDB="$savePath$_cYear-$_cMonth-$_cDay-$_hourlyFileName"
 	_hourlyUsageWWW="$wwwsavePath$_cYear-$_cMonth-$_cDay-$_hourlyFileName"
@@ -304,39 +306,29 @@ setUsers(){
 	[ ! -f "$_usersFile" ] && createUsersFile
 	_currentUsers=$(cat "$_usersFile" | sed -e "s~(dup) (dup)~(dup)~Ig")
 	[ "$_includeBridge" -eq "1" ] && checkBridge
-	local lipe=$(echo "$_currentUsers" | grep "\b$_lan_ipaddr\b")
-	[ -z "$lipe" ] && [ ! -z "$_lan_ipaddr" ] && add2UsersJS $_lan_hwaddr $_lan_ipaddr 0 "Hardware" "LAN MAC"
-	if [ "$_useTMangle" -eq "0" ] ; then
-		local nm=$(iptables -vnxL "$YAMON_IP4" | grep -c "\b$_lan_ipaddr\b")
-	else
-		local nm=$(iptables -t mangle -vnxL "$YAMON_IP4" | grep -c "\b$_lan_ipaddr\b")
-	fi
-	[ ! -z "$_lan_ipaddr" ] && checkIPTableEntries "iptables" "$YAMON_IP4" "$_lan_ipaddr" $nm
 
-	lipe=$(echo "$_currentUsers" | grep "\b$_wan_ipaddr\b")
-	[ -z "$lipe" ] && [ ! -z "$_wan_ipaddr" ] && [ "$_wan_hwaddr" != "$_lan_hwaddr" ] && add2UsersJS $_wan_hwaddr $_wan_ipaddr 0 "Hardware" "WAN MAC"
-	if [ "$_useTMangle" -eq "0" ] ; then
-		local nm=$(iptables -vnxL "$YAMON_IP4" | grep -c "\b$_wan_ipaddr\b")
-	else
-		local nm=$(iptables -t mangle -vnxL "$YAMON_IP4" | grep -c "\b$_wan_ipaddr\b")
+	local t_options=''
+	[ "$_useTMangle" -eq "0" ] && t_options='-t mangle'
+
+	if [ ! -z "$_lan_ipaddr" ] ; then
+		local lipe=$(echo "$_currentUsers" | grep "\b$_lan_ipaddr\b")
+		[ -z "$lipe" ] && add2UsersJS $_lan_hwaddr $_lan_ipaddr 0 "Hardware" "LAN MAC"
+		local nm=$(eval iptables $t_options -vnxL "$YAMON_IP4" | grep -c "\b$_lan_ipaddr\b")
+		checkIPTableEntries "iptables" "$YAMON_IP4" "$_lan_ipaddr" $nm
 	fi
-	[ ! -z "$_wan_ipaddr" ] && checkIPTableEntries "iptables" "$YAMON_IP4" "$_wan_ipaddr" $nm
+
+	if [ ! -z "$_wan_ipaddr" ] ; then
+		lipe=$(echo "$_currentUsers" | grep "\b$_wan_ipaddr\b")
+		[ -z "$lipe" ] && [ "$_wan_hwaddr" != "$_lan_hwaddr" ] && add2UsersJS $_wan_hwaddr $_wan_ipaddr 0 "Hardware" "WAN MAC"
+		local nm=$(eval iptables $t_options -vnxL "$YAMON_IP4" | grep -c "\b$_wan_ipaddr\b")
+		checkIPTableEntries "iptables" "$YAMON_IP4" "$_wan_ipaddr" $nm
+	fi
 
 	lipe=$(echo "$_currentUsers" | grep "\b$_generic_ipv4\b")
-	[ -z "$lipe" ] && [ ! -z "$_generic_ipv4" ] && add2UsersJS $_generic_mac $_generic_ipv4 0 "Unknown" "No Matching MAC"
-	if [ "$_useTMangle" -eq "0" ] ; then
-		local nm=$(iptables -vnxL "$YAMON_IP4" | grep -c "\b$_generic_ipv4\b")
-	else
-		local nm=$(iptables -t mangle -vnxL "$YAMON_IP4" | grep -c "\b$_generic_ipv4\b")
-	fi
+	[ -z "$lipe" ] && add2UsersJS $_generic_mac $_generic_ipv4 0 "Unknown" "No Matching MAC"
 	if [ "$_includeIPv6" -eq "1" ] ; then
 		lipe=$(echo "$_currentUsers" | grep "\b$_generic_ipv6\b")
-		[ -z "$lipe" ] && [ ! -z "$_generic_ipv6" ] && updateinUsersJS $_generic_mac $_generic_ipv6 1 "Unknown" "No Matching MAC"
-		if [ "$_useTMangle" -eq "0" ] ; then
-			local nm=$(iptables -vnxL "$YAMON_IP4" | grep -c "\b$_generic_ipv6\b")
-		else
-			local nm=$(iptables -t mangle -vnxL "$YAMON_IP4" | grep -c "\b$_generic_ipv6\b")
-		fi
+		[ -z "$lipe" ] && updateinUsersJS $_generic_mac $_generic_ipv6 1 "Unknown" "No Matching MAC"
 	fi
 
 	send2log "	  started-->$started  _includeIPv6-->$_includeIPv6  " -1
@@ -408,7 +400,7 @@ setFirmware()
 	_lan_iface='br0'
 	if [ "$_firmware" -eq "0" ] ; then
 		_lan_iface=$(nvram get lan_ifname)
-		_lan_ipaddr=$(nvram get lan_ipaddr)
+		[ "$_includeLAN" -ne "0" ] && _lan_ipaddr=$(nvram get lan_ipaddr)
 		_lan_hwaddr=$(nvram get lan_hwaddr | tr '[A-Z]' '[a-z]')
 		_wan_ipaddr=$(nvram get wan_ipaddr)
 		_wan_hwaddr=$(nvram get wan_hwaddr | tr '[A-Z]' '[a-z]')
@@ -422,7 +414,7 @@ setFirmware()
 		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$3 == "tcp" ? $7 : $6,$3 == "tcp" ? $9 : $8,$3 == "tcp" ? $8 : $7,$3 == "tcp" ? $10 : $9; } END { print "[ null ] ]"}'
 	elif [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ]; then #OpenWRT//LEDE
 		_lan_iface="br-lan"
-		_lan_ipaddr=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+		[ "$_includeLAN" -ne "0" ] && _lan_ipaddr=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
 		_lan_hwaddr=$(ifconfig br-lan | awk '/HWaddr/ {print $5}' | tr '[A-Z]' '[a-z]')
 		_wan_ipaddr=$(ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
 		_wan_hwaddr=$(ifconfig eth0 | awk '/HWaddr/ {print $5}' | tr '[A-Z]' '[a-z]')
@@ -498,10 +490,17 @@ shutDown(){
 	updateHourly
 	[ "$_symlink2data" -eq "0" ] && [ "$_dowwwBU" -eq 1 ] && doFinalBU
 
+	local t_options=''
+	[ "$_useTMangle" -eq "0" ] && t_options='-t mangle'
+	eval iptables $t_options -F "$YAMON_IP4"
+	[ "$_includeIPv6" -eg "1" ] && eval ip6tables $t_options -F "$YAMON_IP6"
+
 	send2log "
 	=====================================
 	\`yamon.sh\` has been stopped.
 	-------------------------------------" 2
+	exit 0
+
 }
 
 changeDates()
@@ -550,12 +549,7 @@ changeDates()
 	updateServerStats
 	setDataDirectories
 	_pDay="$_cDay"
-	send2log "	>>> Flushing iptables chains..." 0
-	if [ "$_useTMangle" -eq "0" ] ; then
-		$(iptables -F "$YAMON_IP4")
-	else
-		$(iptables -t mangle -F "$YAMON_IP4")
-	fi
+
 	[ ! -z "$_lan_ipaddr" ] && checkIPTableEntries "iptables" "$YAMON_IP4" "$_lan_ipaddr" 0
 	[ ! -z "$_wan_ipaddr" ] && checkIPTableEntries "iptables" "$YAMON_IP4" "$_wan_ipaddr" 0
 	if [ "$_includeIPv6" -eq "1" ] ; then
@@ -1052,6 +1046,14 @@ $iptablesData" -1
 	send2log "_ud_list-->
 $_ud_list" -1
 
+#	local ip1=$(echo "$_ud_list" | grep "\b192.168.0.1\b")
+#	[ ! -z "$ip1" ] && send2log "ip1 ==> $ip1" 2
+#	local ip2=$(echo "$_ud_list" | grep "\b192.168.1.1\b")
+#	[ ! -z "$ip2" ] && send2log "ip2 ==> $ip2
+#--------------------
+#$iptablesData
+#--------------------"  2
+
 	IFS=$'\n'
 	for line in $(echo "$_ud_list")
 	do
@@ -1221,7 +1223,7 @@ sleep  "$timealign";
 _p_hr=$(date +%H)
 send2log "  >>> Starting main loop" 1
 
-while [ -d $_lockDir ]; do
+while [ 1 ]; do
 	start=$(date +%s)
 
 	checkTimes
@@ -1240,9 +1242,11 @@ while [ -d $_lockDir ]; do
 
 	end=$(date +%s)
 	runtimestats $start $end
-	if [ -d "$_lockDir" ] ; then
-		sleep "$pause"
-	else
-		shutDown
-	fi
+	n=1
+	while [ 1 ]; do
+		[ ! -d "$_lockDir" ] && shutDown
+		[ "$n" -ge "$_updatefreq" ] && break
+		n=$(($n+1))
+		sleep 1
+	done
 done &
