@@ -37,6 +37,7 @@
 # 3.2.0 (2017-01-22): modest clean up; incorporated Münir Ozan TOPCU iptables improvements; added ftp_dir
 # 3.2.1 (2017-01-28): moved setWebDirectories to util.3.2.1.sh
 # 3.2.2 (2017-01-29): tweaks to runtimestats & housecleaning; removed unused debugging call
+# 3.2.3 (2017-02-05): replace call to ip in line #91
 # ==========================================================
 #				  Functions
 # ==========================================================
@@ -88,7 +89,7 @@ setInitValues(){
 	local cansort=$(echo "$(command -v sort)")
 	[ ! -z "$canSort" ] && sortStr=" | sort -k2"
 
-	local tip=$($_path2ip -4 neigh show)
+	local tip=$(echo $(command -v ip))
 	if [ -z "$tip" ] ; then
 		_getIP4List="cat /proc/net/arp | grep '^[0-9]' | grep -v '00:00:00:00:00:00' | tr -s ' ' | cut -d' ' -f 1,4 | tr '[A-Z]' '[a-z]' $sortStr"
 	else
@@ -1161,8 +1162,11 @@ installedfirmware=$(uname -o)
 installedversion=$(nvram get os_version)
 installedtype=$(nvram get dist_type)
 
-[ -d "$_lockDir" ] && echo "$_s_running" && exit 0
-
+np=$(ps | grep -v grep | grep -c yamon)
+if [ -d "$_lockDir" ] ; then
+	echo "$(ps | grep -v grep | grep yamon)"
+	echo "$_s_running" && exit 0
+fi 
 [ -x /usr/bin/clear ] && clear 
 echo "$_s_title"
 _cYear=$(date +%Y)

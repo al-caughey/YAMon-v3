@@ -8,6 +8,7 @@
 # History
 # 3.2.1 (2017-01-28): moved setWebDirectories from yamon.x.sh to util.3.2
 # 3.2.2 (2017-01-29): removed write2log; removed unused debugging calls
+# 3.2.3 (2017-01-29): added line to remove symlink
 ##########################################################################
 
 _enableLogging=1
@@ -63,9 +64,9 @@ local p3="$3"
 	local tries=0
 	while true; do
 		read -p "$readStr" resp
-		[ ! "$df" = 'n/a' ] && [ "$resp" == 'd' ] && resp="$df" && break
-		[ ! "$nv" = 'n/a' ] && [ -z "$resp" ] && resp="$nv" && break
-		[ "$nv" = 'n/a' ] && [ ! "$df" = 'n/a' ] && [ -z "$resp" ] && resp="$df" && break
+		[ ! "$df" == 'n/a' ] && [ "$resp" == 'd' ] && resp="$df" && break
+		[ ! "$nv" == 'n/a' ] && [ -z "$resp" ] && resp="$nv" && break
+		[ "$nv" == 'n/a' ] && [ ! "$df" == 'n/a' ] && [ -z "$resp" ] && resp="$df" && break
 		if [ ! -z "$regex" ] ;  then
 			ig=$(echo "$resp" | egrep $regex)
 			#echo "ig --> $ig ($regex)" >&2
@@ -171,6 +172,10 @@ setWebDirectories()
 		local ldata=${_wwwData%/}
 		local ljs=${_wwwData%/}
 		local llogs='logs'
+
+        [ -h "${_wwwPath}${_setupWebIndex}" ]  && rm -fv "${_wwwPath}${_setupWebIndex}"
+        [ -h "${_wwwPath}${ldata}" ]  && rm -fv "${_wwwPath}${ldata}"
+
 		[ ! -h "$_wwwPath$lcss" ] && ln -s "${_baseDir}$_setupWebDir$lcss" "$_wwwPath$lcss"
 		[ ! -h "$_wwwPath$limages" ] && ln -s "${_baseDir}$_setupWebDir$limages" "$_wwwPath$limages"
 		[ ! -h "$_wwwPath$ldata" ] && ln -s "$_dataPath" "$_wwwPath$ldata"

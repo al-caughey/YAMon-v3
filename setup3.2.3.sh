@@ -18,6 +18,7 @@
 # 3.2.0 (2017-01-22): added options for ftp_dir parameter
 # 3.2.1 (2017-01-28): added rm for index.html & call to setWebDirectories
 # 3.2.2 (2017-01-29): added check for DHCP
+# 3.2.3 (2017-02-05): _setupWebIndex & symlink cleanup
 
 d_baseDir="$YAMON"
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
@@ -76,11 +77,11 @@ if [ ! -f "${d_baseDir}config.file" ] && [ ! -f "${d_baseDir}default_config.file
     send2log "Launched setup.sh - v$_version" 2
 	echo '*** Cannot find either config.file or default_config.file...
 *** Please check your installation! ***
-*** Exiting the script. ***' 
+*** Exiting the script. ***'
 	exit 0
 elif [ -f "${d_baseDir}config.file" ] ; then
 	_configFile="${d_baseDir}config.file"
-else 
+else
 	_configFile="${d_baseDir}default_config.file"
 fi
 configStr=$(cat "$_configFile")
@@ -100,7 +101,7 @@ send2log "lan_proto --> $lan_proto" 1
 $wrn
 $bl_a
   ##   It appears that your router is not the DHCP Server for
-  ##   for your network.  
+  ##   for your network.
   ##   YAMon gets its data via \`iptables\` calls.  They only
   ##   return meaningful data from the DHCP Server.
 $bl_a
@@ -116,7 +117,7 @@ send2log "upnp_enable --> $upnp_enable" 1
 $wrn
 $bl_a
   ##   \`UPnP\` is enabled in your DD-WRT config.
-  ##   UPnP alters the normal flow of packets through \`iptables\` and that  
+  ##   UPnP alters the normal flow of packets through \`iptables\` and that
   ##   will likely prevent YAMon from accurately reporting the traffic on
   ##   your router.
 $bl_a
@@ -132,7 +133,7 @@ send2log "privoxy_enable --> $privoxy_enable" 1
 $wrn
 $bl_a
   ##   \`Privoxy\` is enabled in your DD-WRT config.
-  ##   Privoxy alters the normal flow of packets through \`iptables\` and 
+  ##   Privoxy alters the normal flow of packets through \`iptables\` and
   ##   that *will* prevent YAMon from accurately reporting the traffic
   ##   on your router.
 $bl_a
@@ -191,11 +192,13 @@ re_path_slash=^.*/$
 
 updateConfig "_baseDir" "$d_baseDir"
 [ "$_setupWebDir" == "Setup/www/" ] && updateConfig "_setupWebDir" "www/"
-[ "$_setupWebIndex" == "yamon2.html" ] && updateConfig "_setupWebIndex" "yamon3.html"
-[ "$_setupWebIndex" == "yamon3.html" ] && updateConfig "_setupWebIndex" "yamon3.1.html"
+[ "$_setupWebIndex" == "yamon2.html" ] && updateConfig "_setupWebIndex" "index.html"
+[ "$_setupWebIndex" == "yamon3.html" ] && updateConfig "_setupWebIndex" "index.html"
+[ "$_setupWebIndex" == "yamon3.1.html" ] && updateConfig "_setupWebIndex" "index.html"
+[ "$_setupWebIndex" == "yamon3.2.html" ] && updateConfig "_setupWebIndex" "index.html"
 [ "$_wwwData" == "data/" ] || [ "$_wwwData" == "data" ] && updateConfig "_wwwData" "data3/"
 [ "$_configWWW" == "config.js" ] && updateConfig "_configWWW" "config3.js"
-[ "$_liveFileName" == "live_data.js" ] && updateConfig "_liveFileName" "live_data3.js" 
+[ "$_liveFileName" == "live_data.js" ] && updateConfig "_liveFileName" "live_data3.js"
 
 if [ "$installedfirmware" == "DD-WRT" ] ; then
 	_firmware=0
@@ -203,7 +206,7 @@ elif [ "$installedfirmware" == "OpenWrt" ] ; then
 	_firmware=1
 fi
 
-prompt '_firmware' 'Which of the *WRT firmware variants is your router running?' 'Options: 
+prompt '_firmware' 'Which of the *WRT firmware variants is your router running?' 'Options:
     0 -> DD-WRT(*)
     1 -> OpenWrt
     2 -> Asuswrt-Merlin
@@ -211,7 +214,7 @@ prompt '_firmware' 'Which of the *WRT firmware variants is your router running?'
     4 -> LEDE' $_firmware ^[0-4]$
 t_wid=1
 prompt 't_wid' "Is your \`data\` directory in \`$d_baseDir\`?" "$yn_y" $t_wid $zo_r
-[ "$t_wid" -eq 0 ] && prompt '_dataDir' "Enter the path to your data directory" "Options: 
+[ "$t_wid" -eq 0 ] && prompt '_dataDir' "Enter the path to your data directory" "Options:
     * to specify an absolute path, start with \`/\`
     * the path *must* end with \`/\`" "data/" $re_path_slash
 prompt '_ispBillingDay' 'What is your ISP bill roll-over date?' 'Enter the day number [1-31]' '' ^[1-9]$\|^[12][0-9]$\|^[3][01]$
@@ -231,7 +234,7 @@ if [ "$ipv6_enable" -eq "1" ] ; then
 			send2log "firmware does not include the full ip" 2
 			echo "
 ******************************************************************
-*  It appears that your firmware does not include the full version 
+*  It appears that your firmware does not include the full version
 *  of the \`ip\` command i.e., \`ip -6 neigh show\` returns nothing
 ******************************************************************
 "
@@ -262,7 +265,9 @@ if [ "$ipv6_enable" -eq "1" ] ; then
 fi
 prompt '_symlink2data' 'Create symbollic links to the web data directories?' "$yn_y" '1' $zo_r
 [ "$_firmware" -eq "2" ] && prompt '_wwwPath' 'Specify the path to the web directories?' 'The path must start with a \`/\`' '/tmp/var/wwwext/' $re_path
+
 [ -h "${_wwwPath}index.html" ] && rm -fv ${_wwwPath}index.html
+[ -h "${_wwwPath}${_setupWebIndex}" ] && rm -fv ${_wwwPath}${_setupWebIndex}
 if [ "${_dataDir:0:1}" == "/" ] ; then
     _dataPath=$_dataDir
 else
@@ -273,7 +278,7 @@ setWebDirectories
 prompt '_organizeData' 'Organize the data files (into directories by year or year-month)?' 'Options: 0->No(*) -or- 1->by year -or- 2->by year & month' '0' $zot_r
 prompt '_enableLogging' 'Enable logging (for support & debugging purposes)?' "$yn_y" '1' $zo_r
 [ "$_enableLogging" -eq 1 ] && prompt '_log2file' 'Where do you want to send the logging info?' 'Options: 0->screen -or- 1->file(*) -or- 2->both' '1' $zot_r
-[ "$_enableLogging" -eq 1 ] && [ "$_log2file" -ne 0 ] && prompt '_logDir' 'Where do you want to create the logs directory?' 'Options: 
+[ "$_enableLogging" -eq 1 ] && [ "$_log2file" -ne 0 ] && prompt '_logDir' 'Where do you want to create the logs directory?' 'Options:
     * to specify an absolute path, start with `/`
     * the path *must* end with `/`' 'logs/' $re_path_slash
 [ "$_enableLogging" -eq 1 ] && prompt '_loglevel' 'How much detail do you want in the logs?' 'Options: -1->really verbose -or- 0->all -or- 1->most(*) -or- 2->serious only' '1' ^[012]$\|^-1$
@@ -287,7 +292,7 @@ if [ "$_enable_ftp" -eq "1" ] ; then
 	prompt '_ftp_dir' 'What is the path to your FTP storage directory?' "Options: ''->root level -or- enter path" '' ''
     [ "$_organizeData" -gt "0" ] && echo "
     *******************************************************
-    *  You will have to manually create the year/month 
+    *  You will have to manually create the year/month
     *  sub-directories on your FTP site for the data files.
     *******************************************************
     "
@@ -319,6 +324,7 @@ Copied previous configuration settings to \`${d_baseDir}config.old\`
 and saved new settings to \`$_configFile\`
 ******************************************************************"
 fi
+
 dirty=''
 mfl=''
 p_list=$(cat "${d_baseDir}/default_config.file" | grep -o "^_[^=]\{1,\}")
@@ -342,15 +348,16 @@ done
 [ ! -z "$dirty" ] && echo "
 ###########################################################
 NB - One or more parameters were missing in your config.file!$mfl
-The missing entries have been appended to that file with defaults 
-from \`default_config.file\`. 
- 
-See \`default_config.file\` for more info about these values and check to ensure 
+The missing entries have been appended to that file with defaults
+from \`default_config.file\`.
+
+See \`default_config.file\` for more info about these values and check to ensure
 that the defaults are appropriate for your network configuration.
 ###########################################################
 
 "
 echo "$configStr" > "$_configFile"
+
 su="${d_baseDir}startup.sh"
 sd="${d_baseDir}shutdown.sh"
 ya="${d_baseDir}yamon${_version}.sh"
@@ -404,19 +411,19 @@ if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] ; then
 		echo "#!/bin/sh /etc/rc.common
 START=99
 STOP=10
-start() {	   
+start() {
 	# commands to launch application
 	if [ -d "$_lockDir" ]; then
 		echo 'Unable to start, found YAMon3-running directory'
 		return 1
 	fi
 	${d_baseDir}startup.sh 10 &
-}				 
-stop() {		 
+}
+stop() {
 	${d_baseDir}shutdown.sh
 	return 0
 }
-restart() {		 
+restart() {
 	${d_baseDir}restart.sh
 	return 0
 }
@@ -439,7 +446,7 @@ else
 		elif [ -z $(echo "$cnsu" | grep 'startup.sh') ] ; then
 			send2log "Added to nvram-->rc_startup" 1
 			echo "
-	nvram-->rc_startup was not empty but does not contain the string \`startup.sh\`... 
+	nvram-->rc_startup was not empty but does not contain the string \`startup.sh\`...
 	\`$su\` was appended"
 			nvram set rc_startup="$cnsu
 $su $startup_delay"
@@ -460,7 +467,7 @@ $su $startup_delay"
 		elif [ -z $(echo "$cnsd" | grep 'shutdown.sh') ] ; then
 			send2log "Added to nvram-->rc_shutdown" 1
 			echo "
-	nvram-->rc_shutdown was not empty but does not contain the string \`shutdown.sh\`... 
+	nvram-->rc_shutdown was not empty but does not contain the string \`shutdown.sh\`...
 	\`$sd\` was appended"
 			nvram set rc_shutdown="$cnsd
 $sd"
@@ -481,10 +488,10 @@ if [ "$t_launch" -eq "1" ] ; then
 	echo "
 
 ****************************************************************
-	
+
 [Re]starting $su
 
-" 
+"
 	${d_baseDir}restart.sh $startup_delay
 	exit 0
 fi
@@ -492,7 +499,7 @@ fi
 echo "
 
 ****************************************************************
-	
+
 YAMon$_version is now configured and ready to run.
 
 To launch YAMon, enter \`${d_baseDir}startup.sh\`.
@@ -500,7 +507,7 @@ To launch YAMon, enter \`${d_baseDir}startup.sh\`.
 Send questions to questions@usage-monitoring.com
 
 Thank you for installing YAMon.  You can show your appreciation and support future development by donating at https://www.paypal.me/YAMon/.
-	
+
 Thx!	Al
-	
+
 "

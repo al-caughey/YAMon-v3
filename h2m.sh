@@ -33,13 +33,13 @@ echo "$_s_title"
 echo "
 ******************************************************************
 
-This script will fill missing data gaps in your monthly usage file. 
+This script will fill missing data gaps in your monthly usage file.
 
 ******************************************************************
 "
 sleep $delay
 
-[ ! -f "${d_baseDir}/config.file" ] && [ ! -f "${d_baseDir}/default_config.file" ] && echo '*** Cannot find either config.file or default config.file... 
+[ ! -f "${d_baseDir}/config.file" ] && [ ! -f "${d_baseDir}/default_config.file" ] && echo '*** Cannot find either config.file or default config.file...
 	*** Please check your installation! ***
 	*** Exiting the script. ***' && exit 0
 
@@ -61,7 +61,7 @@ sleep $delay
 
 echo "
 In the prompts below, the recommended value is denoted with
-an asterisk (*).  To accept this default, simply hit enter; 
+an asterisk (*).  To accept this default, simply hit enter;
 otherwise type your preferred value (and then hit enter).
 "
 
@@ -85,7 +85,7 @@ rMonth=$(printf %02d $mo)
 
 if [ "${_dataDir:0:1}" == "/" ] ; then
 	local _dataPath=$_dataDir
-else 
+else
 	local _dataPath="${_baseDir}$_dataDir"
 fi
 case $_organizeData in
@@ -131,7 +131,7 @@ if [ "$just" -ne "0" ] ; then
 		else
 			local jm=$(($mo+1))
 			jm=$(printf %02d $jm)
-		fi   
+		fi
 	fi
 	echo ">>> just: $jy-$jm-$jd"
 fi
@@ -139,9 +139,9 @@ fi
 local i=$_ispBillingDay
 while [  "$i" -le "31" ]; do
 	[ "$just" -ne "0" ] && [ "$just" -ne "$i" ] && i=$(($i+1)) && continue
-	
+
 	local d=$(printf %02d $i)
-	updateHourly2Monthly "$rYear" "${rMonth#0}" "$d" 
+	updateHourly2Monthly "$rYear" "${rMonth#0}" "$d"
 	i=$(($i+1))
 done
 
@@ -158,7 +158,7 @@ i=1
 while [  $i -lt "$_ispBillingDay" ]; do
 	[ "$just" -ne "0" ] && [ "$just" -ne "$i" ] && i=$(($i+1)) && continue
 	d=$(printf %02d $i)
-	updateHourly2Monthly "$rYear" "$rMonth" "$d" 
+	updateHourly2Monthly "$rYear" "$rMonth" "$d"
 	i=$(($i+1))
 done
 send2log ">>> Finished start to end of next interval" 2
