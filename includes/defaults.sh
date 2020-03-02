@@ -94,6 +94,7 @@ d_logNoMatchingMac=0
 d_use_nf_conntrack=1
 d_path2MSMTP=/opt/usr/bin/msmtp
 d_MSMTP_CONFIG=/opt/scripts/msmtprc
+d_includeIncomplete='0'
 
 _generic_ipv4="0.0.0.0/0"
 _generic_ipv6="::/0"

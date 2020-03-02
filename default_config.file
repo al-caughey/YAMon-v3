@@ -14,6 +14,12 @@
 # version 3.4.2 - added _logNoMatchingMac
 # version 3.4.4 - re-added _path2ip; renamed _webDir & _webIndex
 # version 3.4.5 - added _local_ip6
+# version 3.4.6 - added _includeIncomplete, _append_PPPOE & see note below
+
+#\\\\\\\\\\\\\\\\\\\\\\\\\\\  ***  NOTE  ***  \\\\\\\\\\\\\\\\\\\\\\\\\\\#
+# NB - yamon.sh reloads these settings automatically if this file changes.
+#      However, it might be safer to run restart.sh after you've editted things here.
+#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\#
 
 _firmware='0'                                # which firmware is running on the router: permitted values: 0->DD-WRT(*) || 1->OpenWrt || 2->Asuswrt-Merlin || 3->Asuswrt-Merlin || 4->LEDE || 5->Xwrt-Vortex || 6->Turris || 7->Padavan
 _updatefreq='30'                             # number of seconds between updates (* default `15` sec)
@@ -63,7 +69,7 @@ _dnsmasq_conf='/tmp/dnsmasq.conf'            # path to dnsmasq.conf (* default `
                                              #   NB - if _firmware==1 (OpenWrt), use `/tmp/etc/dnsmasq.conf`
 _dnsmasq_leases='/tmp/dnsmasq.leases'        # path to dnsmasq.leases (* default `/tmp/dnsmasq.leases`)
                                              #   NB - if _firmware==1 (OpenWrt), use `/tmp/dhcp.leases`
-_do_separator=''                             # a default separator character between owner and device name in static leases or dnsmasq values, e.g., Al-iPhone (* default ``)
+_do_separator=''                             # a default character that separates the owner and device name in static leases or dnsmasq values, e.g., Al_iPhone (* default ``)
 _includeBridge=0                             # whether or not there is a bridge in your wireless configuration - values: 0-->No(*) || 1->Yes
 _bridgeMAC='XX:XX:XX:XX:XX:XX'               # mac address for the bridge device, or comma separated list if multiple bridges
                                              #   NB - only required if _includeBridge == 1
@@ -96,3 +102,5 @@ _use_nf_conntrack=1                          # use nf_conntrack rather than ip_c
 _logNoMatchingMac=0                          # add an iptables entry to log unknown traffic: 0->no(*) || 1->yes
 _path2ip=''                                  # path to the full version of ip if installed (manually)
 _local_ip6='fe80:'	                         # preface for local ip6 addresses (entered as a comma separated list)
+_includeIncomplete='0'	                     # option to include incomplete MAC entries from arp calls 0->exclude(*) || 1->include
+_append_PPPOE='0'	                         # option to append a PPPOE entry to the ifconfig list - 0->exclude(*) || 1->include (currently unused)

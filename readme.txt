@@ -1,5 +1,5 @@
-Yet Another Monitor (version 3.4.5)
-Last updated: 2018-07-10
+Yet Another Monitor (version 3.4.6)
+Last updated: 2019-01-22
 
 Yet Another Monitor (YAMon) records and reports on the traffic (downloads and uploads) for all of the devices connecting to your router.  The data is aggregated by hour, day and month (within your ISP billing interval) and can be rolled-up into arbitrary groups (e.g., by family member, function, location or by any other logical grouping of devices).  
 
@@ -135,7 +135,11 @@ KNOWN ISSUES:
 
 1. If you edit any of the configuration files (config.file, users.js, etc.), you *MUST* leave an blank line at the bottom of the file.
 
-2. The Privoxy extension will interfere with data collection by YAMon... it either adds iptables or UPnP rules that intercept traffic usage data before YAMon sees it.  Unfortunately, ATM I do not know of any way to get around this.
+2. The the following optional settings in DD-WRT are known to interfere with data collection by YAMon:
+	- the Shortcut Forwarding Engine (SFE) an
+	- Privoxy extension 
+	- UPnP extension 
+	These either route traffic in the kernel and/or intercept traffic usage data before YAMon sees it in iptables.  Unfortunately, ATM I do not know of any way to get around this behaviour other than to say that these options must be disabled.
 
 3. Also, at least one user has reported that you should not use MSWord or WordPad to edit the files (especially your `config.file` but I expect that the same problems would also occur if the startup and shutdown scripts are edited in the same too)... apparently it adds additional end of line characters that really mess things up when you try to run the script.  This problem also seems to occur if you use the standard text editor on a Mac.
 

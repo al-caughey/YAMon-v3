@@ -10,18 +10,12 @@
 ##########################################################################
 
 #HISTORY
-# 3.3.0 (2017-06-18): bumped minor version; added xwrt, Turris
-# 3.3.1 (2017-07-17): check/update value of _configWWW
-# 3.3.1a (2017-07-19): fixed symlink paths in setWebDirectories
-# 3.3.2 (2017-07-26): added check for SFE; more Tomato fixes
-# 3.3.3 (2017-09-26): fixed d_baseDir; added prompts for '_doLiveUpdates' & '_doArchiveLiveUpdates'; improved Turris setup
-# 3.3.4 (2017-10-10): check for nvram vs uci
-# 3.3.5 (2017-11-05): added prompt for path to /tmp/www
 # 3.4.0 (2018-02-04): added advanced vs basic mode; added prompt for bridge
 # 3.4.1 (2018-02-19): updated a lot of the regexes for prompts
 # 3.4.2 (2018-02-23): updated with fixes suggested by Jeff Page; added Padavan as a firmware variant
 # 3.4.3 (2018-02-26): added optional 6th topic parameter for `prompt`
 # 3.4.4 (2018-03-12): re-added a prompt for _path2ip
+# 3.4.4 (2019-01-21): no changes... version number updated for consistency
 
 d_baseDir="${YAMON%/}"
 
@@ -303,10 +297,10 @@ if [ "$_firmware" == "0" ] ; then
 
 	ntp_enable=$(nvram get ntp_enable)
 	$send2log "ntp_enable --> $ntp_enable" 1
-	[ "$ntp_enable" == "1" ] && echo "
+	[ ! "$ntp_enable" == "1" ] && echo "
 	$wrn
 	$bl_a
-	  ##   \`NTP Client\` is not enabled in your DD-WRT config.
+	  ##   \`NTP Client\` is *not* enabled in your DD-WRT config.
 	  ##   The NTP Client allows you to set your time zone and synchronize
 	  ##   the clock on your router.
 	$bl_a

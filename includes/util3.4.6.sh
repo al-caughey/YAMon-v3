@@ -10,6 +10,7 @@
 # 3.3.1 (2017-07-17): general housekeeping; updated checkIPChain & getMACIPList; removed unused send2DB
 # 3.3.3 (2017-09-25): cleaned up d_baseDir; optionally backup _liveArchiveFilePath in dailyBU()
 # 3.4.3 (2018-02-26): added topics to prompt links
+# 3.4.6 (2019-01-22): no changes - version number updated for consistency
 #
 ##########################################################################
 
@@ -251,7 +252,8 @@ setWebDirectories()
 		local src=${1//\/\//\/}
 		local dest=${2//\/\//\/}
 		$send2log "addSymLink: $src --> $dest" 0
-		[ -h "$dest" ] || ln -s "$src" "$dest"
+		[ -h "$dest" ] && rm -fv "$dest"
+		ln -s "$src" "$dest"
 	}
 	$send2log "setWebDirectories" 0
 	if [ ! -d "$_wwwPath" ] ; then
@@ -274,9 +276,6 @@ setWebDirectories()
 		local lcss=${_wwwCSS%/}
 		local limages=${_wwwImages%/}
 		local ldata=${_wwwData%/}
-
-		[ -h "${l_wp}/${_webIndex}" ] && rm -fv "${l_wp}/${_webIndex}"
-		[ -h "${l_wp}/$ldata" ] && rm -fv "${l_wp}/$ldata"
 
 		addSymLink "${d_baseDir}/$_webDir/$lcss" "$l_wp/$lcss"
 		addSymLink "${d_baseDir}/$_webDir/$limages" "$l_wp/$limages"
@@ -485,7 +484,7 @@ checkIPTableEntries()
 		done
 	} 
 	addIP(){
-		$send2log "addIP:  $1	$2	$3" 0
+		$send2log "addIP:  $1	$2	$3 --> $gn" 0
 		local cmd=$1
 		local chain=$2
 		local ip=$3
@@ -498,6 +497,7 @@ checkIPTableEntries()
 		#	eval $cmd $_tMangleOption -I "$chain" -s "$ip" -g $gn
 		#	eval $cmd $_tMangleOption -I "$chain" -d "$ip" -g $gn
 		else
+			ip=${ip/ (dup)/}
 			eval $cmd $_tMangleOption -I "$chain" -s "$ip" -j RETURN
 			eval $cmd $_tMangleOption -I "$chain" -d "$ip" -j RETURN
 			eval $cmd $_tMangleOption -I "$chain" -s "$ip" -j $gn

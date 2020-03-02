@@ -17,6 +17,9 @@
 # 3.4.4b (2018-03-28): replaced sed -E with sed -r
 # 3.4.4c (2018-04-02): updated check for old duplicate IPs marked with x/y
 # 3.4.5 (2018-04-02): added _local_ip6, cleaned up lots of log2file entries; added bytes & unknown to conntrack data; cleanup up iptables -L to -nL, removed unused getForwardData
+# 3.4.6 (2018-08-11): added option to exclude failed/incomplete entries; check static leases on launch; detach from terminal
+# 3.4.6a (2019-01-25): added check for firmware in updateStaticLeases()	
+# 3.4.6b (2019-01-26): suppressed the error output from crippled ip function; fixed owner replacement in updateStaticLeases()
 
 # ==========================================================
 #				  Functions
@@ -152,17 +155,23 @@ setInitValues(){
 	_totMem=$(getMI "MemTotal")
 	$send2log "_totMem: $_totMem" 0
 
+	local iginc=' grep -v '00:00:00:00:00:00' | '
+	[ "$_includeIncomplete" -eq "1" ] && iginc=''
+	
 	[ -z "$_path2ip" ] && _path2ip=$(which ip)
 	if [ "$_firmware" -eq "4" ] || [ -z "$_path2ip" ] ; then
-		#_getIP4List="cat /proc/net/arp | grep '^[0-9]' | grep -v '00:00:00:00:00:00' | tr -s ' ' | cut -d' ' -f1,4 | tr 'A-Z' 'a-z' $sortStr"
-		_getIP4List="cat /proc/net/arp | grep '^[0-9]' | tr -s ' ' | cut -d' ' -f1,4 | tr 'A-Z' 'a-z' $sortStr"
+		_getIP4List="cat /proc/net/arp | grep '^[0-9]' | $iginc tr -s ' ' | cut -d' ' -f1,4 | tr 'A-Z' 'a-z' $sortStr"
+
 	else
-		local tip=$(echo "$($_path2ip -4 neigh show)")
-		if [ -z "$tip" ] ; then
-			#_getIP4List="cat /proc/net/arp | grep '^[0-9]' | grep -v '00:00:00:00:00:00' | tr -s ' ' | cut -d' ' -f1,4 | tr 'A-Z' 'a-z' $sortStr"
-			_getIP4List="cat /proc/net/arp | grep '^[0-9]' | tr -s ' ' | cut -d' ' -f1,4 | tr 'A-Z' 'a-z' $sortStr"
-		else
+		#local tip=$(echo "$($_path2ip -4 neigh show)")
+		$(ip -4 neigh show >> /tmp/ip.text 2>&1)
+		#if [ -z "$tip" ] ; then
+		if [ $? -eq 0 ] ; then
+			$send2log  "Using ip to detect active IP/MAC combinations" 1
 			_getIP4List="$_path2ip -4 neigh | cut -d' ' -f1,5 | tr 'A-Z' 'a-z' $sortStr"
+		else
+			_getIP4List="cat /proc/net/arp | grep '^[0-9]' | $iginc tr -s ' ' | cut -d' ' -f1,4 | tr 'A-Z' 'a-z' $sortStr"
+			$send2log  "Using arp to detect active IP/MAC combinations" 1
 		fi
 	fi
 	
@@ -424,6 +433,20 @@ getPND(){
 	$send2log "result-->$result" -1
 }
 setUsers(){
+	fixIncompletes()
+	{
+		local gplist="$(cat $_usersFile | grep -i "in:co:mp:le:te-\d\b")"
+		IFS=$'\n'
+		for lline in $gplist
+		do
+			local mac=$(getField "$lline" 'mac')
+			local m=$(echo "$mac" | cut -d- -f1)
+			local n=$(printf %02d $(echo "$mac" | cut -d- -f2) )
+			_currentUsers=$(echo "$_currentUsers" | sed -e "s~$mac\b~$m-$n~Ig")
+			_changesInUsersJS=$(($_changesInUsersJS + 1))
+		done
+	}
+	
 	getGroups_0()
 	{ #for firmware without sort/uniq
 		local gplist="$(cat $_usersFile | grep -o \"owner\":\"[^\"]*\" | cut -d: -f2 | sed "s~[^a-z0-9]~~ig")"
@@ -448,9 +471,11 @@ $retlist"
 	$send2log "setUsers" 0
 	_usersFile="$_dataPath$_usersFileName"
 	[ "$_symlink2data" -eq "0" ] && _usersFileWWW="$_wwwPath$_wwwData$_usersFileName"
-
 	[ ! -f "$_usersFile" ] && createUsersFile
 	_currentUsers=$(cat "$_usersFile" | sed -e "s~(dup) (dup)~(dup)~Ig" | sed -e "s~0.0.0.0_0~0.0.0.0\/0~Ig")
+	
+	fixIncompletes	
+	
 	local groups=$(eval "getGroups_$hasUniq")
 	local gpchains=$(eval iptables $_tMangleOption -nL -vx | grep "${YAMON_IP4}_gp_")
 	IFS=$'\n'
@@ -883,15 +908,14 @@ ip: $ip
 tip: $tip
 wip: $wip
 o_ip: $o_ip" -1
-	local ds=$(date +"%Y-%m-%d %H:%M:%S")
 
 	newline=$(replace "$mline" "$wip" "$ip")
-	newline=$(replace "$newline" "updated" "$ds")
+	newline=$(replace "$newline" "updated" "_updated_")
 	
 	$send2log "newline: $newline" -1
 	_currentUsers=$(echo "$_currentUsers" | sed -e "s~$mline~$newline~Ig")
 	_changesInUsersJS=$(($_changesInUsersJS + 1))
-
+	
 	$send2log ">>> Device $mac & $o_ip was updated to $mac & $ip" 1
 }
 clearDupIPs()
@@ -975,8 +999,6 @@ $uline" 2
 		[ -z "$incomplete" ] && return
 		local cu_inc=$(echo "$_currentUsers" | grep -i "in:co:mp:le:te" | sort -r)
 		local cu_not_inc=$(echo "$_currentUsers" | grep -iv "in:co:mp:le:te")
-		local num_inc=$(echo "$(getField "$cu_inc" "mac")" | cut -d'-' -f2)
-		[ -z "$num_inc" ] && num_inc=0
 
 		$send2log "checkIncompleteMac: $incomplete" 0
 		IFS=$'\n'
@@ -996,6 +1018,8 @@ $uline" 2
 				#mline gets just in:co:mp:le:te entries with matching IPs
 				$send2log "mline: $mline" 0
 				if [ -z "$mline" ] ; then	#no matching inactive IPs... add a new entry
+					local num_inc=$(echo "$(getField "$cu_inc" "mac")" | cut -d'-' -f2)
+					[ -z "$num_inc" ] && num_inc=0
 					num_inc=$(printf %02d $((${num_inc#0}+1)))
 					mac="in:co:mp:le:te-$num_inc"
 					$send2log "Changed incomplete MAC for IP: $ip from $o_mac to $mac" 0
@@ -1155,13 +1179,6 @@ $mline" 2
 		local wip='ip'
 		[ "$is_ipv6" -eq "1" ] && wip='ip6'
 
-		#local nr=$(eval $cmd $_tMangleOption -nL "$rule" | wc -l)
-		#if [ "$nr" -lt '3' ] ; then
-		#	$send2log "$rule returned only $nr entries?!? Resetting $cmd rules" 2
-		#	setupIPChains
-		#	setUsers
-		#fi
-			
 		IFS=$'\n'
 		for line in $iplist
 		do
@@ -1175,7 +1192,7 @@ $mline" 2
 		unset IFS
 		
 		checkRegularMac
-		checkIncompleteMac
+		[ "$_includeIncomplete" -eq "1" ] && checkIncompleteMac
 		[ "$_includeBridge" -eq "1" ] && checkBridgeMac
 		[ "$_allowMultipleIPsperMAC" -eq "1" ] && multipleIPsperMAC
 
@@ -1215,12 +1232,33 @@ $iplist" 0
 
 	if [ "$_changesInUsersJS" -gt "0" ] ; then
 		$send2log ">>> $_changesInUsersJS changes in users.js" 1
+		
+		local ds=$(date +"%Y-%m-%d %H:%M:%S")
+		_currentUsers=$(echo "$_currentUsers" | sed -e "s~_updated_~$ds~Ig")
+
 		$save2File "$_currentUsers" "$_usersFile"
 	fi
 }
 CheckUsersJS()
 {
+
+	updateDetailsinUsersJS()
+	{
+		$send2log "updateDetailsinUsersJS $oname / $dname" 0
+		
+		newline=$(replace "$mline" "owner" "$oname")
+		newline=$(replace "$newline" "name" "$dname")
+		newline=$(replace "$newline" "updated" "_updated_")
+		
+		_currentUsers=$(echo "$_currentUsers" | sed -e "s~$mline~$newline~Ig")
+		_changesInUsersJS=$(($_changesInUsersJS + 1))
+
+		$send2log ">>> Device details for $mac & $ip were updated to $oname & $dname
+$newline" 1
+
+	}
 	$send2log "CheckUsersJS: $1 / $2 / $3 / $4 / $5 / $6" 0
+
 	local mac=$1
 	local ip=$2
 	local is_ipv6=$3
@@ -1236,6 +1274,7 @@ CheckUsersJS()
 
 	local tip=${ip//\./\\.}
 	local mline=$(echo "$_currentUsers" | grep -Ei "\b$mac\b")
+
 	if [ -z "$mline" ] ; then
 		add2UsersJS "$mac" "$ip" "$is_ipv6" "$oname" "$dname" 
 	else
@@ -1248,7 +1287,22 @@ CheckUsersJS()
 			[ -z "$(echo $o_ip | grep '(dup)')" ] && updateinUsersJS
 		elif [ "$nm" -eq '1' ] ; then
 			local o_ip=$(getField "$mline" "$wip")
-			[ "$o_ip" == "$ip" ] || updateinUsersJS
+			local o_o=$(getField "$mline" "owner")
+			local o_n=$(getField "$mline" "name")
+			if [ ! "$o_ip" == "$ip" ] ; then
+				$send2log "IP for $mac ($ip) changed: ip-->$o_ip / $ip" 0
+				updateinUsersJS
+				mline=$(replace "$mline" "$wip" "$ip")
+				mline=$(replace "$mline" "updated" "_updated_")
+
+			fi
+			[ -z "$oname" ] && [ -z "$dname" ] && return
+			if [ ! "$o_o" == "$oname" ] || [ ! "$o_n" == "$dname" ] ; then
+				[ "$oname" == "$_defaultOwner" ] && oname=$o_o
+				$send2log "Details for $mac ($ip) changed: owner-->$o_o / $oname     name-->$o_n / $dname" 1
+				updateDetailsinUsersJS
+			fi
+	
 		elif [ "$nm" -eq '0' ]  ; then
 			$send2log "huh?!? CheckUsersJS: this should be impossible $mline / $mac" 2
 		else
@@ -1262,7 +1316,8 @@ getDeviceName()
 {
 	$send2log "getDeviceName:  $1" 0
 	local mac=$1
-
+	local namefield=2
+	
 	if [ "$_firmware" -eq "0" ] ; then
 		local nvr=$(nvram show 2>&1 | grep -i "static_leases=")
 		local result=$(echo "$nvr" | grep -io "$mac[^=]*=.\{1,\}=.\{1,\}=" | cut -d= -f2)
@@ -1270,6 +1325,7 @@ getDeviceName()
 		# thanks to Robert Micsutka for providing this code & easywinclan for suggesting & testing improvements!
 		local ucihostid=$(uci show dhcp | grep -i $mac | cut -d. -f2)
 		[ -n "$ucihostid" ] && local result=$(uci get dhcp.$ucihostid.name)
+		namefield=3
 	elif [ "$_firmware" -eq "2" ] || [ "$_firmware" -eq "5" ] ; then
 		#thanks to Chris Dougherty for providing this code
 		local nvr=$(nvram show 2>&1 | grep -i "dhcp_staticlist=")
@@ -1286,9 +1342,46 @@ getDeviceName()
 			#local result=$(echo "$nvr" | grep -io "$mac=.\{1,\}=.\{1,\}=" | cut -d= -f3)
 		local result=$(echo "$nvr" | grep -io "$mac[^=]*=.\{1,\}=.\{1,\}=" | cut -d= -f3)
 	fi
-	[ -z "$result" ] && [ -f "$_dnsmasq_conf" ] && result=$(echo "$(cat $_dnsmasq_conf | grep -i "dhcp-host=")" | grep -i "$mac" | cut -d, -f2)
+	
+	[ -z "$result" ] && [ -f "$_dnsmasq_conf" ] && result=$(echo "$(cat $_dnsmasq_conf | grep -i "dhcp-host=")" | grep -i "$mac" | cut -d, -f$namefield)
 	[ -z "$result" ] && [ -f "$_dnsmasq_leases" ] && result=$(echo "$(cat $_dnsmasq_leases)" | grep -i "$mac" | tr '\n' ' / ' | cut -d' ' -f4)
 	echo "$result"
+}
+updateStaticLeases(){
+	$send2log "updateStaticLeases" -1
+	[ ! -f "$_dnsmasq_conf" ] && return
+	_changesInUsersJS=0
+	local leases=$(cat $_dnsmasq_conf | grep dhcp-host)
+	local namefield=2
+	local ipfield=3
+
+	if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] || [ "$_firmware" -eq "7" ] ; then
+		namefield=3
+		ipfield=2
+	fi
+	#ToDo - add code that parses the contents of /etc/config/dhcp 
+	$send2log "updateStaticLeases --> leases ($namefield / $ipfield) :
+$leases" 0
+	IFS=$'\n'
+	for line in $leases
+	do
+		local str=${line//dhcp-host=/}
+		local mac=$(echo $str | cut -d, -f1)
+		local ip=$(echo $str | cut -d, -f$ipfield)
+		local name=$(echo $str | cut -d, -f$namefield)
+		local owner="$_defaultOwner"
+		if [ ! -z "$_do_separator" ] ; then
+			owner=$(echo $name | cut -d$_do_separator -f1)
+			name=$(echo $name | cut -d$_do_separator -f2)
+		fi
+		[ "$name" == "$owner" ] && owner="$_defaultOwner"
+		$send2log "mac-->$mac    ip-->$ip     owner-->$owner     name-->$name" -1
+		CheckUsersJS $mac "$ip" 0 "$owner" "$name"
+	done
+	if [ "$_changesInUsersJS" -gt "0" ] ; then
+		$send2log ">>> $_changesInUsersJS changes in users.js" 99
+		$save2File "$_currentUsers" "$_usersFile"
+	fi
 }
 checkUnlimited_0()
 {	#_unlimited_usage=0
@@ -1435,8 +1528,18 @@ checkChainEntries()
 
 	local nr=$(eval $1 $_tMangleOption -nL "$2" | wc -l)
 	if [ "$nr" -lt '3' ] ; then
-		$send2log "checkChainEntries: $2 returned only $nr entries?!? Resetting $cmd rules" 2
-		setUsers
+		#$send2log "checkChainEntries: $2 returned only $nr entries?!? Resetting $cmd rules" 2
+		#setUsers
+		local fc=$(iptables -nL FORWARD)
+		local yc=$(iptables -L | grep "Chain YAMON")
+		$send2log "checkChainEntries: Resstarting because iptables is in a bad state -->$2 returned only $nr entries?!? 
+FORWARD Chain:
+$fc
+
+---------------
+YAMon Chains:
+$yc" 99
+		$d_baseDir/restart.sh 0 &
 	fi
 }
 checkChains_1()
@@ -1744,8 +1847,9 @@ _cMonth=$(date +%m)
 
 _ds="$_cYear-$_cMonth-$_cDay"
 setInitValues
+updateStaticLeases
 
-# Set nice level to 10 of current PID (low priority)
+# Set nice level of current PID to 10 (low priority)
 if [ -n "$(which renice)" ] ; then 
 	$send2log ">>> Setting \`renice\` level to 10 on PID: $$" 0
 	renice 10 $$
@@ -1758,6 +1862,13 @@ $send2log ">>> Delaying ${timealign}s to align updates" 1
 [ -n "$2" ] && sleep  "$timealign";
 _p_hr=$(date +%H)
 $send2log ">>> Starting main loop" 1
+
+# Detach from terminal as suggested by yoyoma2
+if [ "$_log2file" -eq "1" ] ; then
+	exec 0>&- # close stdin
+	exec 1>&- # close stdout
+	exec 2>&- # close stderr 
+fi
 
 while [ 1 ]; do
 	start=$(date +%s)
