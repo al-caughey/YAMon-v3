@@ -153,6 +153,11 @@ elif [ ! -z "$allMatch" ] && [ "$param" == 'verify' ] ; then
   \`http://usage-monitoring.com/manualInstall.php\` to update the
   file(s) manually.
 
+  NB - I recently learned that some firmware variants include a buggy version 
+  of the wget function... If the compare results show that just yamon$_version.sh and 
+  yamon$_file_version.html differ, you could have the affected firmware.  
+  Use the manual install process instead for those two files... sorry!
+  
   Send any questions or comments to install@usage-monitoring.com
 
   Exiting install.sh....

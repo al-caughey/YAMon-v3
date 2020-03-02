@@ -11,6 +11,8 @@
 
 #HISTORY
 # 3.3.0 (2017-06-18): bumped minor version; added xwrt, Turris
+# 3.3.1 (2017-07-17): check/update value of _configWWW
+# 3.3.1a (2017-07-19): fixed symlink paths in setWebDirectories
 
 d_baseDir="$YAMON"
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
@@ -181,6 +183,7 @@ re_path=^.*$
 re_path_slash=^.*/$
 
 updateConfig "_baseDir" "$d_baseDir"
+_baseDir="$d_baseDir"
 [ "$_setupWebDir" == "Setup/www/" ] && updateConfig "_setupWebDir" "www/"
 [ "$_setupWebIndex" == "yamon2.html" ] && updateConfig "_setupWebIndex" "index.html"
 [ "$_setupWebIndex" == "yamon3.html" ] && updateConfig "_setupWebIndex" "index.html"
@@ -188,6 +191,7 @@ updateConfig "_baseDir" "$d_baseDir"
 [ "$_setupWebIndex" == "yamon3.2.html" ] && updateConfig "_setupWebIndex" "index.html"
 [ "$_wwwData" == "data/" ] || [ "$_wwwData" == "data" ] && updateConfig "_wwwData" "data3/"
 [ "$_configWWW" == "config.js" ] && updateConfig "_configWWW" "config3.js"
+[ "$_configWWW" == "config3.js" ] && updateConfig "_configWWW" 'config$_file_version.js'
 [ "$_liveFileName" == "live_data.js" ] && updateConfig "_liveFileName" "live_data3.js"
 
 if [ "$installedfirmware" == "DD-WRT" ] ; then

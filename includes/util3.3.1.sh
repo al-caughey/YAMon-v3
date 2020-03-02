@@ -7,6 +7,7 @@
 #
 # History
 # 3.3.0 (2017-06-18): bumped minor version; added xwrt
+# 3.3.1 (2017-07-17): general housekeeping; updated checkIPChain & getMACIPList; removed unused send2DB
 #
 ##########################################################################
 
@@ -252,7 +253,7 @@ sendAlert()
 }
 getField()
 {
-	send2log "=== getField ===" 0
+	send2log "=== getField ===   $1 / $2" 0
 	send2log "	  arguments:  $1  $2" -1
 	local line=$1
 	local field=$2
@@ -331,7 +332,6 @@ _hourlyUsageDB: $_hourlyUsageDB" > "$manifest"
 		[ "$_enableLogging" -eq "1" ] && copyfiles "$_logfilename" "$budir"
 	fi
 }
-
 add2UDList(){
 	send2log "=== add2UDList ===" 0
 	send2log "	  arguments:  $1  $2  $3" -1
@@ -354,7 +354,7 @@ $ip,$do,$up"
 }
 createUDList(){
 	send2log "=== createUDList ===" -1
-	send2log "	  arguments:  \$1-->$1" -1
+	send2log "	  arguments:  $1" -1
 	local results=''
 	iptablesData="$1"
 	IFS=$'\n'
@@ -375,8 +375,6 @@ createUDList(){
 		fi
 	done
 	unset IFS
-	#send2log "  >>> createUDList: _ud_list-->
-#$_ud_list" 1
 }
 doFinalBU()
 {
@@ -455,7 +453,7 @@ checkIPTableEntries()
 	[ "$cmd" == 'ip6tables' ] && g_ip="$_generic_ipv6"
 
 	if [ "$nm" -eq "0" ]; then
-		send2log "  >>> Added rules to $chain for $mac-->$ip" 1
+		send2log "  >>> Added rules to $chain for $mac-->$ip" 0
 		addIP "$cmd" "$chain" "$ip"
 	else
 		send2log "  !!! Incorrect number of rules for $ip in $chain -> $nm... removing duplicates" 99
@@ -473,9 +471,11 @@ checkIPChain()
 
     local oldRuleinChain=$(eval $cmd $_tMangleOption -L "$chain" | grep -ic "\b$base\b")
     local i=1
+	send2log "	>>> oldRuleinChain-->$oldRuleinChain" 0
     while [  "$i" -le "$oldRuleinChain" ]; do
         local dup_num=$(eval $cmd $_tMangleOption -L "$chain" --line-numbers | grep -m 1 -i "\b$base\b" | cut -d' ' -f1)
         $(eval $cmd $_tMangleOption -D "$chain" $dup_num)
+		send2log "	>>> $cmd $_tMangleOption -D "$chain" $dup_num" 0
         i=$(($i+1))
     done
     
@@ -505,9 +505,7 @@ getMACIPList(){
 
 	if [ -z "$rules" ] ; then
 		send2log "	$rule returned nothing?!?" 2
-		checkIPChain $cmd "FORWARD" "$rule"
-		checkIPChain $cmd "INPUT" "$rule"
-        checkIPChain $cmd "OUTPUT" "$rule"
+		setupIPChains
 	fi
 	send2log "	  rules-->
 $rules" -1
@@ -577,11 +575,4 @@ send2FTP(){
 	fi
 	ftpput -u "$_ftp_user" -p "$_ftp_pswd" "$_ftp_site" "$ftp_path" "$1"
 	send2log "send2FTP --> $1 sent to FTP site ($ftp_path)" 1
-}
-send2DB(){
-	local v=$(echo "$2" | tr '({' '(' | tr '})' ')' | tr '\n' '|')
-	local url="$_db_url?t=${_db_name}&t=${1}&v=${v}"
-	send2log "=== send2DB ==>$url"  1
-	local results=$(wget -q -O - "$url")
-	send2log "send2DB --> $results" 1
 }

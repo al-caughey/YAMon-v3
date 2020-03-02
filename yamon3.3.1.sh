@@ -22,16 +22,19 @@
 
 #HISTORY
 # 3.3.0 (2017-06-18): bumped minor version; added xwrt
+# 3.3.1 (2017-07-17): added option for ip_conntrack vs nf_conntrack; added count number to new devices; added defensive code to better handle oddball situations where iptables chains go missing
+#                     added setupIPChains; changes in setFirmware, CheckUsersJS, update
+#                     general housekeeping; removed blocks of unused code; tweaked some regexes																																						 
 #
 # ==========================================================
 #				  Functions
 # ==========================================================
-
-setInitValues(){
+setupIPChains(){
+	send2log "=== setupIPChains ($cmd/$rule) === " 2
     checkChain(){
         local cmd="$1"
         local chain="$2"
-        local ce=$(echo "$ipchains" | grep "$chain")
+        local ce=$(echo "$ipchains" | grep "$chain\b")
         if [ -z "$ce" ]; then
             send2log "Adding $chain in $cmd ($_tMangleOption)" 2
             $(eval $cmd $_tMangleOption -N $chain)
@@ -44,8 +47,9 @@ setInitValues(){
         local chain="$2"
         local ip_blocks="$3"
         local generic="$4"
+        $(eval $cmd $_tMangleOption -F "$chain")
         $(eval $cmd $_tMangleOption -F "${chain}Entry")
-        $(eval $cmd  $_tMangleOption -F "${chain}Local")
+        $(eval $cmd $_tMangleOption -F "${chain}Local")
     	IFS=$','
         for iprs in $(echo "$ip_blocks")
         do
@@ -57,17 +61,10 @@ setInitValues(){
         done
         $(eval $cmd $_tMangleOption -A "${chain}Entry" -j "${chain}")
         $(eval $cmd $_tMangleOption -I "${chain}Local" -j "RETURN" -s $generic -d $generic)
+        $(eval $cmd $_tMangleOption -A "$chain" -j "RETURN" -s $generic -d $generic)
         IFS=$'\n'
     }
-	_configFile="$d_baseDir/config.file"
-	source "$_configFile"
-	loadconfig
-
-	source "$d_baseDir/strings/$_lang/strings.sh"
-	_savedconfigMd5=$(md5sum $_configFile | cut -f1 -d" ")
-	setLogFile
-
-    ipchains=$(eval iptables $_tMangleOption -L -vnx | grep Chain)
+	ipchains=$(eval iptables $_tMangleOption -L -vnx | grep Chain)
     checkChain 'iptables' "$YAMON_IP4"
     checkChain 'iptables' "${YAMON_IP4}Entry"
     checkChain 'iptables' "${YAMON_IP4}Local"
@@ -77,6 +74,18 @@ setInitValues(){
 	checkIPChain "iptables" "FORWARD" "$YAMON_IP4"
 	checkIPChain "iptables" "INPUT" "$YAMON_IP4"
 	checkIPChain "iptables" "OUTPUT" "$YAMON_IP4"
+	
+	local nm=$(eval iptables $_tMangleOption -vnxL "$YAMON_IP4" | grep -c "\b$_generic_ipv4\b")
+	checkIPTableEntries "iptables" "$YAMON_IP4" "$_generic_ipv4" $nm
+	
+	if [ ! -z "$_lan_ipaddr" ] ; then
+		local nm=$(eval iptables $_tMangleOption -vnxL "$YAMON_IP4" | grep -c "\b$_lan_ipaddr\b")
+		checkIPTableEntries "iptables" "$YAMON_IP4" "$_lan_ipaddr" $nm
+	fi
+	if [ ! -z "$_wan_ipaddr" ] ; then
+		local nm=$(eval iptables $_tMangleOption -vnxL "$YAMON_IP4" | grep -c "\b$_wan_ipaddr\b")
+		checkIPTableEntries "iptables" "$YAMON_IP4" "$_wan_ipaddr" $nm
+	fi
     
 	if [ "$_includeIPv6" -eq "1" ] ; then
 		_getIP6List="$_path2ip -6 neigh | grep 'lladdr' | cut -d' ' -f1,5 | tr '[A-Z]' '[a-z]' $sortStr"
@@ -91,9 +100,27 @@ setInitValues(){
 		checkIPChain 'ip6tables' 'FORWARD' "$YAMON_IP6"
 		checkIPChain 'ip6tables' 'INPUT' "$YAMON_IP6"
 		checkIPChain 'ip6tables' 'OUTPUT' "$YAMON_IP6"
+		
+		local nm=$(eval ip6tables $_tMangleOption -vnxL "$YAMON_IP6" | grep -c "\b$_generic_ipv6\b")
+		checkIPTableEntries "iptables" "$YAMON_IP6" "$_generic_ipv6" $nm
+
+		[ ! -z "$_lan_ip6addr" ] && checkIPTableEntries "ip6tables" "$YAMON_IP6" "$_lan_ip6addr" 0
 	fi
-    
+
+}
+setInitValues(){
+
+	_configFile="$d_baseDir/config.file"
+	source "$_configFile"
+	loadconfig
+
+	source "$d_baseDir/strings/$_lang/strings.sh"
+	_savedconfigMd5=$(md5sum $_configFile | cut -f1 -d" ")
+	setLogFile
+
 	setFirmware
+	setupIPChains
+    
 	updateServerStats
 	setDataDirectories
 	setWebDirectories
@@ -341,21 +368,18 @@ setUsers(){
 	if [ ! -z "$_lan_ipaddr" ] ; then
 		local lipe=$(echo "$_currentUsers" | grep "\b$_lan_ipaddr\b")
 		[ -z "$lipe" ] && add2UsersJS $_lan_hwaddr $_lan_ipaddr 0 "Hardware" "LAN MAC"
-		local nm=$(eval iptables $_tMangleOption -vnxL "$YAMON_IP4" | grep -c "\b$_lan_ipaddr\b")
-		checkIPTableEntries "iptables" "$YAMON_IP4" "$_lan_ipaddr" $nm
+
 	fi
 
 	if [ ! -z "$_wan_ipaddr" ] ; then
 		lipe=$(echo "$_currentUsers" | grep "\b$_wan_ipaddr\b")
 		[ -z "$lipe" ] && [ "$_wan_hwaddr" != "$_lan_hwaddr" ] && add2UsersJS $_wan_hwaddr $_wan_ipaddr 0 "Hardware" "WAN MAC"
-		local nm=$(eval iptables $_tMangleOption -vnxL "$YAMON_IP4" | grep -c "\b$_wan_ipaddr\b")
-		checkIPTableEntries "iptables" "$YAMON_IP4" "$_wan_ipaddr" $nm
 	fi
 
 	lipe=$(echo "$_currentUsers" | grep "\b$_generic_ipv4\b")
 	[ -z "$lipe" ] && add2UsersJS $_generic_mac $_generic_ipv4 0 "Unknown" "No Matching MAC"
 	if [ "$_includeIPv6" -eq "1" ] ; then
-		lipe=$(echo "$_currentUsers" | grep "\b$_generic_ipv6\b")
+		lipe=$(echo "$_currentUsers" | grep "[\b\"]$_generic_ipv6\b")
 		[ -z "$lipe" ] && updateinUsersJS $_generic_mac $_generic_ipv6 1 "Unknown" "No Matching MAC"
 	fi
 
@@ -425,34 +449,30 @@ createUsersFile()
 setFirmware()
 {
 	send2log "=== setFirmware ===" -1
-	_lan_iface='br0'
-	if [ "$_firmware" -eq "0" ] ; then
-		_lan_iface=$(nvram get lan_ifname)
-		_lan_ipaddr=$(nvram get lan_ipaddr)
-		_lan_hwaddr=$(nvram get lan_hwaddr | tr '[A-Z]' '[a-z]')
-		_wan_ipaddr=$(nvram get wan_ipaddr)
-		_wan_hwaddr=$(nvram get wan_hwaddr | tr '[A-Z]' '[a-z]')
-		#_wan_gateway=$(nvram get wan_gateway)
+	
+	
+	if [ "$_use_nf_conntrack" -ne "1" ] ; then
 		_conntrack="/proc/net/ip_conntrack"
-	fi
-	if [ "$_firmware" -eq "0" ] && [ "$_includeIPv6" -eq "0" ] ; then
 		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$1,$1 == "tcp" ? $5 : $4,$1 == "tcp" ? $7 : $6,$1 == "tcp" ? $6 : $5,$1 == "tcp" ? $8 : $7; } END { print "[ null ] ]"}'
-	elif [ "$_firmware" -eq "0" ]; then #DD-WRT
+	
+	else
 		_conntrack="/proc/net/nf_conntrack"
 		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$3 == "tcp" ? $7 : $6,$3 == "tcp" ? $9 : $8,$3 == "tcp" ? $8 : $7,$3 == "tcp" ? $10 : $9; } END { print "[ null ] ]"}'
-	elif [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] ; then #OpenWRT//LEDE
-		_lan_iface="br-lan"
-		_lan_ipaddr=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
-		_lan_hwaddr=$(ifconfig br-lan | awk '/HWaddr/ {print $5}' | tr '[A-Z]' '[a-z]')
-		_wan_ipaddr=$(ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
-		_wan_hwaddr=$(ifconfig eth0 | awk '/HWaddr/ {print $5}' | tr '[A-Z]' '[a-z]')
-		_conntrack="/proc/net/nf_conntrack"
-		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$3 == "tcp" ? $7 : $6,$3 == "tcp" ? $9 : $8,$3 == "tcp" ? $8 : $7,$3 == "tcp" ? $10 : $9; } END { print "[ null ] ]"}'
-	elif [ "$_firmware" -eq "2" ] || [ "$_firmware" -eq "5" ] ; then #AsusWRT
-		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$3 == "tcp" ? $7 : $6,$3 == "tcp" ? $9 : $8,$3 == "tcp" ? $8 : $7,$3 == "tcp" ? $10 : $9; } END { print "[ null ] ]"}'
-	elif [ "$_firmware" -eq "3" ] ; then #Tomato
-		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$3 == "tcp" ? $7 : $6,$3 == "tcp" ? $9 : $8,$3 == "tcp" ? $8 : $7,$3 == "tcp" ? $10 : $9; } END { print "[ null ] ]"}'
+	
 	fi
+	
+	_lan_iface='br0'
+	if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] ; then #OpenWRT & variants
+		_lan_iface="br-lan"
+	fi
+	_lan_ipaddr=$(ifconfig $_lan_iface | grep 'inet addr:' | tr -s ' ' | cut -d' ' -f3 | cut -d: -f2)
+	_lan_hwaddr=$(ifconfig $_lan_iface | grep 'HWaddr' | tr -s ' ' | cut -d' ' -f5 | tr '[A-Z]' '[a-z]')
+	
+	_wan_ipaddr=$(ifconfig 'eth0' | grep 'inet addr:' | tr -s ' ' | cut -d' ' -f3 | cut -d: -f2)
+	_wan_hwaddr=$(ifconfig 'eth0' | grep 'HWaddr' | tr -s ' ' | cut -d' ' -f5 | tr '[A-Z]' '[a-z]')
+	
+	[ "$_includeIPv6" -eq "1" ] && _lan_ip6addr=$(ifconfig $_lan_iface | grep 'inet6 addr:' | grep -v fe80 | tr -s ' ' | cut -d' ' -f4)
+
 }
 checkBridge()
 {
@@ -550,7 +570,6 @@ changeDates()
 	_hr_rt_min=''
 	_daily_rt_max=''
 	_daily_rt_min=''
-	_IPChanges=''
 
 	[ "$_doDailyBU" -eq "1" ] && dailyBU "$_cYear-$_cMonth-$_pDay" &
 	sl_max=''
@@ -579,10 +598,6 @@ changeDates()
 	updateServerStats
 	setDataDirectories
 	_pDay="$_cDay"
-
-	[ ! -z "$_lan_ipaddr" ] && checkIPTableEntries "iptables" "$YAMON_IP4" "$_lan_ipaddr" 0
-	[ ! -z "$_wan_ipaddr" ] && checkIPTableEntries "iptables" "$YAMON_IP4" "$_wan_ipaddr" 0
-	[ "$_includeIPv6" -eq "1" ] && [ ! -z "$_lan_ip6addr" ] && checkIPTableEntries "ip6tables" "$YAMON_IP6" "$_lan_ip6addr" 0
 }
 checkIPs()
 {
@@ -640,11 +655,11 @@ CheckUsersJS()
 	local is_ipv6=$3
 	local tip=${ip//\./\\.}
 	if [ "$_includeBridge" -eq "1" ] && [ "$mac" == "$_bridgeMAC" ] ; then
-			local ipcount=$(echo "$_currentUsers" | grep -ic "\b$tip\b")
+			local ipcount=$(echo "$_currentUsers" | grep -ic "[\b\",]$tip\b")
 		if [ "$ipcount" -eq 0 ] ;  then
 			send2log "	--- matched bridge mac but no matching entry for $ip.  Data will be tallied under bridge mac" 1
 		elif [ "$ipcount" -eq 1 ] ;  then
-			mac=$(echo "$_currentUsers" | grep -i "\b$tip\b" | grep -io '\([a-z0-9]\{2\}\:\)\{5,\}[a-z0-9]\{2\}')
+			mac=$(echo "$_currentUsers" | grep -i "[\b\",]$tip\b" | grep -io '\([a-z0-9]\{2\}\:\)\{5,\}[a-z0-9]\{2\}')
 			send2log "	--- matched bridge mac and found a unique entry for associated IP: $ip.  Changing MAC from $_bridgeMAC (bridge) to $mac (device)" 1
 		else
 			send2log "	--- matched bridge mac but found $ipcount matching entries for $ip.  Data will be tallied under bridge mac" 1
@@ -652,17 +667,24 @@ CheckUsersJS()
 	fi
 
 	local cu_no_dup=$(echo "$_currentUsers" | grep -v "$ip (dup)")
-	local mie=$(echo "$cu_no_dup" | grep -i "$mac" | grep -ic "\b$tip\b")
-	local ie=$(echo "$cu_no_dup" | grep -ic "\b$tip\b")
+	local ie=$(echo "$cu_no_dup" | grep -ic "[\b\",]$tip\b")
+	
+	local mie=$(echo "$cu_no_dup" | grep -i "$mac" | grep -ic "[\b\",]$tip\b")
 	if [ "$mie" -eq "1" ] ; then
-		send2log "	>>> $mac & $ip exist in users.js" -1
 		[ "$ie" -gt "1" ] && clearDupIPs $ip $ie
+		send2log "	>>> $mac & $ip exist in users.js" -1
+		return
+	fi
+	local mied=$(echo "$_currentUsers" | grep -i "$mac" | grep -ic "[\b\",]$tip (dup)")
+	if [ "$mie" -eq "1" ] ; then
+		[ "$ie" -gt "1" ] && clearDupIPs $ip $ie
+		send2log "	>>> $mac & $ip removing (dup)" -1
+		updateinUsersJS "$mac" "$ip" "$is_ipv6"
 		return
 	fi
 	local me=$(echo "$_currentUsers" | grep -ic "$mac")
-	send2log "  mac: $mac	ip: $ip	mie-->$mie	me-->$me	ie-->$ie" 0
-	[ "$ie" -gt "1" ] && clearDupIPs $ip $ie
-
+	send2log "  mac: $mac	ip: $ip	mie-->$mie	me-->$me	ie-->$ie" 1
+	[ "$ie" -ge "1" ] && clearDupIPs $ip $ie
 	if [ "$me" -eq "0" ] ; then
 		send2log "	>>> $mac does not exist in users.js... adding a new entry" 1
 		send2log "	  _currentUsers before:
@@ -679,8 +701,6 @@ $_currentUsers" -1
 		send2log "	>>> multiple ips are allowed for $mac in users.js... adding a new entry" 1
 		add2UsersJS $mac $ip $is_ipv6
 	fi
-	local line=$(echo "$_currentUsers" | grep -i "$mac" )
-	send2log "  changed line-->$line" -1
 }
 clearDupIPs()
 {
@@ -709,21 +729,16 @@ updateinUsersJS()
 		return
 	fi
 	local old_ip=''
-	[ "$is_ipv6" -eq 0 ] && ips='ip' || ips='ip6'
+	local ips='ip'
+	[ "$is_ipv6" -eq 1 ] && ips='ip6'
 
 	old_ip=$(getField "$line" "$ips")
 	line=$(replace "$line" "$ips" "$new_ip")
 	line=$(replace "$line" "updated" "$ds")
 	_currentUsers=$(echo "$_currentUsers" | sed -e "s~.\{0,\}\"$mac\".\{0,\}~$line~Ig")
 	_changesInUsersJS=$(($_changesInUsersJS + 1))
-	send2log "  >>> Device $mac & $old_ip ($is_ipv6) was updated to was updated to $mac & $new_ip
+	send2log "  >>> Device $mac & $old_ip ($is_ipv6) was updated to $mac & $new_ip
 $line" 1
-	send2log " _IPChanges before-->$_IPChanges" 0
-	#_IPChanges=$(echo "$_IPChanges" | grep -v "(dup)" | grep -v "$new_ip.\{0,\}~.\{0,\}$new_ip" | grep -v "$old_ip.\{0,\}~" | grep -v "$new_ip.\{0,\}~.\{0,\}$old_ip")
-	#local oiid =$(echo "$old_ip" | grep " (dup) ")
-	#[ ! -z "$old_ip" ] && [ ! -z "$oiid" ] && _IPChanges="$_IPChanges
-#$old_ip~$new_ip"
-	send2log " _IPChanges after-->$_IPChanges" 1
 }
 add2UsersJS()
 {
@@ -748,7 +763,12 @@ add2UsersJS()
 			local dname=${deviceName#*"$_do_separator"}
 		fi
 	fi
-	[ -z "$dname" ] || [ "$dname" == '*' ] && dname="$_defaultDeviceName"
+	
+	#add count of new devices
+	local inc_count=$(echo "$_currentUsers" | grep -c "$_defaultDeviceName")
+	inc_count=$(printf %02d $(($inc_count+1)) )
+
+	[ -z "$dname" ] || [ "$dname" == '*' ] && dname="$_defaultDeviceName-$inc_count"
 	[ -z "$oname" ] || [ "$oname" == '*' ] && oname="$_defaultOwner"
 
 	if [ "$is_ipv6" -eq '0' ] ; then
@@ -851,7 +871,6 @@ changeHour()
 	hr_min5=''
 	hr_max1=''
 	hr_min1=''
-	dumpUsers=''
 	_totalLostBytes=0
 
 	if [ ! -z "$end" ] ; then
@@ -924,18 +943,20 @@ checkConfig()
 	updateHourly
 	setInitValues
 }
-lostBytes()
-{
-	local nb=$2
-	[ -z "$nb" ] && nb=0
-	send2log "	  +++ lostBytes-->$_totalLostBytes ($nb)" -1
-	_totalLostBytes=$(digitAdd "$_totalLostBytes" "$nb")
-	send2log "$1 (_totalLostBytes=$_totalLostBytes / $nb)" 2
-}
+
 update()
 {
+	lostBytes()
+	{
+		local nb=$2
+		[ -z "$nb" ] && nb=0
+		send2log "	  +++ lostBytes-->$_totalLostBytes ($nb)" -1
+		_totalLostBytes=$(digitAdd "$_totalLostBytes" "$nb")
+		send2log "$1 (_totalLostBytes=$_totalLostBytes / $nb)" 2
+	}
+	
 	send2log "	  +++ update" -1
-	send2log "	  arguments: $1 $2 $3 $4" -1
+	send2log "	 update arguments: $1 $2 $3 $4" -1
 
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
 
@@ -946,31 +967,14 @@ update()
 	local hr="$4"
 	local bytes=$(digitAdd "$do" "$up")
 	local cu_no_dup=$(echo "$_currentUsers" | grep -vi "$tip (dup)")
-	local cuc=$(echo "$cu_no_dup" | grep -ic "\b$tip\b")
+	local cuc=$(echo "$cu_no_dup" | grep -ic "[\b\",]$tip\b")
 	if [ "$cuc" -eq 0 ] ; then
-		local p_ip=$(echo "$_IPChanges" | grep -i "^$tip" | cut -d'~' -f2)
-		send2log "   no mac-a   ip-->$ip   p_ip-->$p_ip" 1
-		if [ "$ip" == "$p_ip" ] ; then
-			send2log "Duplicate IPs: $ip ** $p_ip" 1
-			send2log "$_IPChanges" 0
-			lostBytes "	  !!! Infinite loop in IPChanges for $ip?!? returning " $bytes
-			return
-		elif [ ! -z "$p_ip" ] ; then
-			send2log "No matching entry in _currentUsers for $ip... trying again with $p_ip" 1
-			update "$p_ip" "$do" "$up" "$hr"
-			return
-		fi
-		lostBytes "	  !!! No matching entry in _currentUsers for $ip?!? returning " $bytes
-		if [ -z "$dumpUsers" ] ; then
-			send2log "cu_no_dup -->
-$cu_no_dup" 0
-			send2log "_currentUsers -->
-$_currentUsers" 0
-			dumpUsers=1
-		fi
+		lostBytes "	  !!! No matching entry in _currentUsers for $mac / $ip ($tip)?!? - adding $bytes to unknown mac " $bytes
+		update "$_generic_ipv4" "$do" "$up" "$hr"
 		return
 	elif [ "$cuc" -gt 1 ] ; then
-		lostBytes "	  !!! $cuc matching entries in _currentUsers for $ip?!? returning " $bytes
+		lostBytes "	  !!! $cuc matching entries in _currentUsers for $ip ($tip)?!? returning - adding $bytes to unknown mac " $bytes
+		update "$_generic_ipv4" "$do" "$up" "$hr"
 		return
 	fi
 	local pdo=0
@@ -978,41 +982,24 @@ $_currentUsers" 0
 
 	local new_do=$do
 	local new_up=$up
-	local cu=$(echo "$cu_no_dup" | grep -i "\b$tip\b")
+	local cu=$(echo "$cu_no_dup" | grep -i "[\b\",]$tip\b")
 	local mac=$(getField "$cu" 'mac')
 	if [ -z "$mac " ] ; then
 		send2log "		  cu-->$cu" -1
-		local p_ip=$(echo "$_IPChanges" | grep "^$tip" | cut -d' ' -f2)
-		send2log "   no mac-b   ip-->$ip   p_ip-->$p_ip" 1
-		if [ "$ip" == "$p_ip" ] ; then
-			send2log "Duplicate IPs: $ip ** $p_ip" 1
-			send2log "$_IPChanges" 0
-			lostBytes "	  !!! Infinite loop in IPChanges for $ip?!? returning " $bytes
-			return
-		elif [ ! -z "$p_ip" ] ; then
-			send2log "No matching entry in _currentUsers for $ip... trying again with $p_ip" 1
-			update "$p_ip" "$do" "$up" "$hr"
-			return
-		fi
-		lostBytes "	  !!! No matching MAC in _currentUsers for $ip?!? returning " $bytes
+		lostBytes "	  !!! No matching MAC in _currentUsers for $ip?!? - adding $bytes to unknown mac " $bytes
+		update "$_generic_ipv4" "$do" "$up" "$hr"
 		return
 	elif [ "$mac" == "00:00:00:00:00:00" ] || [ "$mac" == "failed" ] || [ "$mac" == "incomplete" ] ; then
-		send2log "  >>> skipping null/invalid MAC address for $ip" 0
+		lostBytes "  >>> skipping null/invalid MAC address for $ip?!? - adding $bytes to unknown mac " $bytes
+		update "$_generic_ipv4" "$do" "$up" "$hr"
 		return
 	elif [ "$_includeBridge" -eq "1" ] && [ "$mac" == "$_bridgeMAC" ] ; then
-		local ipcount=$(echo "$cu_no_dup" | grep -v "\b$_bridgeMAC\b" | grep -ic "\b$tip\b")
+		local ipcount=$(echo "$cu_no_dup" | grep -v "\b$_bridgeMAC\b" | grep -ic "[\b\",]$tip\b")
 		if [ "$ipcount" -eq 1 ] ;  then
-			mac=$(echo "$cu_no_dup" | grep -i "\b$tip\b" | grep -io '\([a-z0-9]\{2\}\:\)\{5,\}[a-z0-9]\{2\}')
+			mac=$(echo "$cu_no_dup" | grep -i "[\b\",]$tip\b" | grep -io '\([a-z0-9]\{2\}\:\)\{5,\}[a-z0-9]\{2\}')
 			send2log "	--- matched bridge mac and found a unique entry for associated IP: $ip.  Changing MAC from $_bridgeMAC (bridge) to $mac (device)" 1
 		else
 			send2log "	--- matched bridge mac but found $ipcount matching entries for $ip.  Data will be tallied under bridge mac" 1
-			if [ -z "$dumpUsers" ] ; then
-				send2log "cu_no_dup -->
-$cu_no_dup" 0
-				send2log "_currentUsers -->
-$_currentUsers" 0
-				dumpUsers=1
-			fi
 		fi
 	fi
 	_liveusage="$_liveusage
@@ -1044,7 +1031,8 @@ $cur_hd"
 	else
 		cur_hd="hu({\"mac\":\"$mac\",\"hour\":\"$hr\","\"down\":$new_do,\"up\":$new_up"})"
 	fi
-	send2log "		  updated ul row-->$cur_hd" -1
+	send2log "		  updated $1 $2 $3 $4" -1
+	send2log "		  updated ul row-->$cur_hd" 0
 	_thisHrdata=$(echo "$_thisHrdata" | sed -e "s~.\{0,\}\"$mac\".\{0,\}\"$hr\".\{0,\}~$cur_hd~Ig")
 }
 updateUsage()
@@ -1066,14 +1054,6 @@ updateUsage()
 $iptablesData" -1
 	send2log "_ud_list-->
 $_ud_list" -1
-
-#	local ip1=$(echo "$_ud_list" | grep "\b192.168.0.1\b")
-#	[ ! -z "$ip1" ] && send2log "ip1 ==> $ip1" 2
-#	local ip2=$(echo "$_ud_list" | grep "\b192.168.1.1\b")
-#	[ ! -z "$ip2" ] && send2log "ip2 ==> $ip2
-#--------------------
-#$iptablesData
-#--------------------"  2
 
 	IFS=$'\n'
 	for line in $(echo "$_ud_list")
@@ -1110,8 +1090,6 @@ $_thisHrdata
 $_pndData
 $_thisHrpnd"
 	save2File "$nht" "$_hourlyUsageDB"
-	[ "$_enable_db" -eq 1 ] && send2DB "hourly" "$_thisHrdata"
-	[ "$_enable_db" -eq 1 ] && send2DB "pnd" "$_thisHrpnd"
 }
 
 runtimestats()
@@ -1195,7 +1173,6 @@ _usersLastMod=''
 _totMem=''
 _totalLostBytes=0
 _changesInUsersJS=0
-_IPChanges=''
 _hriterations=0
 _liveusage=''
 _ndAMS=0

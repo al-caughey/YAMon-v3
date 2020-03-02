@@ -11,7 +11,7 @@
 		<script type="text/javascript" src="//code.jquery.com/jquery-latest.min.js"></script>
 		<script type="text/javascript" src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 		<script type="text/javascript">
-			var _html_version='3.3.1'
+			var _html_version='3.3.2'
 			if(typeof(_file_version)=='undefined') var _file_version='3.3'
 			var args=window.location.search.replace('?','').split('&'),ver=args[1]||_file_version,domain='',path=''
 			if(typeof(_doLocalFiles)=='undefined'||_doLocalFiles=='0'){
@@ -284,7 +284,7 @@
 					<h2>Daily Usage Report</h2>
 					<div class='sp-sldr p-r'>
 						<p class="p-report-interval">
-							<span class='rs-date a-r pre-btn'></span><span class='sp-current-date'><span class='current-date'></span><span class='re-date a-l post-btn a-l'></span>
+							<span class='rs-date a-r pre-btn'></span><span class='sp-current-date'><span class='current-date'></span></span><span class='re-date a-l post-btn a-l'></span>
 						</p>
 						 <p class="p-report-date">
 							<span class='pre-btn a-r'>
@@ -553,7 +553,7 @@
                                     <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
                                     <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
                                     <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
-                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>                     
+                                    <td class='hr PM'><span class='down num'>-</span><span class='up num'>-</span></td>
                                 </tr>
                             </thead>
                             <tbody id='hourly-tbody'></tbody>
@@ -566,8 +566,6 @@
                                 </tr>
                             </tfoot>
                         </table>
-                    
-                    
                     </div>
 					<div id="hourlyGraph" class="p-r">Hourly Data Graph</div>
 					<p id='bnav' class='p-r'>
@@ -1187,7 +1185,7 @@
 							<p id='dbkey-needtoclick'>Click the `Get Key` button below to create a database for your settings at usage-monitoring.com.</p>
 							<p id='dbkey-sharing' class='hidden'>Your  router has been configured to share all of the YAMon settings with all devices that access these reports.</p>
 							<p class='a-c'><button id='getKey' onclick='createdb()'>Get Key</button></p>
-							<p title='This is your database key... the value is set in `config3.js`'><input type='text' size=36 disabled='disabled' id='dbkey'></p>
+							<p><input type='text' size=36 disabled='disabled' id='dbkey'></p>
 							<p id='dbkey-clicked'>Copy the string from the field above and paste it into `config.file` on your router.<br/>
 							Then run `restart.sh` on your router and all of your devices will share the same YAMon settings.</p>
 							<p id='p-useHTTPS'><input type='checkbox' id='useHTTPS'><label for='useHTTPS'> Use HTTPS</label></p>
@@ -1233,7 +1231,7 @@
 						<button onclick="settings('import')">Import Settings</button>
 						<button onclick="settings('reset')">Reset Settings</button>
 						<button id='sv-btn' onclick="saveSettings2db()">Save Settings</button>
-						<span class='icon btn p-a' title='View the contents of your `config3.js` data file' link='js/config3.js'></span>
+						<span class='icon btn p-a l2c'></span>
 					</p>
 				</div>
 
