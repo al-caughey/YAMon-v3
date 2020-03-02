@@ -33,7 +33,7 @@ updateHourly2Monthly()
 	if [ "${_dataDir:0:1}" == "/" ] ; then
 		local _dataPath=$_dataDir
 	else
-		local _dataPath="${_baseDir}$_dataDir"
+		local _dataPath="${d_baseDir}/$_dataDir"
 	fi
 	case $_organizeData in
 		(*"0"*)
@@ -46,8 +46,8 @@ updateHourly2Monthly()
 			local savePath="$_dataPath$rYear/$rMonth/"
 		;;
 	esac
-	_macUsageDB="$savePath$rYear-$rMonth-$rday-$_usageFileName"
-	#_macUsageDB="$savePath$rYear-$rMonth-$_usageFileName"
+	#_macUsageDB="$savePath$rYear-$rMonth-$rday-$_usageFileName"
+	_macUsageDB="$savePath$rYear-$rMonth-$_usageFileName"
 	[ "$_enable_ftp" -eq "1" ] && _macUsageFTP="$_cYear-$_cMonth-$_cDay-$_usageFileName"
 
 	local _prevhourlyUsageDB="$savePath$_pYear-$_pMonth-$_pDay-$_hourlyFileName"

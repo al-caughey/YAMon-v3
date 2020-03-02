@@ -22,7 +22,7 @@ getFile()
 getLocalCopies()
 {
 	send2log "=== Getting a local copy of JS & CSS files === $_doLocalFiles" 1
-	local path="$_baseDir$_setupWebDir"
+	local path="${d_baseDir}/$_setupWebDir"
 	path=${path%/}
 	local webpath="$_wwwPath$_wwwJS"
 	webpath=${webpath%/}

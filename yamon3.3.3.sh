@@ -26,6 +26,7 @@
 #                     added setupIPChains; changes in setFirmware, CheckUsersJS, update
 #                     general housekeeping; removed blocks of unused code; tweaked some regexes																																						 
 # 3.3.2 (2017-07-19): replaced `command` with `which`; removed ls -e; some Tomato fixes
+# 3.3.3 (2017-09-25): tidied up d_baseDir; monthly files are now year-mo (without date); added option to archive live updates
 #
 # ==========================================================
 #				  Functions
@@ -163,7 +164,7 @@ setLogFile()
 	if [ "${_logDir:0:1}" == "/" ] ; then
 		local lfpath=$_logDir
 	else
-		local lfpath="${_baseDir}$_logDir"
+		local lfpath="${d_baseDir}/$_logDir"
 	fi
 	[ ! -d "$lfpath" ] && mkdir -p "$lfpath"
 	_logfilename="${lfpath}monitor$_version-$_cYear-$_cMonth-$_cDay.log"
@@ -188,7 +189,7 @@ setDataDirectories()
 	if [ "${_dataDir:0:1}" == "/" ] ; then
 		_dataPath=$_dataDir
 	else
-		_dataPath="${_baseDir}$_dataDir"
+		_dataPath="${d_baseDir}/$_dataDir"
 	fi
 	send2log "  >>> _dataPath --> $_dataPath" 0
 	if [ ! -d "$_dataPath" ] ; then
@@ -226,12 +227,19 @@ setDataDirectories()
 	fi
 
 	[ "$_symlink2data" -eq "0" ] &&  [ "$(ls -A $_dataPath)" ] && copyfiles "$_dataPath*" "$_wwwPath$_wwwData"
-
-	_macUsageDB="$savePath$rYear-$rMonth-$rday-$_usageFileName"
-	#_macUsageDB="$savePath$rYear-$rMonth-$_usageFileName"
+	_macUsageDB="$savePath$rYear-$rMonth-$_usageFileName"
 	_macUsageWWW="$wwwsavePath$rYear-$rMonth-$rday-$_usageFileName"
-	[ ! -f "$_macUsageDB" ] && createMonthlyFile
+	local old_macUsageDB="$savePath$rYear-$rMonth-$rday-$_usageFileName"
+	if [ -f "$_macUsageDB" ] ; then
+		send2log "  _macUsageDB exists--> $_macUsageDB" 2
+	elif [ -f "$old_macUsageDB" ] ; then
+		send2log "  copying $old_macUsageDB --> $_macUsageDB" 2
+		$(cp -a $old_macUsageDB $_macUsageDB)
+	else
+		createMonthlyFile
+	fi
 	[ "$_doLiveUpdates" -eq "1" ] && _liveFilePath="$_wwwPath$_wwwJS$_liveFileName"
+	[ "$_doLiveUpdates" -eq "1" ] && _liveArchiveFilePath="$wwwsavePath$_cYear-$_cMonth-$_cDay-$_liveFileName"
 	[ ! -d "$_wwwPath$_wwwJS" ] && mkdir -p "$_wwwPath$_wwwJS"
 	if [ ! -f "$_liveFilePath" ] ; then
 		touch $_liveFilePath
@@ -299,7 +307,7 @@ getHourlyHeader(){
 	local bufferMem=$(getMI "$meminfo" "Buffers")
 	local cacheMem=$(getMI "$meminfo" "Cached")
 	local availMem=$(($freeMem+$bufferMem+$cacheMem))
-	local disk_utilization=$(df ${_baseDir} | grep -o "[0-9]\{1,\}%")
+	local disk_utilization=$(df "${d_baseDir}/" | grep -o "[0-9]\{1,\}%")
 	send2log "  getHourlyHeader:_totMem-->$_totMem" -1
 
 	echo "
@@ -480,7 +488,7 @@ setConfigJS()
 	if [ "$_symlink2data" -eq "0" ] ; then
 		local configjs="$_wwwPath$_wwwJS$_configWWW"
 	else
-		local configjs="$_baseDir$_setupWebDir$_wwwJS$_configWWW"
+		local configjs="${d_baseDir}/$_setupWebDir$_wwwJS$_configWWW"
 	fi
 	local processors=$(grep -i processor /proc/cpuinfo -c)
 
@@ -919,6 +927,7 @@ serverload($load1,$load5,$load15)" > $_liveFilePath
 	send2log "	>>> _liveusage: $_liveusage" -1
 	echo "$_liveusage" >> $_liveFilePath
 	_liveusage=''
+ 	[ "$_doArchiveLiveUpdates" -eq "1" ] && cat "$_liveFilePath" >> $_liveArchiveFilePath
 }
 checkConfig()
 {

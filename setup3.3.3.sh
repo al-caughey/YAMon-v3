@@ -14,9 +14,10 @@
 # 3.3.1 (2017-07-17): check/update value of _configWWW
 # 3.3.1a (2017-07-19): fixed symlink paths in setWebDirectories
 # 3.3.2 (2017-07-26): added check for SFE; more Tomato fixes
+# 3.3.3 (2017-09-26): fixed d_baseDir; added prompts for '_doLiveUpdates' & '_doArchiveLiveUpdates'; improved Turris setup
 
 d_baseDir="$YAMON"
-[ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
+[ -z "$d_baseDir" ] && d_baseDir=`dirname $0`
 delay=$1
 [ -z $delay ] && delay=5
 
@@ -28,7 +29,7 @@ else
 	source "$d_baseDir/includes/util.sh"
 fi
 
-source "${d_baseDir}strings/$_lang/strings.sh"
+source "${d_baseDir}/strings/$_lang/strings.sh"
 
 _enableLogging=1
 _log2file=1
@@ -51,9 +52,9 @@ $los
 "
 
 _logDir='logs/'
-_logfilename="${d_baseDir}${_logDir}setup$_version.log"
+_logfilename="${d_baseDir}/${_logDir}setup$_version.log"
 echo "Log file:  \`$_logfilename\`."
-[ ! -d "${d_baseDir}$_logDir" ] && mkdir -p "${d_baseDir}$_logDir"
+[ ! -d "${d_baseDir}/$_logDir" ] && mkdir -p "${d_baseDir}/$_logDir"
 [ ! -f "$_logfilename" ] && touch "$_logfilename"
 
 send2log "Launched setup.sh - v$_version" 2
@@ -65,17 +66,17 @@ installedtype=$(nvram get dist_type)
 echo "Installed firmware: $installedfirmware $installedversion $installedtype"
 send2log "Installed firmware: $installedfirmware $installedversion $installedtype" 2
 
-if [ ! -f "${d_baseDir}config.file" ] && [ ! -f "${d_baseDir}default_config.file" ] ; then
+if [ ! -f "${d_baseDir}/config.file" ] && [ ! -f "${d_baseDir}/default_config.file" ] ; then
 	send2log '*** Cannot find either config.file or default_config.file...' 2
     send2log "Launched setup.sh - v$_version" 2
 	echo '*** Cannot find either config.file or default_config.file...
 *** Please check your installation! ***
 *** Exiting the script. ***'
 	exit 0
-elif [ -f "${d_baseDir}config.file" ] ; then
-	_configFile="${d_baseDir}config.file"
+elif [ -f "${d_baseDir}/config.file" ] ; then
+	_configFile="${d_baseDir}/config.file"
 else
-	_configFile="${d_baseDir}default_config.file"
+	_configFile="${d_baseDir}/default_config.file"
 fi
 configStr=$(cat "$_configFile")
 source "$_configFile"
@@ -199,16 +200,14 @@ _qn=0
 re_path=^.*$
 re_path_slash=^.*/$
 
-updateConfig "_baseDir" "$d_baseDir"
-_baseDir="$d_baseDir"
 [ "$_setupWebDir" == "Setup/www/" ] && updateConfig "_setupWebDir" "www/"
 [ "$_setupWebIndex" == "yamon2.html" ] && updateConfig "_setupWebIndex" "index.html"
 [ "$_setupWebIndex" == "yamon3.html" ] && updateConfig "_setupWebIndex" "index.html"
 [ "$_setupWebIndex" == "yamon3.1.html" ] && updateConfig "_setupWebIndex" "index.html"
 [ "$_setupWebIndex" == "yamon3.2.html" ] && updateConfig "_setupWebIndex" "index.html"
 [ "$_wwwData" == "data/" ] || [ "$_wwwData" == "data" ] && updateConfig "_wwwData" "data3/"
-[ "$_configWWW" == "config.js" ] && updateConfig "_configWWW" "config3.js"
-[ "$_configWWW" == "config3.js" ] && updateConfig "_configWWW" 'config$_file_version.js'
+[ "$_configWWW" == "config.js" ] && updateConfig "_configWWW" "config$_file_version.js"
+[ "$_configWWW" == "config3.js" ] && updateConfig "_configWWW" "config$_file_version.js"
 [ "$_liveFileName" == "live_data.js" ] && updateConfig "_liveFileName" "live_data3.js"
 
 if [ "$installedfirmware" == "DD-WRT" ] ; then
@@ -284,7 +283,7 @@ prompt '_symlink2data' 'Create symbollic links to the web data directories?' "$y
 if [ "${_dataDir:0:1}" == "/" ] ; then
     _dataPath=$_dataDir
 else
-    _dataPath="${_baseDir}$_dataDir"
+    _dataPath="${d_baseDir}/$_dataDir"
 fi
 setWebDirectories
 
@@ -296,6 +295,9 @@ prompt '_enableLogging' 'Enable logging (for support & debugging purposes)?' "$y
     * the path *must* end with `/`' 'logs/' $re_path_slash
 [ "$_enableLogging" -eq 1 ] && prompt '_loglevel' 'How much detail do you want in the logs?' 'Options: -1->really verbose -or- 0->all -or- 1->most(*) -or- 2->serious only' '1' ^[012]$\|^-1$
 [ "$_log2file" -eq 2 ] || [ "$_log2file" -eq 2 ] && prompt '_scrlevel' 'How much detail do you want shown on the screen?' 'Options: -1->really verbose -or- 0->all -or- 1->most(*) -or- 2->serious only' '1' ^[012]$\|^-1$
+
+prompt '_doLiveUpdates' '***New*** Do you want to report `live` usage?' "$yn_y" '1' $zo_r
+[ "$_doLiveUpdates" -eq 1 ] && prompt '_doArchiveLiveUpdates' '***New*** Do you want to archive the `live` usage data?' "$yn_y" '0' $zo_r
 
 [ ! -z "$(command -v ftpput)" ] &&  prompt '_enable_ftp' 'Do you want to mirror a copy of your data files to an external FTP site? \n	NB - *YOU* must setup the FTP site yourself!' "$yn_n" '0' $zo_r
 if [ "$_enable_ftp" -eq "1" ] ; then
@@ -309,10 +311,10 @@ if [ "$_enable_ftp" -eq "1" ] ; then
     *  sub-directories on your FTP site for the data files.
     *******************************************************
     "
-else
-	prompt '_doDailyBU' 'Enable daily backup of data files?' "$yn_y" '1' $zo_r
-	[ "$_doDailyBU" -eq 1 ] && prompt '_tarBUs' 'Compress the backups?' "$yn_y" '1' $zo_r
 fi
+prompt '_doDailyBU' 'Enable daily backup of data files?' "$yn_y" '1' $zo_r
+[ "$_doDailyBU" -eq 1 ] && prompt '_tarBUs' 'Compress the backups?' "$yn_y" '1' $zo_r
+
 if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] ; then
 	updateConfig "_dnsmasq_conf" "/tmp/etc/dnsmasq.conf"
 	updateConfig "_dnsmasq_leases" "/tmp/dhcp.leases"
@@ -328,7 +330,7 @@ fi
 [ ! -f "$_dnsmasq_conf" ] && echo "  >>> specified path to _dnsmasq_conf ($_dnsmasq_conf) does not exist"
 [ ! -f "$_dnsmasq_leases" ] && echo "  >>> specified path to _dnsmasq_leases ($_dnsmasq_leases) does not exist"
 
-_configFile="${d_baseDir}config.file"
+_configFile="${d_baseDir}/config.file"
 if [ ! -f "$_configFile" ] ; then
 	touch "$_configFile"
 	send2log "Created and saved settings in new file: \`$_configFile\`" 1
@@ -337,11 +339,11 @@ if [ ! -f "$_configFile" ] ; then
 Created and saved settings in new file: \`$_configFile\`
 ******************************************************************"
 else
-	copyfiles "$_configFile" "${d_baseDir}config.old"
+	copyfiles "$_configFile" "${d_baseDir}/config.old"
 	send2log "Updated existing settings: \`$_configFile\`" 1
    echo "
 ******************************************************************
-Copied previous configuration settings to \`${d_baseDir}config.old\`
+Copied previous configuration settings to \`${d_baseDir}/config.old\`
 and saved new settings to \`$_configFile\`
 ******************************************************************"
 fi
@@ -378,11 +380,11 @@ that the defaults are appropriate for your network configuration.
 
 "
 echo "$configStr" > "$_configFile"
-su="${d_baseDir}startup.sh"
-sd="${d_baseDir}shutdown.sh"
-ya="${d_baseDir}yamon${_version}.sh"
-h2m="${d_baseDir}h2m.sh"
-glc="${d_baseDir}glc.sh"
+su="${d_baseDir}/startup.sh"
+sd="${d_baseDir}/shutdown.sh"
+ya="${d_baseDir}/yamon${_version}.sh"
+h2m="${d_baseDir}/h2m.sh"
+glc="${d_baseDir}/glc.sh"
 
 prompt 't_permissions' "Do you want to set directory permissions for \`${d_baseDir}\`?" "$yn_y" '1' $zo_r
 if [ "$t_permissions" -eq "1" ] ; then
@@ -421,7 +423,7 @@ else
 fi
 startup_delay=''
 prompt 'startup_delay' "By default, \`startup.sh\` will delay for 10 seconds prior to starting \`yamon${_version}.sh\`. Some routers may require extra time." 'Enter the start-up  delay [0-300]' '10' ^[0-9]$\|^[1-9][0-9]$\|^[1-2][0-9][0-9]$\|^300$
-if [ "$_firmware" -eq "1" ] ; then
+if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "6" ] ; then
 	etc_init="/etc/init.d/yamon3"
 	t_init=0
 	prompt 't_init' 'Create YAMon init script in `/etc/init.d/`?' "$yn_y" '1' $zo_r
@@ -437,14 +439,14 @@ start() {
 		echo "Unable to start, found $_lockDir directory"
 		return 1
 	fi
-	${d_baseDir}startup.sh 10 &
+	${d_baseDir}/startup.sh 10 &
 }
 stop() {
-	${d_baseDir}shutdown.sh
+	${d_baseDir}/shutdown.sh
 	return 0
 }
 restart() {
-	${d_baseDir}restart.sh
+	${d_baseDir}/restart.sh
 	return 0
 }
 boot() {
@@ -538,7 +540,7 @@ if [ "$t_launch" -eq "1" ] ; then
 [Re]starting $su
 
 "
-	${d_baseDir}restart.sh $startup_delay
+	${d_baseDir}/restart.sh $startup_delay
 	exit 0
 fi
 
@@ -548,7 +550,7 @@ echo "
 
 YAMon$_version is now configured and ready to run.
 
-To launch YAMon, enter \`${d_baseDir}startup.sh\`.
+To launch YAMon, enter \`${d_baseDir}/startup.sh\`.
 
 Send questions to questions@usage-monitoring.com
 

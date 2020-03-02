@@ -55,12 +55,12 @@ _cMonth=$(date +%m)
 _cYear=$(date +%Y)
 
 
-lfpath="${_baseDir}/$_logDir"
+lfpath="${d_baseDir}/$_logDir"
 [ "${_logDir:0:1}" == "/" ] && lfpath=$_logDir
 lfname="${lfpath}watchdog-$_cYear-$_cMonth-$_cDay.log"
 [ ! -f "$lfname" ] && touch "$lfname" 
 
-np=$(ps | grep -v "grep" | grep -c "yamon3")
+np=$(ps | grep -v "grep" | grep -c "yam")
 [ "$np" -eq "0" ] && send2log "Missing process..." && "$d_baseDir/restart.sh" 0 && exit
-[ ! -d "/tmp/YAMon3-running" ] && send2log "Missing directory..." && "$d_baseDir/restart.sh" 0  && exit
+[ ! -d "$_lockDir" ] && send2log "Missing directory... $_lockDir" && "$d_baseDir/restart.sh" 0 && exit
 send2log "Watchdog done" false

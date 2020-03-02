@@ -8,6 +8,7 @@
 # History
 # 3.3.0 (2017-06-18): bumped minor version; added xwrt
 # 3.3.1 (2017-07-17): general housekeeping; updated checkIPChain & getMACIPList; removed unused send2DB
+# 3.3.3 (2017-09-25): cleaned up d_baseDir; optionally backup _liveArchiveFilePath in dailyBU()
 #
 ##########################################################################
 
@@ -132,12 +133,6 @@ copyfiles(){
 	local lvl=$(($res+1))
 	send2log "$pre Copy from $src to $dst$pos ($res)" $lvl
 }
-db()
-{
-	local n=$1
-	eval v=\"\$$n\"
-	echo "$n -->$v" >&2
-}
 
 send2log()
 {
@@ -164,7 +159,7 @@ setWebDirectories()
 		if [ "${_logDir:0:1}" == "/" ] ; then
 			local lfpath=$_logDir
 		else
-			local lfpath="${_baseDir}$_logDir"
+			local lfpath="${d_baseDir}/$_logDir"
 		fi
 
 		[ ! -d "$_wwwPath$_wwwJS" ] && mkdir -p "$_wwwPath$_wwwJS"
@@ -177,15 +172,15 @@ setWebDirectories()
 		[ -h "${_wwwPath}${_setupWebIndex}" ] && rm -fv "${_wwwPath}${_setupWebIndex}"
 		[ -h "${_wwwPath}${ldata}" ] && rm -fv "${_wwwPath}${ldata}"
 
-		[ ! -h "$_wwwPath$lcss" ] && ln -s "${_baseDir}$_setupWebDir$lcss" "$_wwwPath$lcss"
-		[ ! -h "$_wwwPath$limages" ] && ln -s "${_baseDir}$_setupWebDir$limages" "$_wwwPath$limages"
+		[ ! -h "$_wwwPath$lcss" ] && ln -s "${d_baseDir}/$_setupWebDir$lcss" "$_wwwPath$lcss"
+		[ ! -h "$_wwwPath$limages" ] && ln -s "${d_baseDir}/$_setupWebDir$limages" "$_wwwPath$limages"
 		[ ! -h "$_wwwPath$ldata" ] && ln -s "$_dataPath" "$_wwwPath$ldata"
 		[ ! -h "$_wwwPath$llogs" ] && ln -s "$lfpath" "$_wwwPath$llogs"
-		[ ! -h "$_wwwPath$_setupWebIndex" ] && ln -s "${_baseDir}$_setupWebDir$d_setupWebIndex" "$_wwwPath$_setupWebIndex"
-		[ ! -h "$_wwwPath$_wwwJS$_configWWW" ] && ln -s "${_baseDir}$_setupWebDir$_wwwJS$_configWWW" "$_wwwPath$_wwwJS$_configWWW"
+		[ ! -h "$_wwwPath$_setupWebIndex" ] && ln -s "${d_baseDir}/$_setupWebDir$d_setupWebIndex" "$_wwwPath$_setupWebIndex"
+		[ ! -h "$_wwwPath$_wwwJS$_configWWW" ] && ln -s "${d_baseDir}/$_setupWebDir$_wwwJS$_configWWW" "$_wwwPath$_wwwJS$_configWWW"
 	elif [ "$_symlink2data" -eq "0"  ] ; then
 		[ ! -d "$_wwwPath$_wwwJS" ] && mkdir -p "$_wwwPath$_wwwJS"
-		copyfiles "${_baseDir}$_setupWebDir*" "$_wwwPath"
+		copyfiles "${d_baseDir}/$_setupWebDir*" "$_wwwPath"
 	fi
 
 	if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] ; then
@@ -294,7 +289,7 @@ dailyBU()
 	send2log "=== Daily Backups === " 0
 	send2log "	  arguments:  $1  $2  $3" -1
 	local bupath=$_dailyBUPath
-	[ ! "${_dailyBUPath:0:1}" == "/" ] && bupath=${_baseDir}$_dailyBUPath
+	[ ! "${_dailyBUPath:0:1}" == "/" ] && bupath="${d_baseDir}/$_dailyBUPath"
 
 	if [ ! -d "$bupath" ] ; then
 		send2log "  >>> Creating Daily BackUp directory - $bupath" 1
@@ -329,6 +324,7 @@ _hourlyUsageDB: $_hourlyUsageDB" > "$manifest"
 		copyfiles "$_usersFile" "$budir"
 		copyfiles "$_macUsageDB" "$budir"
 		copyfiles "$_hourlyUsageDB" "$budir"
+		[ "$_doArchiveLiveUpdates" -eq "1" ] && copyfiles "$_liveArchiveFilePath" "$budir"
 		[ "$_enableLogging" -eq "1" ] && copyfiles "$_logfilename" "$budir"
 	fi
 }
@@ -384,7 +380,7 @@ doFinalBU()
 	if [ "${_wwwBU:0:1}" == "/" ] ; then
 		w3BUpath=$_wwwBU
 	else
-		w3BUpath=${_baseDir}$_wwwBU
+		w3BUpath="${d_baseDir}/$_wwwBU"
 	fi
 	if [ ! -d "$w3BUpath" ] ; then
 		send2log "  >>> Creating Web BackUp directory - $w3BUpath" -1
@@ -567,7 +563,7 @@ save2File(){
 send2FTP(){
 	send2log "=== send2FTP === " 0
 	#local fname=${1##*/}
-	local fname=$(echo "$1" | sed -e "s~$_baseDir$_setupWebDir~~Ig" | sed -e "s~$d_baseDir~~Ig" | sed -e "s~$_wwwPath~~Ig" | sed -e "s~$_dataDir~$_wwwData~Ig")
+	local fname=$(echo "$1" | sed -e "s~${d_baseDir}/$_setupWebDir~~Ig" | sed -e "s~$d_baseDir~~Ig" | sed -e "s~$_wwwPath~~Ig" | sed -e "s~$_dataDir~$_wwwData~Ig")
 	if [ "${fname:0:1}" == "/" ] ; then
 		local ftp_path="$_ftp_dir$fname"
 	else

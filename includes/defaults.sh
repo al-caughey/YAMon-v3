@@ -12,7 +12,10 @@
 #       - removed unused d_lan_iface_only, d_enable_db
 ##########################################################################
 
-[ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
+[ -z "$d_baseDir" ] && d_baseDir=$(cd "$(dirname "$0")" && pwd)
+[ -z "$_has_nvram" ] && [ ! -z $(command -v nvram) ] && _has_nvram=1
+[ -z "$has_uci" ] && [ ! -z $(command -v uci) ] && has_uci=1
+
 _lockDir="/tmp/YAMon$_file_version-running"
 
 YAMON_IP4='YAMON33v4'
@@ -121,10 +124,11 @@ again to update your config.file.
 		[ "$_ul_end" -lt "$_ul_start" ] && _ul_start=$((_ul_start - 86400))
 		#send2log "	  _unlimited_usage-->$_unlimited_usage ($_unlimited_start->$_unlimited_end / $_ul_start->$_ul_end)" 1
 	fi
-	local nvram=$(nvram show 2>&1)
-	ipv6_enable=$(echo "$nvram" | grep -i 'ipv6_enable=1')
+	local ipv6_enable=''
+	if [ "$_has_nvram" -eq 1 ] ; then
+		ipv6_enable=$(nvram get ipv6_enable)
+	fi
 	[ "$_firmware" -eq '0' ] && [ "$_includeIPv6" -eq '1' ] && [ -z "$ipv6_enable" ] && _includeIPv6=0 && echo "Setting \`_includeIPv6=0\` because ipv6_enable!=1 in nvram"
-
 	_tMangleOption=''
 	[ "$_useTMangle" -eq "1" ] && _tMangleOption='-t mangle'
 }

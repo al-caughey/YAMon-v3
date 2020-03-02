@@ -1100,6 +1100,10 @@
 									<input type="checkbox" id="ajaxCache">
 									<label for="ajaxCache">Set cache=true in `$.ajaxSetup()`</label>
 								</p>
+								<p class='showISP' title="Show imported ISP data for debugging purposes">
+									<input type="checkbox" id="show-isp-out">
+									<label for="show-isp-out">Show isp-out</label>
+								</p>
 							</fieldset>
 						</div>
 						<fieldset id='settings-col_2'>
@@ -1692,13 +1696,14 @@
 					<p class='s-import'><b>NOTE</b> - this will replace all similarly named variables within the localStorage for this browser on this machine.  <i>It cannot be undone!</i>  I strongly recommend that you first export the settings from this machine... just in case!</p>
 					<textarea class='s-import s-export'></textarea>
 					<h3 class='s-isp'>Import <span class="isp-name">ISP</span> Data<span class="dlog-close btn p-a" title="Click to close this dialog"></span></h3>
-					<p class='s-isp'>Paste the data from your <span class="isp-name">ISP</span>'s usage table into the field below [<a class='isp-url' target='_blank'><span class="isp-name">ISP</span> link</a>] and then click `Process`.  Otherwise, click `Cancel` to dismiss this dialog.</p>
+					<p class='s-isp'>Paste the data from your <span class="isp-name">ISP</span>'s usage table into the field below [<a class='isp-url' target='_blank'><span class="isp-name">ISP</span> link</a>] and then click `Process`.  Otherwise, click `Close` to dismiss this dialog.</p>
 					<textarea id='isp-in' class='s-isp' placeholder='Paste your ISP data here and then click `Process`'></textarea>
 					<textarea class='hidden' id='isp-out' placeholder='The processed results will appear here (for debug purposes only)'></textarea>
+					<p id='isp-import-results' class='hidden'></p>
 					<p class='s-isp s-import s-export a-c'>
 						<button class='s-import btn' onclick=import_settings()>Import</button>
 						<button class='s-isp btn' id='process-isp'>Process</button>
-						<button class='s-isp s-import s-export btn' onclick=close_settings()>Cancel</button></p>
+						<button class='s-isp s-import s-export btn' onclick=close_settings()>Close</button></p>
 				</div>
 
 

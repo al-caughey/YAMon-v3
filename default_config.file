@@ -20,20 +20,20 @@
 # version 3.2.2 - removed _debug
 # version 3.3.0 - updated minor version... no changes to this file
 # version 3.3.1 - added _use_nf_conntrack, remove unused _lan_iface_only, _enable_db
+# version 3.3.4 - removed no longer used _baseDir; added _doArchiveLiveUpdates
 
 _firmware='0'                                # which firmware is running on the router: permitted values: 0->DD-WRT(*) || 1->OpenWrt || 2->Asuswrt-Merlin
 _updatefreq='30'                             # number of seconds between updates (* default `15` sec)
-_publishInterval='2'                         # number of intervals between updates for to the website (* default `12`)
+_publishInterval='4'                         # number of intervals between updates for to the website (* default `12`)
 _ispBillingDay='5'                           # roll-over day of the month for ISP billing (* default `1`)
-_baseDir='/opt/YAMon3/'                      # path to the installation folder (* default `/opt/YAMon/`)
 _setupWebDir='www/'                          # path to the web files (* default `Setup/www/`)
 _setupWebIndex='index.html'                  # path to the index page (* default `index.html`)
 _dataDir='data/'                             # path to the data directory (* default `data/`)
 _logDir='logs/'                              # path to log files  (* default `logs/`)
-                                             #   NB - If _dataDir OR _logDir starts with a slash it will be an absolute path (and _baseDir will be ignored)
+                                             #   NB - If _dataDir OR _logDir starts with a slash it will be an absolute path (and d_baseDir will be ignored)
 _symlink2data='1'                            # use a symbolic link to /opt/YAMon2/data rather than /tmp/www/data... permitted values: 0->false || 1->true(*)
 _wwwPath='/tmp/www/'                         # path to web directory (* default `/tmp/www/`)
-_wwwData="data3/"                            # path to web data directory(* default `data3.x/`)
+_wwwData="data$_file_version/"               # path to web data directory(* default `data3.x/`)
 _wwwJS='js/'                                 # path to JavaScript directory(* default `js/`)
 _wwwCSS='css/'                               # path to CSS directory(* default `css/`)
 _wwwImages='images/'                         # path to Images directory(* default `images/`)
@@ -48,19 +48,21 @@ _scrlevel='1'                                # amount of detail to include in th
 _dowwwBU=1                                   # whether or not to make backups of the www directory when the script is shut down - values: 1-->Yes(*) || 0->No
 _wwwBU='wwwBU/'                              # path to web backup directory  (* default `wwwBU/`)
                                              #   NB - only required if _dowwwBU == 1...
-                                             #   NB - If _wwwBU starts with a slash it will be an absolute path (and _baseDir will be ignored)
+                                             #   NB - If _wwwBU starts with a slash it will be an absolute path (and d_baseDir will be ignored)
 _doDailyBU='1'                               # whether or not to make daily backups of user & usage data - values: 1-->Yes(*) || 0->No
-_dailyBUPath='daily-bu2/'                    # path to back-ups directory (* default `daily bu/`)
+_dailyBUPath='daily-bu/'                     # path to back-ups directory (* default `daily bu/`)
                                              #   NB - only required if doDailyBU == 1...
-                                             #   NB - if _dailyBU starts with a slash it will be an absolute path (and _baseDir will be ignored)
+                                             #   NB - if _dailyBU starts with a slash it will be an absolute path (and d_baseDir will be ignored)
 _tarBUs='1'                                  # permitted values: 0->no || 1->yes(*)
                                              #   NB - if doDailyBU == 1 && _tarBUs==1, the daily backup files will be compressed
 _hourlyFileName='hourly_data.js'             # file name for hourly usage file (* default `hourly_data.js`)
                                              #   NB - file extension changed from .html to .js
-_doLiveUpdates=1                             # whether or not to record live usage - values: 1-->Yes(*) || 0->No
+_doLiveUpdates='1'                           # whether or not to record live usage - values: 1-->Yes(*) || 0->No
 _doCurrConnections=1                         # whether or not to include current connections in the live usage file - values: 1-->Yes(*) || 0->No
 _liveFileName='live_data3.js'                # file name for live usage data (* default `live_data.js`)
                                              #   NB - only required if _doLiveUpdates == 1
+_doArchiveLiveUpdates='0'                    # whether or not to retain a copy of all of the live data - values: 1-->Yes(*) || 0->No
+                                             #   NB - only required if _doLiveUpdates == 1 & could get big!
 _unlimited_usage='0'                         # whether or not you have an unlimited downloads time period: 0->No(*) || 1->Yes
 _unlimited_start='2:00'                      # the time (hours:minutes) when your unlimited downloads period starts
 _unlimited_end='8:00'                        # the time (hours:minutes) when your unlimited downloads period ends
@@ -78,7 +80,7 @@ _bridgeIP='192.168.###.###'                  # ip address for the bridge device.
                                              #   NB - only required if _includeBridge == 1
 _defaultOwner='Unknown'                      # default owner name for new devices
 _defaultDeviceName='New Device'              # default name for new devices if nothing can be found by the script
-_includeIPv6=0                               # whether or not your router is configured for IPv6: 0->no(*) || 1->yes
+_includeIPv6='0'                             # whether or not your router is configured for IPv6: 0->no(*) || 1->yes
 _path2ip='ip'                                # path to full version of `ip` (* default `ip` or `/opt/sbin/ip`)
                                              #   NB - only required if _includeIPv6 == 1
 _doLocalFiles='0'                            # make a local copy of JS, CSS and images: 0->no(*recommended) || 1->yes

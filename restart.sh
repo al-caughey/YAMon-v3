@@ -9,13 +9,13 @@
 #
 ##########################################################################
 
-_baseDir=`dirname $0`
+d_baseDir=`dirname $0`
 
 delay=$1
 [ -z $delay ] && delay=10
 
 logger "YAMON:" "Restarting"
 sleep $delay
-${_baseDir}/shutdown.sh
+${d_baseDir}/shutdown.sh
 
-${_baseDir}/startup.sh $delay &
+${d_baseDir}/startup.sh $delay &

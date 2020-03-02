@@ -1,9 +1,9 @@
-Yet Another Monitor (version 3.3.1)
-Last updated: Jul 17, 2017
+Yet Another Monitor (version 3.3.4)
+Last updated: Oct 22, 2017
 
 Yet Another Monitor (YAMon) records and reports on the traffic (downloads and uploads) for all of the devices connecting to your router.  The data is aggregated by hour, day and month (within your ISP billing interval) and can be rolled-up into arbitrary groups (e.g., by family member, function, location or by any other logical grouping of devices).  
 
-YAMon runs on routers that have been `flashed` to one of the *WRT firmware variants (e.g., DD-WRT, OpenWRT, AsusWRT, Tomato, LEDE, etc.) and gives you an unprecedented view of the traffic on your network.  The reports allow you to see 
+YAMon runs on routers that have been `flashed` to one of the *WRT firmware variants (e.g., DD-WRT, OpenWRT, LEDE, TurrisOS, AsusWRT, Tomato,X-WRT, etc.) and gives you an unprecedented view of the traffic on your network.  The reports allow you to see 
 - which devices used how much bandwidth, when - e.g., did your kids really go to school?  did they shut off their devices at bedtime?  
 - who is consuming the most bandwidth on which device(s)
 - whether you are at risk of exceeding your data usage cap for your ISP billing interval (allowing you to throttle consumption before you get hit with a large overage fee).  

@@ -50,7 +50,7 @@ loadconfig()
 
 sleep $delay
 
-_logfilename="${_baseDir}$_logDir"'h2m.log'
+_logfilename="${d_baseDir}/$_logDir"'h2m.log'
 echo "_logfilename-->$_logfilename"
 [ ! -f "$_logfilename" ] && touch "$_logfilename"
 send2log  "Log file:  \`$_logfilename\`." 1
@@ -86,7 +86,7 @@ rMonth=$(printf %02d $mo)
 if [ "${_dataDir:0:1}" == "/" ] ; then
 	_dataPath=$_dataDir
 else
-	_dataPath="${_baseDir}$_dataDir"
+	_dataPath="${d_baseDir}/$_dataDir"
 fi
 case $_organizeData in
 	(*"0"*)
@@ -107,8 +107,8 @@ if [ "$ap" -eq "0" ] ; then
 	_usageFileName="${fn}2.js"
 fi
 
-_macUsageDB="$savePath$rYear-$rMonth-$rDay-$_usageFileName"
-#_macUsageDB="$savePath$rYear-$rMonth-$_usageFileName"
+#_macUsageDB="$savePath$rYear-$rMonth-$rDay-$_usageFileName"
+_macUsageDB="$savePath$rYear-$rMonth-$_usageFileName"
 ds=$(date +"%Y-%m-%d %H:%M:%S")
 if [ ! -f "$_macUsageDB" ] ; then
 	touch $_macUsageDB

@@ -55,8 +55,8 @@ if [ "$ir" -gt "0" ]; then
 	echo "$(ps | grep -v 'grep' | grep 'yamon$_file_version')"
 	while [ true ] ; do
 		pid=$(ps | grep -v grep | grep yamon$_file_version | cut -d' ' -f1)
-		[ -z "$pid" ] && break;
-		[ "$o_pid" == "$pid" ] && "did not kill process: $pid ?!? try rebooting your router" && break
+		[ -z "$pid" ] && break
+		[ "$o_pid" == "$pid" ] && echo "did not kill process: $pid ?!? try rebooting your router" && break
 		kill $pid
 		echo "killed process: $pid"
 		sleep 1

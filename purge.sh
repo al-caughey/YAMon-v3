@@ -16,7 +16,7 @@
 days=$1
 [ -z $days ] && days=30
 
-d_baseDir=`dirname $0`
+d_baseDir=$(cd "$(dirname "$0")" && pwd)
 lfname="${d_baseDir}/logs/purge.log"
 [ ! -f "$lfname" ] && touch "$lfname" 
 

@@ -13,8 +13,8 @@
 #
 ##########################################################################
 	
-d_baseDir=`dirname $0`
-_configFile="$d_baseDir"'/config.file'
+[ -z "$d_baseDir" ] && d_baseDir=$(cd "$(dirname "$0")" && pwd)
+_configFile="${d_baseDir}/config.file"
 d_usageFileName="mac_data2.js"
 _loglevel=1
 _logFileName="monitor-*.log"
@@ -112,14 +112,14 @@ done < $_configFile
 
 #_dataDir="data3/"
 _buDir="data-bu/"
-savePath="$_baseDir$_dataDir"
-buPath="$_baseDir$_buDir"
+savePath="${d_baseDir}/$_dataDir"
+buPath="${d_baseDir}/$_buDir"
 
 if [ "$_organizeData" -ne "0" ] ; then
     send2log "Backing up $savePath to $buPath " 2
     $(cp -a "$savePath" "$buPath")
 fi
-local datadir="$_baseDir$_dataDir*.js"
+local datadir="${d_baseDir}/$_dataDir*.js"
 send2log "Processing files: $datadir" 2
 
 case $_organizeData in
