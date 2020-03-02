@@ -63,7 +63,7 @@ if [ "$ir" -gt "0" ]; then
 		o_pid=$pid
 	done
 fi
-
+logger "YAMON:" "Shutdown"
 echo "
 
 $_s_stopped"

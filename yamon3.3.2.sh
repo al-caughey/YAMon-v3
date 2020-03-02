@@ -25,6 +25,7 @@
 # 3.3.1 (2017-07-17): added option for ip_conntrack vs nf_conntrack; added count number to new devices; added defensive code to better handle oddball situations where iptables chains go missing
 #                     added setupIPChains; changes in setFirmware, CheckUsersJS, update
 #                     general housekeeping; removed blocks of unused code; tweaked some regexes																																						 
+# 3.3.2 (2017-07-19): replaced `command` with `which`; removed ls -e; some Tomato fixes
 #
 # ==========================================================
 #				  Functions
@@ -102,7 +103,7 @@ setupIPChains(){
 		checkIPChain 'ip6tables' 'OUTPUT' "$YAMON_IP6"
 		
 		local nm=$(eval ip6tables $_tMangleOption -vnxL "$YAMON_IP6" | grep -c "\b$_generic_ipv6\b")
-		checkIPTableEntries "iptables" "$YAMON_IP6" "$_generic_ipv6" $nm
+		checkIPTableEntries "ip6tables" "$YAMON_IP6" "$_generic_ipv6" $nm
 
 		[ ! -z "$_lan_ip6addr" ] && checkIPTableEntries "ip6tables" "$YAMON_IP6" "$_lan_ip6addr" 0
 	fi
@@ -138,19 +139,12 @@ setInitValues(){
 	fi
 	local meminfo=$(cat /proc/meminfo)
 	_totMem=$(getMI "$meminfo" "MemTotal")
-	local ulmt=$(ls -e "$_usersFile" | tr -s ' ' ' ' )
-	local lmy=$(echo "$ulmt" | cut -d' ' -f10)
-	local lmm=$(echo "$ulmt" | cut -d' ' -f7)
-	local lmd=$(echo "$ulmt" | cut -d' ' -f8)
-	local lmt=$(echo "$ulmt" | cut -d' ' -f9)
-	local months="Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"
-	local string="${months%$lmm*}"
-	local lmmno=$(printf %02d $((${#string}/4 + 1)))
+
 	local sortStr=''
-	local cansort=$(echo "$(command -v sort)")
+	local cansort=$(echo "$(which sort)")
 	[ ! -z "$canSort" ] && sortStr=" | sort -k2"
 
-	local p2ip=$(command -v ip)
+	local p2ip=$(which ip)
 	if [ -z "$p2ip" ] ; then
 		_getIP4List="cat /proc/net/arp | grep '^[0-9]' | grep -v '00:00:00:00:00:00' | tr -s ' ' | cut -d' ' -f1,4 | tr '[A-Z]' '[a-z]' $sortStr"
 	else
@@ -161,7 +155,7 @@ setInitValues(){
 			_getIP4List="$p2ip -4 neigh | grep 'lladdr' | cut -d' ' -f1,5 | tr '[A-Z]' '[a-z]' $sortStr"
 		fi
 	fi
-	_usersLastMod="$lmy-$lmmno-$lmd $lmt"
+	_usersLastMod=$(date -r "$_usersFile" "+%Y-%d-%m %T")
 	started=1
 }
 setLogFile()

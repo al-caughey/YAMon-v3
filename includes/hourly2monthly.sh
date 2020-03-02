@@ -74,11 +74,11 @@ updateHourly2Monthly()
 	local p_pnd_u=$(getCV "$pnd" "up")
 	send2log "Initial: p_uptime-->$p_uptime  p_pnd_d-->$p_pnd_d  p_pnd_u-->$p_pnd_u" -1
 	IFS=$'\n'
-	echo -n '
+	[ ! -z "$showProgress" ] && echo -n '
 	PND: ' >&2
 	for pnd in $(echo "$hrlyData" | grep "^pnd" | grep -v "\"start\"")
 	do
-		echo -n '.' >&2
+		[ ! -z "$showProgress" ] && echo -n '.' >&2
 		send2log "  pnd-->$pnd" -1
 		hr=$(getCV "$pnd" "hour")
 		uptime=$(getCV "$pnd" "uptime")
@@ -111,7 +111,7 @@ updateHourly2Monthly()
 		p_uptime=$uptime
 	done
 	unset IFS
-	echo '' >&2
+	[ ! -z "$showProgress" ] && echo '' >&2
 	results="
 dtp({\"day\":\"$_pDay\",\"down\":$p_do_tot,\"up\":$p_up_tot,\"reboots\":$nreboots})"
 
@@ -121,11 +121,11 @@ dtp({\"day\":\"$_pDay\",\"down\":$p_do_tot,\"up\":$p_up_tot,\"reboots\":$nreboot
 	local curline=''
 	local woline=''
 	IFS=$'\n'
-	echo -n '
+	[ ! -z "$showProgress" ] && echo -n '
 	Hourly: ' >&2
 	for line in $(echo "$hrlyData" | grep "^hu")
 	do
-		echo -n '.' >&2
+		[ ! -z "$showProgress" ] && echo -n '.' >&2
 		send2log "  line-->$line" 0
  		mac=$(getField "$line" 'mac')
 		hr=$(getField "$line" "hour")
@@ -159,7 +159,7 @@ dtp({\"day\":\"$_pDay\",\"down\":$p_do_tot,\"up\":$p_up_tot,\"reboots\":$nreboot
 		results="$woline
 $newline"
 	done
-	echo '' >&2
+	[ ! -z "$showProgress" ] && echo '' >&2
 	unset IFS
 	save2File "$results" "$_macUsageDB" "append"
 

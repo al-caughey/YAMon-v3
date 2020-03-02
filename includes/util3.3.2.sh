@@ -45,21 +45,21 @@ local p3="$3"
 	if [ -z $nv ] && [ -z $df ] ; then
 		nv='n/a'
 		df='n/a'
-		readStr="$p3    - type your preferred value --> "
+		readStr="$p3   - type your preferred value --> "
 	elif [ -z $df ] ; then
-		readStr="$p3    - hit <enter> to accept the current value: \`$nv\`, or
-    - type your preferred value --> "
+		readStr="$p3   - hit <enter> to accept the current value: \`$nv\`, or
+   - type your preferred value --> "
 	elif [ -z $nv ] ; then
 		nv='n/a'
-		readStr="$p3    - hit <enter> to accept the default: \`$df\`, or
-    - type your preferred value --> "
+		readStr="$p3   - hit <enter> to accept the default: \`$df\`, or
+   - type your preferred value --> "
 	elif [ "$df" == "$nv" ] ; then
-		readStr="$p3    - hit <enter> to accept the current/default value: \`$df\`, or
-    - type your preferred value --> "
+		readStr="$p3   - hit <enter> to accept the current/default value: \`$df\`, or
+   - type your preferred value --> "
 	else
-		readStr="$p3    - hit <enter> to accept the current value: \`$nv\`, or
-    - type \`d\` for the default: \`$df\`, or
-    - type your preferred value --> "
+		readStr="$p3   - hit <enter> to accept the current value: \`$nv\`, or
+   - type \`d\` for the default: \`$df\`, or
+   - type your preferred value --> "
 	fi
 	local tries=0
 	while true; do
@@ -80,7 +80,7 @@ local p3="$3"
 			echo "*** Strike three... you're out!" >&2
 			exit 0
 		fi
-		echo "    Please enter one of the specified values!" >&2
+		echo "   Please enter one of the specified values!" >&2
 	done
 	eval $vn=\"$resp\"
 	updateConfig $vn "$resp"
@@ -196,10 +196,10 @@ setWebDirectories()
 	local lwww=$(basename $_wwwPath)
 	echo "
 
-	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	~  Your reports URL: http://${lan_ip}/user/$_setupWebIndex
-    ~    (subject to some firmware variant oddities)
-	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   ~  Your reports URL: http://${lan_ip}/user/$_setupWebIndex
+   ~  (subject to some firmware variant oddities)
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	send2log "Reports URL: http://${lan_ip}/user/$_setupWebIndex" 1
 }
 getMI()

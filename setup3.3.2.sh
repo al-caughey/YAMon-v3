@@ -13,6 +13,7 @@
 # 3.3.0 (2017-06-18): bumped minor version; added xwrt, Turris
 # 3.3.1 (2017-07-17): check/update value of _configWWW
 # 3.3.1a (2017-07-19): fixed symlink paths in setWebDirectories
+# 3.3.2 (2017-07-26): added check for SFE; more Tomato fixes
 
 d_baseDir="$YAMON"
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
@@ -100,6 +101,22 @@ $bl_a
   ##   You must enable this option on this router if you want to use YAMon!
 $bl_a
   ##   DD-WRT web GUI: \`Setup\`-->\`Basic Setup\` -->\`Network Address Server Settings (DHCP)\`
+$bl_a
+$loh" && sleep 5
+
+sfe_enable=$(nvram get sfe)
+send2log "sfe_enable --> $sfe_enable" 1
+[ "$sfe_enable" -eq "1" ] && echo "
+$wrn
+$bl_a
+  ##   The \`Shortcut Forwarding Engine\` is enabled in your DD-WRT config.
+  ##   SFE alters the normal flow of packets through \`iptables\` and that
+  ##   will prevents YAMon from accurately reporting the traffic on
+  ##   your router.
+$bl_a
+  ##   It is recommended that you disable this option!
+$bl_a
+  ##   DD-WRT web GUI: \`Setup\`-->\`Basic Setup\` -->\`Optional Settings\`
 $bl_a
 $loh" && sleep 5
 
@@ -260,7 +277,7 @@ if [ ! -z "$ipv6_enable" ] && [ "$ipv6_enable" -eq "1" ] ; then
 	fi
 fi
 prompt '_symlink2data' 'Create symbollic links to the web data directories?' "$yn_y" '1' $zo_r
-[ "$_firmware" -eq "2" ] || [ "$_firmware" -eq "5" ] && prompt '_wwwPath' 'Specify the path to the web directories?' 'The path must start with a \`/\`' '/tmp/var/wwwext/' $re_path
+[ "$_firmware" -eq "2" ] || [ "$_firmware" -eq "3" ] || [ "$_firmware" -eq "5" ] && prompt '_wwwPath' 'Specify the path to the web directories?' 'The path must start with a \`/\`' '/tmp/var/wwwext/' $re_path
 
 [ -h "${_wwwPath}index.html" ] && rm -fv ${_wwwPath}index.html
 
@@ -504,11 +521,11 @@ fi
 
 #todo... fix for Tomato
 if [ "$_useTMangle" -eq "0" ] ; then
-    $(iptables -F YAMONv4)
-    [ "$_includeIPv6" -eg "1" ] && $(ip6tables -F YAMONv6)
+    $(iptables -F "$YAMON_IP4")
+    [ "$_includeIPv6" -eq "1" ] && $(ip6tables -F "$YAMON_IP6")
 else
-    $(iptables -t mangle -F YAMONv4)
-    [ "$_includeIPv6" -eg "1" ] && $(ip6tables -t mangle -F YAMONv6)
+    $(iptables -t mangle -F "$YAMON_IP4")
+    [ "$_includeIPv6" -eq "1" ] && $(ip6tables -t mangle -F "$YAMON_IP6")
 fi
 
 prompt 't_launch' 'Do you want to launch YAMon now?' "$yn_y" '1' $zo_r

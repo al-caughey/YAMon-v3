@@ -56,6 +56,6 @@ while [ $i -lt $delay ] ; do
 done
 
 [ -x /usr/bin/clear ] && clear
-
+logger "YAMON:" "Started"
 # launch the script
 ${d_baseDir}/yamon${_version}.sh &

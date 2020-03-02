@@ -137,6 +137,8 @@ if [ "$just" -ne "0" ] ; then
 	echo ">>> just: $jy-$jm-$jd"
 fi
 
+showProgress=1
+
 i=$_ispBillingDay
 while [  "$i" -le "31" ]; do
 	[ "$just" -ne "0" ] && [ "$just" -ne "$i" ] && i=$(($i+1)) && continue

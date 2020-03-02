@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
+		<meta http-equiv="cache-control" content="no-cache" />
 		<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 		<!--meta name="viewport" content="width=device-width"-->
 		<!--meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=3.0"-->
@@ -11,11 +12,11 @@
 		<script type="text/javascript" src="//code.jquery.com/jquery-latest.min.js"></script>
 		<script type="text/javascript" src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 		<script type="text/javascript">
-			var _html_version='3.3.2'
+			var _html_version='3.3.4'
 			if(typeof(_file_version)=='undefined') var _file_version='3.3'
 			var args=window.location.search.replace('?','').split('&'),ver=args[1]||_file_version,domain='',path=''
 			if(typeof(_doLocalFiles)=='undefined'||_doLocalFiles=='0'){
-				path = (args[0] || 'current') + '/'
+				path = (localStorage.getItem('devOrCurr') || 'current') + '/'
 				domain=(location.protocol=='http:')?'http://usage-monitoring.com/':'https://usagemonitoringcom.ipage.com/'
 			}
 			$("<link/>", {rel: "stylesheet", type: "text/css", href: domain + path + 'css/normalize.css'}).appendTo("head");
@@ -23,16 +24,16 @@
 			$("<link/>", {rel: "shortcut icon",href: domain + path + 'images/favicon.png'}).appendTo("head");
 			(typeof(_settings_pswd)!='undefined') && $.ajax({url: domain + path + 'js/jquery.md5.min.js', dataType: "script"});
 		</script>
-		<script src="https://www.gstatic.com/charts/loader.js"></script>
+		<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 		<script type="text/javascript">
-			$.ajaxSetup({'cache':true});  //Comment out this line if your router requires timestamps appended to data URLs
-			google.charts.load('current', {'packages':['corechart', 'gauge'], 'callback' : function(){
-				$.ajax({crossDomain: true, url: domain + path + 'js/util' + ver+ '.js',dataType: "script", cache:false})
-				.done(function(){
-					$.ajax({crossDomain: true, url: domain + path + 'js/yamon' + ver+ '.js',dataType: "script", cache:false});
-				});
-			}});
+			if(!localStorage.getItem('ajaxCache')) localStorage.setItem('ajaxCache', 'true')
+			$.ajaxSetup({'cache':localStorage.getItem('ajaxCache')=='true'});  //Comment out this line if your router requires timestamps appended to data URLs
+			google.charts.load('current', {'packages':['corechart', 'gauge']});
 			$(document).ready(function(){
+				$.ajax({crossDomain: true, url: domain + path + 'js/util' + ver+ '.js',dataType: "script", cache:false})
+					.done(function(){
+						$.ajax({crossDomain: true, url: domain + path + 'js/yamon' + ver+ '.js',dataType: "script", cache:false});
+					});
 			})
 		</script>
 
@@ -205,26 +206,8 @@
 								<td id='ds-att' class='a-c br'>n/a</td>
 								<td id='ds-ati' class='a-c br'>n/a</td>
 							</tr>
-							<!--tr>
-								<td class='a-r fw-b br'>Updated:</td>
-								<td id='ds-utt' class='a-c br'>n/a</td>
-								<td id='ds-uti' class='a-c br'>n/a</td>
-							</tr-->
-
 						</table>
 						<article class='rc'>
-							<!--h1>Usage History Report</h1>
-							<div id='changes-legend' class='a-l p-a hidden'>
-								<p><b><u>Changes Legend</u></b>:</p>
-								<p class='changed c0'>bytes</p>
-								<p class='changed c1'>kilobytes</p>
-								<p class='changed c2'>megabytes</p>
-								<p class='changed c3'>gigabytes</p>
-								<p class='changed c4'>terabytes</p>
-								<p class='changed c5'>petabytes</p>
-								<p class='changed'>all others</p>
-							</div-->
-
 							<table class='info-top p-r' id="SystemTotalsTable">
 								<thead>
 									<tr class='info-p p-r'>
@@ -236,10 +219,10 @@
 											</span>
 										</th>
 										<th colspan=2 class='st-un br bt'>
-											<span class='table-units' rel-value='auto'>Auto</span>
-											<span class='table-units' rel-value='3'>GB</span>
-											<span class='table-units' rel-value='2'>MB</span>
-											<span class='table-units' rel-value='1'>KB</span>
+											<span class='table-units'>Auto</span>
+											<span class='table-units'>GB</span>
+											<span class='table-units'>MB</span>
+											<span class='table-units'>KB</span>
 										</th>
 										<th class='st-t tot-dlo th-tot br bt' rowspan=2>Total</th>
 										<th class='st-c is-cap br2 bt' rowspan=2>% of <span id="spUsageCap" class='imp-text'>Not Set... see 'Settings' tab</span> Cap</th>
@@ -318,10 +301,10 @@
 											<!--span class='log btn p-a' title='View the contents of the log file'></span-->
 										</th>
 										<th class='br no-bb bt' colspan=2>
-											<span class='table-units' rel-value='auto'>Auto</span>
-											<span class='table-units' rel-value='3'>GB</span>
-											<span class='table-units' rel-value='2'>MB</span>
-											<span class='table-units' rel-value='1'>KB</span>
+											<span class='table-units'>Auto</span>
+											<span class='table-units'>GB</span>
+											<span class='table-units'>MB</span>
+											<span class='table-units'>KB</span>
 											<br/>
 											All Day</th>
 										<th class='isUL ul-int br no-bb' colspan=2>Unlimited Interval</th>
@@ -593,10 +576,10 @@
 										<span class='icon btn p-a' title='View the contents of monthly data file'></span>
 									</th>
 									<th class='br no-bb bt' colspan=2>
-										<span class='table-units' rel-value='auto'>Auto</span>
-										<span class='table-units' rel-value='3'>GB</span>
-										<span class='table-units' rel-value='2'>MB</span>
-										<span class='table-units' rel-value='1'>KB</span>
+										<span class='table-units'>Auto</span>
+										<span class='table-units'>GB</span>
+										<span class='table-units'>MB</span>
+										<span class='table-units'>KB</span>
 										<br/>
 										All Day</th>
 									<th class='isUL ul-int br no-bb bt' colspan=2>Unlimited Interval</th>
@@ -691,10 +674,10 @@
 										Date
 									</th>
 									<th colspan=2 class='br bb1'>
-										<span class='table-units' rel-value='auto'>Auto</span>
-										<span class='table-units' rel-value='3'>GB</span>
-										<span class='table-units' rel-value='2'>MB</span>
-										<span class='table-units' rel-value='1'>KB</span>
+										<span class='table-units'>Auto</span>
+										<span class='table-units'>GB</span>
+										<span class='table-units'>MB</span>
+										<span class='table-units'>KB</span>
 										<br/>
 										All Day</th>
 									<th colspan=2 class='isUL ul-int br bb1'>Unlimited</th>
@@ -1086,27 +1069,39 @@
 					</div>
 					<h3>You must specify and/or confirm the value for all <span class=' required'> required</span> fields.  The others are optional (or you can accept the defaults).</h3>
 					<div id='settings-columns' class='main-section'>
-						 <fieldset id='settings-col_1'>
-							<legend>Bandwidth Settings</legend>
-							<p class='settings-desc'>Alter these settings to tailor your reports.</p>
-							<p id='p-bw_cap' title='What your ISP allows you to use each month (in GB)' >
-								<label class='required'>Bandwidth Allowance Cap</label>:<br/>&nbsp;&nbsp;<label for='bandwidth-u'><input type=radio id='bandwidth-u' name="bandwidth" value="unlimited"> Unlimited</label>&nbsp;or&nbsp;
-								<input type=radio id='bandwidth-l' name="bandwidth" value="limited"> <input type='number' pattern='^[0-9]{1,3}$' id='bw_cap' name='bw_cap' class='a-r' size=4> GB/mo
-							</p>
-							<p class='is-cap ti-6 hidden' title='Select this checkbox if only downloads (and not uploads) count against your usage cap'>
-								<input type="checkbox" id="cb-dl-o">
-								<label for="cb-dl-o">Only Downloads count towards cap</label>
-							</p>
-							<p class='isUL' id='p-bonus_cap' title='Bonus data your ISP allows you to use each month (in GB)' >
-								<label class='required'>`<i>Bonus Data</i>` Allowance Cap <br/>(between <span id='bd-start'></span> & <span id='bd-end'></span>)</label>:<br/>&nbsp;&nbsp;<label for='bonusdata-u'><input type=radio id='bonusdata-u' name="bonusdata" value="unlimited"> Unlimited</label>&nbsp;or&nbsp;
-								<input type=radio id='bonusdata-l' name="bonusdata" value="limited"> <input type='number' pattern='^[0-9]{1,3}$' id='bonus_cap' name='bonus_cap' class='a-r' size=4> GB/mo
-							</p>
-							<p class='isUL ti-6' title='Select this checkbox if you have a Bonus Data usage interval (e.g. between 2-5AM)'>
-								<input type="checkbox" id="ul-redtot">
-								<label for="ul-redtot">Reduce totals by `<i>Bonus Data</i>` amounts</label>
-							</p>
-
-						</fieldset>
+						<div id='settings-col_1'>
+							<fieldset>
+								<legend>Bandwidth Settings</legend>
+								<p class='settings-desc'>Alter these settings to tailor your reports.</p>
+								<p id='p-bw_cap' title='What your ISP allows you to use each month (in GB)' >
+									<label class='required'>Bandwidth Allowance Cap</label>:<br/>&nbsp;&nbsp;<label for='bandwidth-u'><input type=radio id='bandwidth-u' name="bandwidth" value="unlimited"> Unlimited</label>&nbsp;or&nbsp;
+									<input type=radio id='bandwidth-l' name="bandwidth" value="limited"> <input type='number' pattern='^[0-9]{1,3}$' id='bw_cap' name='bw_cap' class='a-r' size=4> GB/mo
+								</p>
+								<p class='is-cap ti-6 hidden' title='Select this checkbox if only downloads (and not uploads) count against your usage cap'>
+									<input type="checkbox" id="cb-dl-o">
+									<label for="cb-dl-o">Only Downloads count towards cap</label>
+								</p>
+								<p class='isUL' id='p-bonus_cap' title='Bonus data your ISP allows you to use each month (in GB)' >
+									<label class='required'>`<i>Bonus Data</i>` Allowance Cap <br/>(between <span id='bd-start'></span> & <span id='bd-end'></span>)</label>:<br/>&nbsp;&nbsp;<label for='bonusdata-u'><input type=radio id='bonusdata-u' name="bonusdata" value="unlimited"> Unlimited</label>&nbsp;or&nbsp;
+									<input type=radio id='bonusdata-l' name="bonusdata" value="limited"> <input type='number' pattern='^[0-9]{1,3}$' id='bonus_cap' name='bonus_cap' class='a-r' size=4> GB/mo
+								</p>
+								<p class='isUL ti-6' title='Select this checkbox if you have a Bonus Data usage interval (e.g. between 2-5AM)'>
+									<input type="checkbox" id="ul-redtot">
+									<label for="ul-redtot">Reduce totals by `<i>Bonus Data</i>` amounts</label>
+								</p>
+							</fieldset>
+							<fieldset>
+								<legend>Debug</legend>
+								<p title="Use files from /dev rather than /current">
+									<input type="checkbox" id="devOrCurr">
+									<label for="devOrCurr">Use `/dev` JS & CSS files</label>
+								</p>
+								<p title="Set ajaxSetup cache to true (***recommended***)">
+									<input type="checkbox" id="ajaxCache">
+									<label for="ajaxCache">Set cache=true in `$.ajaxSetup()`</label>
+								</p>
+							</fieldset>
+						</div>
 						<fieldset id='settings-col_2'>
 							<legend>Display Options</legend>
 
@@ -1114,15 +1109,15 @@
 								<select id='defvu'></select>
 							</p>
 							<p title='Select the base units for values in the report (default: Automatic)'>
-								<label for="DisplayUnits">Display Units:</label>
-								<select name="DisplayUnits" id="DisplayUnits">
-									<option value="auto" title='Show traffic in KB/MB/GB as appropriate'>Automatic</option>
-									<option value="0" title='Show all traffic in bytes'>Bytes</option>
-									<option value="1" title='Show all traffic in KB'>Kilobytes</option>
-									<option value="2" title='Show all traffic in MB'>Megabytes</option>
-									<option value="3" title='Show all traffic in GB'>Gigabytes</option>
-									<option value="4" title='Really!'>Terabytes</option>
-									<option value="5" title='Really! Really?!?'>Petabytes</option>
+								<label for="displayUnits">Display Units:</label>
+								<select name="displayUnits" id="displayUnits">
+									<option value="Auto" title='Show traffic in KB/MB/GB as appropriate'>Automatic</option>
+									<option value="B" title='Show all traffic in bytes'>Bytes</option>
+									<option value="KB" title='Show all traffic in KB'>Kilobytes</option>
+									<option value="MB" title='Show all traffic in MB'>Megabytes</option>
+									<option value="GB" title='Show all traffic in GB'>Gigabytes</option>
+									<option value="TB" title='Really!'>Terabytes</option>
+									<option value="PB" title='Really! Really?!?'>Petabytes</option>
 								</select>
 							</p>
 						   <p title='Select the number of decimal places to display'>
