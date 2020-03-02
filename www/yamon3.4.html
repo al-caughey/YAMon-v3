@@ -81,6 +81,15 @@
 				<article id='help-tab' class='settings-tab btn p-a' title='Get Help!'></article>
 			</section>
 			<section id='main-body' class='p-r'>
+				<div class='_detanod' amount=20 title='Thank you in advance for your support!'>
+					<div class='submenu'>
+						<span class='amount btn' amount=10 title='Donate $10'>$10</span>
+						<span class='amount btn' amount=15 title='Donate $15'>$15</span>
+						<span class='amount btn' amount=20 title='Donate $20... thanks!'>$20</span>
+						<span class='amount btn' amount=25 title='Donate $25 - wow!!!'>$25</span>
+						<span class='amount btn' amount='' title='Select this option to choose your own amount'>Other...</span>
+					</div>
+				</div>
 				<div id='error-notification' class='p-r'>
 					<h1>This text will go away once all of the data has loaded.</h1>
 					<h2>Ah nuts!  An unexpected JavaScript error has prevented the reports from opening properly.<br/>
@@ -88,7 +97,6 @@
 				</div>
 				<div id="summary-tab-section" class="tab-div hidden p-r">
 
-					<div class='_detanod amount'></div>
 					<h2>Summary Report</h2>
 					<div class='sp-sldr p-r'>
 						<p class="p-report-interval">
@@ -262,7 +270,6 @@
 					</section>
 				</div>
 				<div id="daily-tab-section" class="tab-div p-r hidden">
-					<div class='_detanod amount'></div>
 					<h2>Daily Usage Report</h2>
 					<div class='sp-sldr p-r'>
 						<p class="p-report-interval">
@@ -572,12 +579,10 @@
 					<div id="hourlyLoadGraph">Hourly Server Loads Graph... coming soon</div>
 				</div>
 				<div id="monthly-tab-section" class="tab-div p-r hidden">
-					<div class='_detanod amount'></div>
-
 					<h2>Monthly Usage Report</h2>
 					<section class='main-section'>
 						<article class='lc'>
-							<p>Report for: <span class='current-interval imp-text'></span></p>
+							<p><span class='mr-int'>Reporting Interval: <span class='current-interval imp-text'></span></span></p>
 							<table class='info-top p-r' id='Monthly-usage-table'>
 							<thead id="MonthlyHeader">
 								<tr class='info-p p-r'>
@@ -668,11 +673,9 @@
 				</div>
 
 				<div id="monthly-breakdown-tab-section" class="tab-div p-r hidden">
-					<div class='_detanod amount'></div>
-
 					<h2>Monthly Usage Breakdown</h2>
 					<section class='main-section'>
-						<p>Report for: <span class='current-interval imp-text'></span></p>
+						<p><span class='mr-int'>Reporting Interval: <span class='current-interval imp-text'></span></span></p>
 						<table class='info-top p-r' id='Monthly-breakdown-table'>
 							<thead id="MonthlyBreakdownHeader">
 								<tr class='info-p p-r'>
@@ -769,10 +772,9 @@
 				</div>
 
 				<div id="live-tab-section" class="tab-div p-r hidden showLive">
-					<div class='_detanod amount'></div>
-
-				   <div id='enable-lu' class='alert'>To see any meaningful information on this tab, you must set `_doLiveUpdates=1` in `config.file` on your router.</div>
+					<div id='enable-lu' class='alert'>To see any meaningful information on this tab, you must set `_doLiveUpdates=1` in `config.file` on your router.</div>
 					<h2>Live Usage Report</h2>
+					<p class='nb'>Entries will be added to the tables and graphs on this tab as long as this computer/device is `awake` - this means that the updates will stop if you have a powersaving setting which automatically puts this device to sleep.  As well, the contents of the page will be reset if the page is reloaded.</p>
 					<p>The data on this tab is aggregated from the `live_data.js` file and will be updated every <span class='_updatefreq'></span>s.
 
 						<button type="button" id="luStart" class='hidden'>Start</button>
@@ -780,10 +782,9 @@
 						<button type="button" id="luReset" class='hidden' title='Careful - this will clear all of the data from this table!'>Reset</button><br/>
 						Last update: <a id='last_update' href='' target='_blank'></a>
 					</p>
-					<p><a href='/'>Router GUI</a></p>
-					<section class='main-section'>
+					<section class='main-section p-r'>
 						<article class='lc'>
-							<div class='data-table'>
+							<div id='server-load-table' class='data-table'>
 								<p class='p-hr'>
 									<span class="td-time br bl a-r">
 										Time
@@ -934,11 +935,9 @@
 				</div>
 
 				<div id="devices-tab-section" class="tab-div p-r hidden">
-					<div class='_detanod amount'></div>
-
 					<h2>Groups &amp; Devices</h2>
 					<section class='main-section p-r'>
-						<p>Report for: <span class='current-interval imp-text'></span>Filter: <input type='text' id='filter-results' placeholder='Filter this table'></p>
+						<p><span class='mr-int'>Reporting Interval: <span class='current-interval imp-text'></span></span>Filter: <input type='text' id='filter-results' placeholder='Filter this table'></p>
 						<table class='info-top p-r lc' id='devices-table'>
 							<thead id="devicesHeader">
 								<tr class='info-p p-r'>
@@ -1014,7 +1013,6 @@
 				</div>
 
 				<div id="settings-tab-section" class="tab-div p-r hidden">
-					<div class='_detanod amount'></div>
 					<div class='intro p-r hidden'>
 						<div class='intro-t'>
 							<h1>Welcome to the `<i>Yet Another Monitor</i>` reports!</h1>
@@ -1057,7 +1055,6 @@
 						<div class='intro-t'>
 							<h1>Last but not least...</h1>
 							<p>Please show your appreciation and support future development of this tool by <a href='https://www.paypal.me/YAMon/25' target='_blank'>donating</a> or by clicking one of the ads on the <a href='http://usage-monitoring.com' target='_blank'>usage-monitoring.com</a> site.</p>
-							<div class='_detanod amount'></div>
 							<p>Anything that you can contribute is greatly appreciated.  Thanks!</p>
 						</div>
 						<p class='intro-btn btn a-c'><button id='intro-p'><< Back</button><button id='intro-n'>Next >></button> </p>
@@ -1139,6 +1136,10 @@
 									<input type="checkbox" id="ShowDevices" checked>
 									<label for="ShowDevices">Show Devices</label>
 								</p>
+								<p title='Show/Hide ignored/hidden devices (default: unselected)'>
+									<input type="checkbox" id="ShowHiddenDevices" checked>
+									<label for="ShowHiddenDevices">Show `Hidden` Devices</label>
+								</p>
 								<p title='Show/Hide devices with no traffic  (default: not selected)'>
 									<input type="checkbox" id="ShowZeroes">
 									<label for="ShowZeroes">Show Zero Bandwidth</label>
@@ -1212,6 +1213,7 @@
 								<p><a href="mailto:questions@usage-monitoring.com?subject=Please send my YAMon donation key&body=Al - I recently made a donation and haven't gotten my key yet... can you send it to me please?" target='_blank'>Pester Al to get a donation key</p>
 								<p><a href='//usage-monitoring.com/sign-up.php' target='_blank'>Sign up to get updates notifications</a></p>
 								<p class='hidden'>Share `<a class='shareRouter btn'>router.js</a>` data</a></p>
+								<p><a href='/'>Router GUI</a></p>
 							</fieldset>
 						</div>
 						<div id='settings-col_4'>
@@ -1279,7 +1281,6 @@
 					<p>Thanks also to everyone who's made a <a href='http://usage-monitoring.com/donations.php'>donation</a>... I *really* appreciate those!  In case it is not blatantly obvious, you can make donations via Paypal.</p>
 				</div>
 				<div id="acses-tab-section" class="tab-div p-r hidden">
-					<div class='_detanod amount'></div>
 					<h2>Access Restrictions</h2>
 					<p>Coming soon... </p>
 					<p>A way to define which devices can access the Internet when...</p>
@@ -1706,6 +1707,7 @@
 					<span class="l-c c-pu" style="background:#ebdde2" title="Lavender Pinocchio"> </span>
 					<span class="l-c c-pu" style="background:#e3e4fa" title="Lavender blue"> </span>
 					</p>
+					<p><label><input type='checkbox' name='ignore-device'>Ignore/hide this device</label></p>
 					<p class="a-c">
 						<button type="button" id="ed-update">Update</button>
 						<button type="button" id="ed-clear">Clear</button>

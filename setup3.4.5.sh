@@ -34,8 +34,7 @@ source "${d_baseDir}/includes/versions.sh"
 source "${d_baseDir}/includes/util$_version.sh"
 
 if [ ! -f "${d_baseDir}/config.file" ] && [ ! -f "${d_baseDir}/default_config.file" ] ; then
-	$send2log '*** Cannot find either config.file or default_config.file...' 1
-    $send2log "Launched setup.sh - v$_version" 1
+	$send2log '*** Cannot find either config.file or default_config.file...' 2
 	echo '*** Cannot find either config.file or default_config.file...
 *** Please check your installation! ***
 *** Exiting the script. ***'
@@ -116,7 +115,7 @@ if [ -f "/etc/openwrt_release" ] ; then
 		_firmware=6
 	
 	fi
-elif [ "$_has_nvram" -eq 1 ] ; then
+elif [ "$_has_nvram" == "1" ] ; then
 	installedfirmware=$(uname -o)
 	if [ "$installedfirmware" == "$dd_str" ] ; then
 		_firmware=0
@@ -216,6 +215,8 @@ NB - You can always finetune your settings by editing
 [ "$_configWWW" == "config3.js" ] && updateConfig "_configWWW" "config$_file_version.js"
 [ "$_liveFileName" == "live_data.js" ] && updateConfig "_liveFileName" "live_data3.js"
 
+configStr=$(echo "$configStr" | sed -re "s~_configWWW='([^']{1,})'~_configWWW=\"\1\"~")
+
 if  [ -n "$(echo "$configStr" | grep -e "^_setupWebDir")" ] ; then
 	$send2log "Renamed _setupWebDir to _webDir" 1
 	configStr="${configStr/_setupWebDir/_webDir}"
@@ -235,7 +236,7 @@ prompt '_firmware' 'Which firmware variant is running on your router?' "Options:
     6 -> $tu_str
 	7 -> Padavan" $_firmware ^[0-7]$
 	
-if [ "$_firmware" -eq 0 ] ; then
+if [ "$_firmware" == "0" ] ; then
 	flags="{"
 	lan_proto=$(nvram get lan_proto)
 	$send2log "lan_proto --> $lan_proto" 1
@@ -254,7 +255,7 @@ if [ "$_firmware" -eq 0 ] ; then
 	$loh" && sleep 5
 	sfe_enable=$(nvram get sfe)
 	$send2log "sfe_enable --> $sfe_enable" 1
-	[ "$sfe_enable" -eq "1" ] && echo "
+	[ "$sfe_enable" == "1" ] && echo "
 	$wrn
 	$bl_a
 	  ##   The \`Shortcut Forwarding Engine\` is enabled in your DD-WRT config.
@@ -270,7 +271,7 @@ if [ "$_firmware" -eq 0 ] ; then
 
 	upnp_enable=$(nvram get upnp_enable)
 	$send2log "upnp_enable --> $upnp_enable" 1
-	[ "$upnp_enable" -eq "1" ] && echo "
+	[ "$upnp_enable" == "1" ] && echo "
 	$wrn
 	$bl_a
 	  ##   \`UPnP\` is enabled in your DD-WRT config.
@@ -321,7 +322,7 @@ if [ "$_firmware" -eq 0 ] ; then
 	schedule_minutes=$(nvram get schedule_minutes)
 	schedule_reboot=0
 	$send2log "schedule_enable --> $schedule_enable ($schedule_hours:$schedule_minutes)" 1
-	[ "$schedule_enable" == "1" ] && [ "$schedule_hours" -eq "0" ] && [ "$schedule_minutes" -lt "10" ] && echo "
+	[ "$schedule_enable" == "1" ] && [ "$schedule_hours" == "0" ] && [ "$schedule_minutes" -lt "10" ] && echo "
 	$wrn
 	$bl_a
 	  ##   Your router is scheduled to auto-reboot at '$schedule_hours:$schedule_minutes'.
@@ -342,14 +343,14 @@ prompt '_ispBillingDay' 'What is your ISP bill roll-over date?
 prompt '_monthlyDataCap' 'Does your data plan have a cap?' "(Options: \`0\` ==> Unlimited Plan(*) -or- \`##\` ==> your cap in GB [1-9999])" '0' "^[0-9]{1,4}$"
 prompt '_unlimited_usage' 'Does your ISP offer `Bonus Data`?
     (i.e., uncapped data usage during offpeak hours)' "$yn_n" '0' $zo_r
-if [ "$_unlimited_usage" -eq 1 ] ; then
+if [ "$_unlimited_usage" == "1" ] ; then
 	prompt '_unlimited_start' 'Start time for bonus data?' 'Enter the time in [hh:mm] format' '' "^(00|[1-9]|1[0-9]|2[0-3]):[0-5][0-9]$" '_unlimited_usage'
 	prompt '_unlimited_end' 'End time?' 'Enter the time in [hh:mm] format' '' "^(00|[1-9]|1[0-9]|2[0-3]):[0-5][0-9]$" '_unlimited_usage'
 fi
 if [ "$t_installmode" == 'b' ] ; then
 	
-	[ "$_firmware" -eq "2" ] || [ "$_firmware" -eq "3" ] || [ "$_firmware" -eq "5" ] && updateConfig "_wwwPath" '/tmp/var/wwwext/'
-	if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] || [ "$_firmware" -eq "7" ] ; then
+	[ "$_firmware" == "2" ] || [ "$_firmware" == "3" ] || [ "$_firmware" == "5" ] && updateConfig "_wwwPath" '/tmp/var/wwwext/'
+	if [ "$_firmware" == "1" ] || [ "$_firmware" == "4" ] || [ "$_firmware" == "6" ] || [ "$_firmware" == "7" ] ; then
 		lan_ip=$(uci get network.lan.ipaddr)
 		[ -z "$lan_ip" ] && lan_ip=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
 		updateConfig "_wwwURL" '/yamon'
@@ -361,13 +362,13 @@ if [ "$t_installmode" == 'b' ] ; then
 else
 	prompt '_includeBridge' 'Do you have a bridge on your network?
     (i.e., a second router or other device to extend the wireless range)' "$yn_n" '0' $zo_r
-	if [ "$_includeBridge" -eq "1" ] ; then
+	if [ "$_includeBridge" == "1" ] ; then
 		prompt '_bridgeMAC' 'What is the MAC address for your bridge device?
     See the help topic if you have multiple bridging devices' "Enter a valid MAC address - e.g., 11:22:33:44:55:66" '' "^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$" '_includeBridge'
 	fi
 	t_wid=1
 	prompt 't_wid' "Is your \`data\` directory in \`$d_baseDir\`?" "$yn_y" $t_wid $zo_r
-	[ "$t_wid" -eq 0 ] && prompt '_dataDir' "Enter the path to your data directory" "Options:
+	[ "$t_wid" == "0" ] && prompt '_dataDir' "Enter the path to your data directory" "Options:
 	* to specify an absolute path, start with \`/\`
 	* the path *must* end with \`/\`" "data/" $re_path_slash
 	prompt '_updatefreq' 'How frequently would you like to check the data?' 'Enter the interval in seconds [1-300 sec]' '30' "^([1-9]|[1-9][0-9]|[1-2][0-9][0-9]|300)$"
@@ -384,7 +385,7 @@ else
     NB - your firmware *must* include a full version of \`ip\` (some don't!)" "$yn_n" "$ipv6_enable" $zo_r
 	t_ip=0
 	prompt 't_ip' 'Have you manually installed the full version of `ip` elsewhere on your router?' "$yn_n" $t_ip $zo_r '_path2ip'
-	if [ "$t_ip" -eq 1 ] ; then
+	if [ "$t_ip" == "1" ] ; then
 	   prompt '_path2ip' 'Where is the full version of `ip` installed?' 'The path must start with a \`/\`' '/opt/sbin/ip' $re_path '_path2ip'
 
 		if [ ! -f "$_path2ip" ] ; then
@@ -399,12 +400,12 @@ else
 		fi
 	fi
 
-	if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] || [ "$_firmware" -eq "7" ] ; then
+	if [ "$_firmware" == "1" ] || [ "$_firmware" == "4" ] || [ "$_firmware" == "6" ] || [ "$_firmware" == "7" ] ; then
 		lan_ip=$(uci get network.lan.ipaddr)
 		d_wwwPath='/www'
 		[ -z "$lan_ip" ] && lan_ip=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
 		[ "$_wwwURL" == '/user' ] && _wwwURL='/yamon'
-	elif [ "$_firmware" -eq "2" ] || [ "$_firmware" -eq "3" ] || [ "$_firmware" -eq "5" ] ; then
+	elif [ "$_firmware" == "2" ] || [ "$_firmware" == "3" ] || [ "$_firmware" == "5" ] ; then
 		d_wwwPath='/tmp/var/wwwext/'
 	else
 		lan_ip=$(nvram get lan_ipaddr)
@@ -430,20 +431,20 @@ else
 
 	prompt '_organizeData' 'Organize the data files (into directories by year or year-month)?' 'Options: 0->No -or- 1->by year -or- 2->by year & month (*)' '2' $zot_r
 	prompt '_enableLogging' 'Enable logging (for support & debugging purposes)?' "$yn_y" '1' $zo_r
-	[ "$_enableLogging" -eq 1 ] && prompt '_log2file' 'Where do you want to send the logging info?' 'Options: 0->screen -or- 1->file (*) -or- 2->both' '1' $zot_r '_enableLogging'
-	[ "$_enableLogging" -eq 1 ] && [ "$_log2file" -ne 0 ] && prompt '_logDir' 'Where do you want to create the logs directory?' 'Options:
+	[ "$_enableLogging" == "1" ] && prompt '_log2file' 'Where do you want to send the logging info?' 'Options: 0->screen -or- 1->file (*) -or- 2->both' '1' $zot_r '_enableLogging'
+	[ "$_enableLogging" == "1" ] && [ "$_log2file" -ne 0 ] && prompt '_logDir' 'Where do you want to create the logs directory?' 'Options:
     * to specify an absolute path, start with `/`
     * the path *must* end with `/`' 'logs/' $re_path_slash '_enableLogging'
-	[ "$_enableLogging" -eq 1 ] && prompt '_loglevel' 'How much detail do you want in the logs?' 'Options: -1->really verbose -or- 0->all -or- 1->most (*) -or- 2->serious only' '1' "^([012]|-1)$" '_enableLogging'
-	[ "$_log2file" -eq 2 ] || [ "$_log2file" -eq 2 ] && prompt '_scrlevel' 'How much detail do you want shown on the screen?' 'Options: -1->really verbose -or- 0->all -or- 1->most (*) -or- 2->serious only' '1' "^([012]|-1)$" '_enableLogging'
+	[ "$_enableLogging" == "1" ] && prompt '_loglevel' 'How much detail do you want in the logs?' 'Options: -1->really verbose -or- 0->all -or- 1->most (*) -or- 2->serious only' '1' "^([012]|-1)$" '_enableLogging'
+	[ "$_log2file" == "2" ] || [ "$_log2file" == "2" ] && prompt '_scrlevel' 'How much detail do you want shown on the screen?' 'Options: -1->really verbose -or- 0->all -or- 1->most (*) -or- 2->serious only' '1' "^([012]|-1)$" '_enableLogging'
 
 	prompt '_doLiveUpdates' 'Do you want to report `live` usage?' "$yn_y" '1' $zo_r
-	[ "$_doLiveUpdates" -eq 1 ] && prompt '_doArchiveLiveUpdates' 'Do you want to archive the `live` usage data?' "$yn_n" '0' $zo_r '_doLiveUpdates'
+	[ "$_doLiveUpdates" == "1" ] && prompt '_doArchiveLiveUpdates' 'Do you want to archive the `live` usage data?' "$yn_n" '0' $zo_r '_doLiveUpdates'
 
-	[ -z "$(which ftpput)" ] && [ "$_enable_ftp" -eq "1" ] && updateConfig "_enable_ftp" "0"
+	[ -z "$(which ftpput)" ] && [ "$_enable_ftp" == "1" ] && updateConfig "_enable_ftp" "0"
 	[ -z "$(which ftpput)" ] || prompt '_enable_ftp' 'Do you want to mirror a copy of your data files to an external FTP site? 
 	NB - *YOU* must setup the FTP site yourself!' "$yn_n" '0' $zo_r
-	if [ -n "$(which ftpput)" ] && [ "$_enable_ftp" -eq "1" ] ; then
+	if [ -n "$(which ftpput)" ] && [ "$_enable_ftp" == "1" ] ; then
 		prompt '_ftp_site' 'What is the URL for your FTP site?' 'Enter just the URL or IP address' '' '' '_enable_ftp'
 		prompt '_ftp_user' 'What is the username for your FTP site?' '' '' '' '_enable_ftp'
 		prompt '_ftp_pswd' 'What is the password for your FTP site?' '' '' '' '_enable_ftp'
@@ -456,7 +457,7 @@ else
 "
 	fi
 	prompt '_doDailyBU' 'Enable daily backup of data files?' "$yn_y" '1' $zo_r
-	[ "$_doDailyBU" -eq 1 ] && prompt '_tarBUs' 'Compress the backups?' "$yn_y" '1' $zo_r '_doDailyBU'
+	[ "$_doDailyBU" == "1" ] && prompt '_tarBUs' 'Compress the backups?' "$yn_y" '1' $zo_r '_doDailyBU'
 fi
 
 if [ ! -d "$_dataPath" ] ; then
@@ -467,12 +468,12 @@ fi
 
 setWebDirectories
 
-if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] || [ "$_firmware" -eq "7" ] ; then
+if [ "$_firmware" == "1" ] || [ "$_firmware" == "4" ] || [ "$_firmware" == "6" ] || [ "$_firmware" == "7" ] ; then
 	updateConfig "_dnsmasq_conf" "/tmp/etc/dnsmasq.conf"
 	updateConfig "_dnsmasq_leases" "/tmp/dhcp.leases"
 	_dnsmasq_conf="/tmp/etc/dnsmasq.conf"
 	_dnsmasq_leases="/tmp/dhcp.leases"
-elif [ "$_firmware" -eq "2" ] || [ "$_firmware" -eq "3" ] ; then
+elif [ "$_firmware" == "2" ] || [ "$_firmware" == "3" ] ; then
 	updateConfig "_dnsmasq_conf" "/tmp/etc/dnsmasq.conf" 
 	updateConfig "_dnsmasq_leases" "/tmp/var/lib/misc/dnsmasq.leases"
 	_dnsmasq_conf="/tmp/etc/dnsmasq.conf"
@@ -555,7 +556,7 @@ if [ "$t_installmode" == 'b' ] ; then
 else
 	perm_r=^[0-7][0-7][0-7]$
 	prompt 't_permissions' "Do you want to set directory permissions for \`${d_baseDir}\`?" "$yn_y" '1' $zo_r
-	if [ "$t_permissions" -eq "1" ] ; then
+	if [ "$t_permissions" == "1" ] ; then
 		prompt 't_perm' "What permission value do you want to use?" "$t_perm_msg" "$t_perm" $perm_r 't_permissions' 
 		$send2log "Changed ${d_baseDir} permissions to: \`$t_perm\`" 1
 	fi
@@ -568,13 +569,13 @@ else
 
 	t_www=0
 	
-	if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] || [ "$_firmware" -eq "7" ] ; then
+	if [ "$_firmware" == "1" ] || [ "$_firmware" == "4" ] || [ "$_firmware" == "6" ] || [ "$_firmware" == "7" ] ; then
 		t_perm="a+rX"
 		t_perm_msg="e.g., $t_perm (*)-> r-xr-xr-x"
 		perm_r=^[0-7a-zA-z+]{3,4}$
 		prompt 't_www' "Do you want to set directory permissions for \`${_wwwPath}\`?" "$yn_y" '1' $zo_r 't_permissions' 
 	fi
-	if [ "$t_www" -eq "1" ] ; then
+	if [ "$t_www" == "1" ] ; then
 		prompt 't_perm' "What permissions value do you want to use?" "$t_perm_msg" "$t_perm" $perm_r 't_permissions' 
 		chmod "$t_perm" -R "$_wwwPath"
 		$send2log "Changed \`$_wwwPath\` permissions to: \`$t_perm\`" 1
@@ -588,13 +589,13 @@ fi
 	[ "$t_installmode" == 'a' ] && prompt 'startup_delay' "By default, \`startup.sh\` will delay for 10 seconds prior to starting \`yamon${_version}.sh\`. 
 		Some routers may require extra time." 'Enter the start-up  delay [0-300]' '10' "^([0-9]|[1-9][0-9]|[1-2][0-9][0-9]|300)$"
 
-	if [ "$_firmware" -eq "1" ] ; then
+	if [ "$_firmware" == "1" ] ; then
 		etc_init="/etc/init.d/yamon3"
 		t_init=1
 		[ "$t_installmode" == 'a' ] && prompt 't_init' 'Create YAMon init script in `/etc/init.d/`?' "$yn_y" '1' $zo_r
-		if [ "$t_init" -eq "1" ] ; then
+		if [ "$t_init" == "1" ] ; then
 			$send2log "Created YAMon init script in `/etc/init.d/`" 1
-			[ ! -d "/etc/init.d/" ] mkdir -p "/etc/init.d/" # is this even necessary?
+			[ ! -d "/etc/init.d/" ] && mkdir -p "/etc/init.d/" # is this even necessary?
 			echo "#!/bin/sh /etc/rc.common
 	START=99
 	STOP=10
@@ -619,11 +620,11 @@ fi
 	}" > "$etc_init"
 			chmod +x "$etc_init"
 		fi
-	elif [ "$_firmware" -eq "4" ] || [ "$_firmware" -eq "6" ] || [ "$_firmware" -eq "7" ] ; then
+	elif [ "$_firmware" == "4" ] || [ "$_firmware" == "6" ] || [ "$_firmware" == "7" ] ; then
 		etc_rc="/etc/rc.local"
 		t_init=1
 		[ "$t_installmode" == 'a' ] && prompt 't_init' 'Create YAMon init script in `/etc/rc.local`?' "$yn_y" '1' $zo_r
-		if [ "$t_init" -eq "1" ] ; then
+		if [ "$t_init" == "1" ] ; then
 			$send2log "Created YAMon init script in $etc_rc" 1
 			[ ! -f "$etc_rc" ] && touch "$etc_rc" # is this even necessary?
 			c_txt=$(cat "$etc_rc")
@@ -640,7 +641,7 @@ fi
 		t_startup=1
 		[ "$t_installmode" == 'a' ] && prompt 't_startup' 'Do you want to create startup and shutdown scripts?' "$yn_y" '1' $zo_r
 		need2commit=''
-		if [ "$t_startup" -eq "1" ] ; then
+		if [ "$t_startup" == "1" ] ; then
 			cnsu=$(nvram get rc_startup)
 			if [ -z "$cnsu" ] ; then
 				$send2log "Created nvram-->rc_startup" 1
@@ -687,15 +688,15 @@ fi
 		fi
 	fi
 
-	ip4=$(eval iptables -L | grep "Chain $YAMON_IP4")
+	ip4=$(eval iptables -nL | grep "Chain $YAMON_IP4")
 	[ -n "$ip4" ] && $(iptables -F "$YAMON_IP4")
-	if [ "$_includeIPv6" -eq "1" ] ; then
-		ip6=$(eval ip6tables -L | grep "Chain $YAMON_IP6")
+	if [ "$_includeIPv6" == "1" ] ; then
+		ip6=$(eval ip6tables -nL | grep "Chain $YAMON_IP6")
 		[ -n "$ip6" ] && $(ip6tables -F "$YAMON_IP6")
 	fi
 
 prompt 't_launch' 'Do you want to launch YAMon now?' "$yn_y" '1' $zo_r
-if [ "$t_launch" -eq "1" ] ; then
+if [ "$t_launch" == "1" ] ; then
 	$send2log "Launched " 1
 	echo "
 

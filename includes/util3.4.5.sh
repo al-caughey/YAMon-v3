@@ -21,7 +21,7 @@
 showmsg()
 {
 	local wm=$1
-	$send2log "arguments:  $1" -1
+	$send2log "showmsg:  $1" -1
 	msg="$(cat "$d_path2strings$wm" )"
 	[ -n "$2" ] && msg=$(echo "$msg" | sed -e "s~\%1\%~$2~g" )
 	[ -n "$3" ] && msg=$(echo "$msg" | sed -e "s~\%2\%~$3~g" )
@@ -91,8 +91,7 @@ prompt()
 	updateConfig $vn "$resp"
 }
 updateConfig(){
-	$send2log "=== updateConfig === " 0
-	$send2log "arguments:  $1	$2" -1
+	$send2log "updateConfig:  $1	$2" 0
 	local vn=$1
 	local nv=$2
 	[ "${vn:0:2}" == 't_' ] && return
@@ -119,16 +118,14 @@ $vn='$nv'$pad # Added"
 	#echo "updateConfig: configStr--> $configStr" >&2
 }
 getDefault(){
-	$send2log "=== getDefault === " 0
-	$send2log "arguments:  $1	$2" -1
+	$send2log "getDefault:  $1	$2" 0
 	eval vv=\$"options$1"
 	local rv=$(echo "$vv" | cut -d, -f$(($2+1)))
 	[ -z "$rv" ] && rv=$(echo "$vv" | cut -d, -f1)
 	echo "$rv"
 }
 copyfiles(){
-	$send2log "=== copyfiles === " 0
-	$send2log "arguments:  $1	$2" -1
+	$send2log "copyfiles:  $1	$2" 0
 	local src=$1
 	local dst=$2
 	$(cp -a $src $dst)
@@ -145,8 +142,7 @@ copyfiles(){
 }
 copyfiles_0()
 {	#_symlink2data=0
-	$send2log "=== copyfiles_0 === " 0
-	$send2log "arguments:  $1	$2" -1
+	$send2log "copyfiles_0:  $1	$2" 0
 	copyfiles "$1" "$2"
 }
 copyfiles_1()
@@ -158,7 +154,7 @@ send2log_0()
 	return
 }
 alertfile(){
-	local msg="$(echo "$1" | sed "s~[^a-z0-9\.\-\/:_\t ]~~ig")"
+	local msg="$(echo "$1" | sed "s~[^a-z0-9\.\-\/:_\t ]~~ig" | tr '\n' '+')"
 	local ts=$(date +"%Y-%m-%d %H:%M:%S")
 
 	local srch=$(cat "$_alertfilename" | grep -i "$msg")
@@ -215,8 +211,7 @@ sendAlert_0()
 }
 sendAlert_1()
 {
-	$send2log "=== sendAlert ===" 0
-	$send2log "arguments:  $1	$2" -1
+	$send2log "sendAlert:  $1	$2" 0
 	local subj="$1"
 	local omsg="$2"
 	[ -z "$ndAMS" ] && ndAMS=0
@@ -258,7 +253,7 @@ setWebDirectories()
 		$send2log "addSymLink: $src --> $dest" 0
 		[ -h "$dest" ] || ln -s "$src" "$dest"
 	}
-	$send2log "=== setWebDirectories ===" 0
+	$send2log "setWebDirectories" 0
 	if [ ! -d "$_wwwPath" ] ; then
 		mkdir -p "$_wwwPath"
 		chmod -R a+rX "$_wwwPath"
@@ -323,54 +318,48 @@ $(ls -la $_wwwPath)" 0
 }
 getField()
 {	#returns just the first match... duplicates are ignored
-	$send2log "=== getField ===" 0
-	$send2log "arguments:  $1  $2" -1
 	local result=$(echo "$1" | grep -o -m1 "$2\":\"[^\"]\{1,\}" | cut -d\" -f3)
-	[ -z "$result" ] && $send2log "field '$2' not found in '$1'" 0
 	echo "$result"
-	$send2log "result: $2=$result " -1
+	$send2log "getField: $1 / $2=$result" 0
+	[ -z "$result" ] && $send2log "field '$2' not found in '$1'" -1
 }
 getCV()
 {	#returns just the first match... duplicates are ignored
-	$send2log "=== getCV === $2" 0
-	$send2log "arguments:  $1  $2" -1
 	local result=$(echo "$1" | grep -io -m1 "\"$2\":[\"0-9]\{1,\}" | grep -o "[0-9]\{1,\}");
-	[ -z "$result" ] && result=0 
 	echo "$result"
+	$send2log "getCV: $1 / $2=$result" 0
+	[ -z "$result" ] && result=0 && $send2log "field '$2' not found in '$1'... set to 0" -1
 }
 replace()
 {
-	$send2log "=== replace ===" 0
-	$send2log "arguments:  $1  $2  $3" -1
 	local line=$1
 	local srch="\"$2\":\"[^\"]*\""
 	local rplc="\"$2\":\"$3\""
 	$send2log "srch: $srch
-	rplc: $rplc" 0
+	rplc: $rplc" -1
 	local result=$(echo $line | sed -e "s~$srch~$rplc~Ig" )
-	[ -z "$result" ] && $send2log "field '$2' not found in '$1'" 0
 	echo "$result"
+	$send2log "replace:  $1  $2  $3 / $2=$result " 0
+	[ -z "$result" ] && $send2log "field '$2' not found in '$1'" -1
 }
 replaceNum()
 {
-	$send2log "=== replaceNum ===" 0
-	$send2log "arguments:  $1  $2  $3" -1
 	local line=$1
 	local srch="\"$2\":[0-9]*"
 	local rplc="\"$2\":$3"
 	local result=$(echo $line | sed -e "s~$srch~$rplc~Ig" )
-	[ -z "$result" ] && $send2log "field '$2' not found in '$1'" 0
 	echo "$result"
+	$send2log "replaceNum: $1 $2 $3 / $2=$result " 0
+	[ -z "$result" ] && $send2log "field '$2' not found in '$1'" -1
 }
 dailyBU()
 {
-	$send2log "=== Daily Backups === " 0
-	$send2log "arguments:  $1  $2  $3" -1
+	$send2log "Daily Backups:  $1  $2  $3" 0
 	local bupath=$_dailyBUPath
 	[ ! "${_dailyBUPath:0:1}" == "/" ] && bupath="${d_baseDir}/$_dailyBUPath"
 
 	if [ ! -d "$bupath" ] ; then
-		$send2log ">>> Creating Daily BackUp directory - $bupath" 1
+		$send2log ">>> Creating Daily BackUp directory - $bupath" 0
 		mkdir -p "$bupath"
 	fi
 	local manifest="/tmp/manifest.txt"
@@ -393,7 +382,7 @@ _hourlyUsageDB: $_hourlyUsageDB" > "$manifest"
 		if [ "$return" -ne "0" ] ; then
 			$send2log ">>> Back-up compression for $bu_ds failed! Tar returned $return" 2
 		else
-			$send2log ">>> Back-ups for $bu_ds compressed - tar exited successfully." 1
+			$send2log ">>> Back-ups for $bu_ds compressed - tar exited successfully." 0
 		fi
 	else
 		local budir="$bupath"'bu-'"$bu_ds/"
@@ -407,8 +396,7 @@ _hourlyUsageDB: $_hourlyUsageDB" > "$manifest"
 	fi
 }
 add2UDList(){
-	$send2log "=== add2UDList ===" 0
-	$send2log "arguments:  $1  $2  $3" -1
+	$send2log "add2UDList:  $1  $2  $3" 0
 	local ip=$1
 	local do=$2
 	local up=$3
@@ -427,8 +415,7 @@ $ip,$do,$up"
 	fi
 }
 createUDList(){
-	$send2log "=== createUDList ===" 0
-	$send2log "arguments:  $1" -1
+	$send2log "createUDList:  $1" -1
 	local results=''
 	local itd="$1"
 	IFS=$'\n'
@@ -451,8 +438,7 @@ createUDList(){
 	unset IFS
 }
 maxF(){
-	$send2log "=== maxF === " 0
-	$send2log "arguments:  $1	$2" -1
+	$send2log "maxF:  $1	$2" -1
 	[ -z "$1" ] && [ -z "$2" ] && echo 0 && return
 	[ -z "$1" ] && echo $2 && return
 	[ -z "$2" ] && echo $1 && return
@@ -460,8 +446,7 @@ maxF(){
 	echo $2
 }
 minF(){
-	$send2log "=== minF === " 0
-	$send2log "arguments:  $1	$2" -1
+	$send2log "minF:  $1	$2" -1
 	[ -z "$1" ] && [ -z "$2" ] && echo 0 && return
 	[ -z "$1" ] && echo $2 && return
 	[ -z "$2" ] && echo $1 && return
@@ -469,8 +454,7 @@ minF(){
 	echo $2
 }
 maxI(){
-	$send2log "=== maxI === " 0
-	$send2log "arguments:  $1	$2" -1
+	$send2log "maxI:  $1	$2" -1
 	[ -z "$1" ] && [ -z "$2" ] && echo 0 && return
 	[ -z "$1" ] && echo $2 && return
 	[ -z "$2" ] && echo $1 && return
@@ -478,8 +462,7 @@ maxI(){
 	echo $2
 }
 minI(){
-	$send2log "=== minI === " 0
-	$send2log "arguments:  $1	$2" -1
+	$send2log "minI:  $1	$2" -1
 	[ -z "$1" ] && [ -z "$2" ] && echo 0 && return
 	[ -z "$1" ] && echo $2 && return
 	[ -z "$2" ] && echo $1 && return
@@ -490,8 +473,7 @@ minI(){
 checkIPTableEntries()
 {
 	clearIPs(){
-		$send2log "=== clearIPs ===" 0
-		$send2log "arguments:  $1	$2	$3" -1
+		$send2log "clearIPs:  $1	$2	$3" 0
 		local cmd=$1
 		local chain=$2
 		local ip=$3
@@ -503,9 +485,7 @@ checkIPTableEntries()
 		done
 	} 
 	addIP(){
-		$send2log "=== addIP ===" 0
-		$send2log "addIP:  $1	$2	$3" -1
-
+		$send2log "addIP:  $1	$2	$3" 0
 		local cmd=$1
 		local chain=$2
 		local ip=$3
@@ -525,8 +505,7 @@ checkIPTableEntries()
 		fi
 	}
 
-	$send2log "=== checkIPTableEntries ===" 0
-	$send2log "checkIPTableEntries:  $1	$2	$3	$4" -1
+	$send2log "checkIPTableEntries:  $1	$2	$3	$4" 0
 
 	cmd=$1
 	chain=$2
@@ -549,14 +528,14 @@ checkIPTableEntries()
 	local gp=$(echo $(getField "$line" 'owner') | sed "s~[^a-z0-9]~~ig")
 	[ -z "$gp" ] && gp='Unknown'
 	local gn="${chain}_gp_$gp"
-	if [ -z "$(eval $cmd $_tMangleOption -L -vnx | grep -i "chain $gn")" ] ; then
+	if [ -z "$(eval $cmd $_tMangleOption -nL -vx | grep -i "chain $gn")" ] ; then
 		$send2log "Adding group chain to iptables: $gn  " 2
 		eval $cmd $_tMangleOption -N "$gn"
 		eval $cmd $_tMangleOption -A "$gn" -j "RETURN" -s $g_ip -d $g_ip
 	fi
 	
 	if [ "$nm" -eq "0" ]; then
-		$send2log "Adding rules in $chain for $mac & $ip" 2
+		$send2log "Adding rules in $chain for $mac & $ip" 0
 		addIP "$cmd" "$chain" "$ip"
 	else
 		$send2log "!!! Incorrect number of rules for $ip in $chain -> $nm... removing duplicates" 99
@@ -567,25 +546,24 @@ checkIPTableEntries()
 }
 checkIPChain()
 {
-	$send2log "=== checkIPChain === " 0
-	$send2log "arguments:  $1  $2  $3" -1
+	$send2log "checkIPChain:  $1  $2  $3" 0
 	local cmd="$1"
 	local chain="$2"
 	local base="$3"
 	local rule="${base}Entry"
-	$send2log "=== checkIPChain check $cmd for $chain === " 0
+	$send2log "checkIPChain check $cmd for $chain" 0
 
-    local oldRuleinChain=$(eval $cmd $_tMangleOption -L "$chain" | grep -ic "\b$base\b")
+    local oldRuleinChain=$(eval $cmd $_tMangleOption -nL "$chain" | grep -ic "\b$base\b")
     local i=1
 	$send2log ">>> oldRuleinChain-->$oldRuleinChain" 0
     while [ "$i" -le "$oldRuleinChain" ]; do
-        local dup_num=$(eval $cmd $_tMangleOption -L "$chain" --line-numbers | grep -m 1 -i "\b$base\b" | cut -d' ' -f1)
+        local dup_num=$(eval $cmd $_tMangleOption -nL "$chain" --line-numbers | grep -m 1 -i "\b$base\b" | cut -d' ' -f1)
         eval $cmd $_tMangleOption -D "$chain" $dup_num
 		$send2log ">>> $cmd $_tMangleOption -D "$chain" $dup_num" 0
         i=$(($i+1))
     done
     
-    local foundRuleinChain=$(eval $cmd $_tMangleOption -L "$chain" | grep -ic "\b$rule\b")
+    local foundRuleinChain=$(eval $cmd $_tMangleOption -nL "$chain" | grep -ic "\b$rule\b")
     if [ "$foundRuleinChain" -eq "1" ]; then
         $send2log ">>> Rule $rule exists in chain $chain ==> $foundRuleinChain" 0
     elif [ "$foundRuleinChain" -eq "0" ]; then
@@ -595,7 +573,7 @@ checkIPChain()
         $send2log "!!! Found $foundRuleinChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99
         local i=1
         while [  "$i" -le "$foundRuleinChain" ]; do
-            local dup_num=$($cmd -L "$chain" --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
+            local dup_num=$($cmd -nL "$chain" --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
             eval $cmd $_tMangleOption -D "$chain" $dup_num
             i=$(($i+1))
         done
@@ -604,8 +582,7 @@ checkIPChain()
 }
 getMACIPList(){
 	local iplist=$1
-	$send2log "=== getMACIPList === " 0
-	$send2log "arguments:  $1" -1
+	$send2log "getMACIPList:  $1" 0
 
 	#local list="$(eval "$iplist")"
 	local list="$1"
@@ -622,7 +599,7 @@ getMACIPList(){
 		
 		if [ "$mac" == "00:00:00:00:00:00" ] || [ "$mac" == "failed" ] || [ "$mac" == "incomplete" ] ; then
 			append=0
-		elif [ "$mac" == "$_bridgeMAC" ] ; then
+		elif [ -n "$(echo $_bridgeMAC | grep -i "$mac")" ] ; then
 			append=0
 			#$send2log "_bridgeMAC: $append" 1
 		else
@@ -637,42 +614,13 @@ $mac $ip"
 		else
 			result=$(echo "$result" | sed -e "s~$mac ~$mac $ip,~Ig")
 		fi
-		$send2log "mac: $mac / ip: $ip" 1
+		$send2log "mac: $mac / ip: $ip" 0
 	done
 	unset IFS
 	echo "$result"
 }
-
-getForwardData(){
-	$send2log "=== getForwardData === " 0
-	$send2log "arguments:  $1  $2" -1
-	local cmd="$1"
-	local chain="$2"
-    
-    local lc=$(eval $cmd $_tMangleOption -L "${chain}Local" -vnx | tr -s '-'  ' ' | sed 's~^\s*~~')
-	loco=$(echo "$lc" | grep "RETURN" | cut -d' ' -f2)
- 	[ -z "$loco" ] && loco=0   
-    local fc=$(eval $cmd $_tMangleOption -L FORWARD -vnx | tr -s '-'  ' ' | sed 's~^\s*~~')
-	ym=$(echo "$fc" | grep "$chain" | cut -d' ' -f2)
-	[ -z "$ym" ] && ym=0
-	IFS=$'\n'
-	l2=$(echo "$fc" | grep "lan2wan" | cut -d' ' -f2)
-	local l2w=0
-	for line in $l2
-	do
-		l2w=$(digitAdd "$l2w" "$line")
-	done
-
-	dp=$(eval $cmd $_tMangleOption -L -vnx | tr -s '-' ' ' | sed 's~^\s*~~' | grep "DROP" | cut -d' ' -f2)
-	local tot=0
-	for line in $dp
-	do
-		tot=$(digitAdd "$tot" "$line")
-	done
-	echo ", '$cmd': {\"$chain\":$ym,\"lan2wan\":$l2w,\"DROP\":$tot,\"local\":$loco}"
-}
 save2File(){ #old... likely unused but left in for legacy
-	$send2log "arguments:  $1  $2  $3" -1
+	$send2log "save2File:  $1  $2  $3" -1
 	local s_path=${2//\/\//\/}
 	if [ -z "$3" ] ;  then
 		echo "$1" > "$s_path" #replace the file if param #3 is null
@@ -684,8 +632,7 @@ save2File(){ #old... likely unused but left in for legacy
 	[ "$_enable_ftp" -eq 1 ] && send2FTP "$s_path"
 }
 save2File_0(){ #no FTP
-	$send2log "=== save2File0 === " 0
-	$send2log "arguments:  $1  $2  $3" -1
+	$send2log "save2File0: $2  $3" 0
 	local s_path=${2//\/\//\/}
 	if [ -z "$3" ] ;  then
 		echo "$1" > "$s_path" #replace the file if param #3 is null
@@ -696,8 +643,7 @@ save2File_0(){ #no FTP
 	fi
 }
 save2File_1(){ # save & FTP
-	$send2log "=== save2File1 === " 0
-	$send2log "arguments:  $1  $2  $3" -1
+	$send2log "save2File1:   $2  $3" 0
 	local s_path=${2//\/\//\/}
 	if [ -z "$3" ] ;  then
 		echo "$1" > "$s_path" #replace the file if param #3 is null
@@ -709,8 +655,7 @@ save2File_1(){ # save & FTP
 	send2FTP "$s_path"
 }
 send2FTP(){
-	$send2log "=== send2FTP === " 0
-	$send2log "arguments:  $1" -1
+	$send2log "send2FTP" 0
 	local fname=$(echo "$1" | sed -e "s~${d_baseDir}/$_webDir~~Ig" | sed -e "s~$d_baseDir~~Ig" | sed -e "s~$_wwwPath~~Ig" | sed -e "s~$_dataDir~$_wwwData~Ig")
 	local ftp_path="$_ftp_dir/$fname"
 	ftp_path=${ftp_path//\/\//\/}
@@ -720,8 +665,6 @@ send2FTP(){
 
 digitAdd()
 {
-	$send2log "=== digitAdd  === " 0
-	$send2log "arguments:  $1  $2" -1
 	local n1=$1
 	local n2=$2
 	local l1=${#n1}
@@ -750,11 +693,10 @@ digitAdd()
 	[ "$carry" -eq "1" ] && total="$carry$total"
 	[ -z "$total" ] && total=0
 	echo $total
+	$send2log "digitAdd: $1 + $2 = $total" -1
 }
 digitSub()
 {
-	$send2log "=== digitSub  === " 0
-	$send2log "arguments:  $1  $2" -1
 	local n1=$(echo "$1" | sed 's/-*//')
 	local n2=$(echo "$2" | sed 's/-*//')
 	[ -z "$n1" ] && n1=0
@@ -790,4 +732,5 @@ digitSub()
 	done
 	[ "$b" -eq "1" ] && total="-$total"
 	echo $(echo "$total" | sed 's/0*//')
+	$send2log "digitSub: $1 - $2 = $total" -1
 }

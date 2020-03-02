@@ -26,10 +26,10 @@ _lockDir="/tmp/YAMon$_file_version-running"
 
 YAMON_IP4='YAMON34v4'
 YAMON_IP6='YAMON34v6'
-
 _PRIVATE_IP4_BLOCKS='172.16.0.0/12,10.0.0.0/8,192.168.0.0/16'
-_LOCAL_IPS='255.255.255.255,224.0.0.1,127.0.0.1'
+_LOCAL_IP4='255.255.255.255,224.0.0.1,127.0.0.1'
 _PRIVATE_IP6_BLOCKS='fc00::/7,ff02::/7'
+[ -z "$_local_ip6" ] && _local_ip6='fe80:'
 
 #global defaults
 d_firmware=0

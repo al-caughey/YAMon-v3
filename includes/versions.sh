@@ -9,6 +9,7 @@
 # 2018-02-23: updated to 3.4.2
 # 2018-03-09: updated to 3.4.3
 # 2018-03-23: updated to 3.4.4
+# 2018-07-10: updated to 3.4.5
 
-_version='3.4.4'
+_version='3.4.5'
 _file_version='3.4'
