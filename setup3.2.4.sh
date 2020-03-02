@@ -19,6 +19,7 @@
 # 3.2.1 (2017-01-28): added rm for index.html & call to setWebDirectories
 # 3.2.2 (2017-01-29): added check for DHCP
 # 3.2.3 (2017-02-05): _setupWebIndex & symlink cleanup
+# 3.2.4 (2017-02-20): no changes... updated for consistency
 
 d_baseDir="$YAMON"
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
@@ -357,7 +358,6 @@ that the defaults are appropriate for your network configuration.
 
 "
 echo "$configStr" > "$_configFile"
-
 su="${d_baseDir}startup.sh"
 sd="${d_baseDir}shutdown.sh"
 ya="${d_baseDir}yamon${_version}.sh"

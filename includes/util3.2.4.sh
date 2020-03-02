@@ -9,6 +9,7 @@
 # 3.2.1 (2017-01-28): moved setWebDirectories from yamon.x.sh to util.3.2
 # 3.2.2 (2017-01-29): removed write2log; removed unused debugging calls
 # 3.2.3 (2017-01-29): added line to remove symlink
+# 3.2.4 (2017-02-20): no changes... updated for consistency
 ##########################################################################
 
 _enableLogging=1
@@ -26,8 +27,8 @@ showmsg()
 	echo -e "$msg"
 }
 
-prompt() 
-{  
+prompt()
+{
 	local resp
 	local vn=$1
 	eval nv=\"\$$vn\"
@@ -36,7 +37,7 @@ prompt()
 	_qn=$(($_qn + 1))
 	echo -e "
 ********************************
-#$_qn. $2 
+#$_qn. $2
 " >&2
 local p3="$3"
 [ ! -z "$p3" ] && p3="    $p3
@@ -186,14 +187,14 @@ setWebDirectories()
 		[ ! -d "$_wwwPath$_wwwJS" ] && mkdir -p "$_wwwPath$_wwwJS"
 		copyfiles "${_baseDir}$_setupWebDir*" "$_wwwPath"
 	fi
-    
+
     if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ]  ; then
 		local lan_ip=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
     else
 		local lan_ip=$(nvram get lan_ipaddr)
     fi
     echo "
-    
+
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     ~  Your reports URL: http://${lan_ip}/user/$_setupWebIndex
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
@@ -263,7 +264,7 @@ getCV()
 	send2log "	  arguments:  $1  $2" -1
 	local result=$(echo "$1" | grep -io "\"$2\":[\"0-9]\{1,\}" | grep -o "[0-9]\{1,\}");
 	[ -z $result ] && result=0
-	
+
 	echo "$result"
 }
 replace()
@@ -309,7 +310,7 @@ _hourlyUsageDB: $_hourlyUsageDB" > "$manifest"
 		send2log "  >>> Compressed back-ups for $bu_ds to $bupath"'bu-'"$bu_ds.tar" 0
 		local bp="${bupath}bu-$bu_ds.tar"
 		if [ "$_enableLogging" -eq "1" ] ; then
-			
+
 			tar -czf "$bp" "$manifest" "$_usersFile" "$_macUsageDB" "$_hourlyUsageDB" "$_logfilename" &
 		else
 			tar -czf "$bp" "$manifest" "$_usersFile" "$_macUsageDB" "$_hourlyUsageDB" &
@@ -347,7 +348,7 @@ $ip,$do,$up"
 		local pu=$(echo $le | cut -d',' -f3)
 		do=$(digitAdd "$do" "$pd")
 		up=$(digitAdd "$up" "$pu")
-		local tip=${ip//\./\\.}	
+		local tip=${ip//\./\\.}
 		_ud_list=$(echo "$_ud_list" | sed -e "s~^$tip\b.*~$ip,$do,$up~Ig")
 	fi
 }
@@ -380,7 +381,7 @@ createUDList(){
 doFinalBU()
 {
 	send2log "=== doFinalBU ===" 0
-	
+
 	local ds=$(date +"%Y-%m-%d_%H-%M-%S")
 	if [ "${_wwwBU:0:1}" == "/" ] ; then
 		w3BUpath=$_wwwBU
@@ -485,7 +486,7 @@ checkIPChain()
             [ "$foundRule" -eq "0" ] && $($cmd -N $rule) && sleep 2
             $($cmd -I "$chain" -j "$rule")
         else
-            send2log "  !!! Found $foundChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99	
+            send2log "  !!! Found $foundChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99
             local i=1
             while [  "$i" -le "$foundChain" ]; do
                 local dup_num=$($cmd -L "$chain" --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
@@ -494,7 +495,7 @@ checkIPChain()
             done
             $($cmd -I "$chain" -j "$rule")
         fi
-    else    
+    else
         foundRule=$($cmd -t mangle -L | grep -ic "chain $rule")
         foundChain=$($cmd -t mangle -L "$chain" | grep -ic "\b$rule\b")
         if [ "$foundChain" -eq "1" ]; then
@@ -504,7 +505,7 @@ checkIPChain()
             [ "$foundRule" -eq "0" ] && $($cmd -t mangle -N $rule)
             $($cmd -t mangle -I "$chain" -j "$rule")
         else
-            send2log "  !!! Found $foundChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99	
+            send2log "  !!! Found $foundChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99
             local i=1
             while [  "$i" -le "$foundChain" ]; do
                 local dup_num=$($cmd -t mangle -L $chain --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
@@ -520,15 +521,15 @@ getMACIPList(){
 	local rule=$2
 	send2log "=== getMACIPList ($cmd/$rule) === " 0
     if [ "$_useTMangle" -eq "0" ] ; then
-        local rules=$(echo "$($cmd -nL "$rule" --line-numbers )" | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5) 
+        local rules=$(echo "$($cmd -nL "$rule" --line-numbers )" | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5)
     else
-        local rules=$(echo "$($cmd -t mangle -nL "$rule" --line-numbers )" | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5) 
+        local rules=$(echo "$($cmd -t mangle -nL "$rule" --line-numbers )" | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5)
     fi
-	if [ -z "$rules" ] ; then 
+	if [ -z "$rules" ] ; then
 		send2log "	$rule returned nothing?!?" 2
 		checkIPChain $cmd "FORWARD" $rule
 		checkIPChain $cmd "INPUT" $rule
-	fi 
+	fi
 	send2log "	  rules-->
 $rules" -1
 	local list=$3
@@ -541,7 +542,7 @@ $rules" -1
 		local mac=$(echo "$line" | cut -d' ' -f2)
 		local nm=$(echo "$rules" | grep -ic "\b$tip\b" )
 		checkIPTableEntries $cmd $rule $ip $nm
-		
+
 		local me=$(echo "$result" | grep $mac )
 		if [ -z "$me" ] ; then
 			result="$result
