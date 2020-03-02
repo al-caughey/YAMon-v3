@@ -10,6 +10,7 @@
 # 3.2.2 (2017-01-29): removed write2log; removed unused debugging calls
 # 3.2.3 (2017-01-29): added line to remove symlink
 # 3.2.4 (2017-02-20): no changes... updated for consistency
+# 3.2.5 (2017-02-20): added generic user 0.0.0.0/0
 ##########################################################################
 
 _enableLogging=1
@@ -40,27 +41,27 @@ prompt()
 #$_qn. $2
 " >&2
 local p3="$3"
-[ ! -z "$p3" ] && p3="    $p3
+[ ! -z "$p3" ] && p3="	$p3
 "
 
 	if [ -z $nv ] && [ -z $df ] ; then
 		nv='n/a'
 		df='n/a'
-		readStr="$p3    - type your preferred value --> "
+		readStr="$p3	- type your preferred value --> "
 	elif [ -z $df ] ; then
-		readStr="$p3    - hit <enter> to accept the current value: \`$nv\`, or
-    - type your preferred value --> "
+		readStr="$p3	- hit <enter> to accept the current value: \`$nv\`, or
+	- type your preferred value --> "
 	elif [ -z $nv ] ; then
 		nv='n/a'
-		readStr="$p3    - hit <enter> to accept the default: \`$df\`, or
-    - type your preferred value --> "
+		readStr="$p3	- hit <enter> to accept the default: \`$df\`, or
+	- type your preferred value --> "
 	elif [ "$df" == "$nv" ] ; then
-		readStr="$p3    - hit <enter> to accept the current/default value: \`$df\`, or
-    - type your preferred value --> "
+		readStr="$p3	- hit <enter> to accept the current/default value: \`$df\`, or
+	- type your preferred value --> "
 	else
-		readStr="$p3    - hit <enter> to accept the current value: \`$nv\`, or
-    - type \`d\` for the default: \`$df\`, or
-    - type your preferred value --> "
+		readStr="$p3	- hit <enter> to accept the current value: \`$nv\`, or
+	- type \`d\` for the default: \`$df\`, or
+	- type your preferred value --> "
 	fi
 	local tries=0
 	while true; do
@@ -69,8 +70,7 @@ local p3="$3"
 		[ ! "$nv" == 'n/a' ] && [ -z "$resp" ] && resp="$nv" && break
 		[ "$nv" == 'n/a' ] && [ ! "$df" == 'n/a' ] && [ -z "$resp" ] && resp="$df" && break
 		if [ ! -z "$regex" ] ;  then
-			ig=$(echo "$resp" | egrep $regex)
-			#echo "ig --> $ig ($regex)" >&2
+			ig=$(echo "$resp" | grep -E $regex)
 			[ ! "$ig" == '' ] && [ "$resp" == 'n' ] || [ "$resp" == 'N' ] && resp="0" && break
 			[ ! "$ig" == '' ] && [ "$resp" == 'y' ] || [ "$resp" == 'Y' ] && resp="1" && break
 			[ ! "$ig" == '' ] && break
@@ -99,14 +99,16 @@ updateConfig(){
 	local l1=${#sm}
 	local l2=${#rv}
 	#echo "updateConfig: sm--> $sm ($l1)// rv--> $rv ($l2)" >&2
-	local spacing='                                         '
+	local spacing='========================================='
 	if [ -z "$sm" ] ; then
 		local pad=${spacing:0:$((45-$l2+1))}
+		pad=${pad//=/ }
 		configStr="$configStr
 $vn='$nv'$pad # Added"
 	#echo "updateConfig: $vn='$nv'$pad# Added" >&2
 	else
 		local pad=${spacing:0:$(($l1-$l2+1))}
+		pad=${pad//=/ }
 		configStr=$(echo "$configStr" | sed -e "s~$sv~$rv$pad#~g")
 	fi
 	#echo "updateConfig: configStr--> $configStr" >&2
@@ -147,7 +149,7 @@ send2log()
 		local ts=$(date +"%H:%M:%S")
 		#[ "$ll" -ge "$_loglevel" ] && [ "$_log2file" -gt "0" ] && _log_str="$_log_str
 #$_ds	$ts $ll	$1"
-        [ "$ll" -ge "$_loglevel" ] && [ "$_log2file" -gt "0" ] && echo -e "$_ds\t$ts\t$ll\t$1" >> $_logfilename
+		[ "$ll" -ge "$_loglevel" ] && [ "$_log2file" -gt "0" ] && echo -e "$_ds\t$ts\t$ll\t$1" >> $_logfilename
 		[ "$ll" -ge "$_scrlevel" ] && [ "$_log2file" -ne "1" ] && echo -e "$ts $ll $1" >&2
 		[ "$ll" -eq "99" ] && [ "$_sendAlerts" -gt "0" ] && sendAlert "YAMon Alert..." "$1"
 	fi
@@ -161,11 +163,11 @@ setWebDirectories()
 			mkdir -p "$_wwwPath"
 			chmod -R a+rX "$_wwwPath"
 		fi
-        if [ "${_logDir:0:1}" == "/" ] ; then
-            local lfpath=$_logDir
-        else
-            local lfpath="${_baseDir}$_logDir"
-        fi
+		if [ "${_logDir:0:1}" == "/" ] ; then
+			local lfpath=$_logDir
+		else
+			local lfpath="${_baseDir}$_logDir"
+		fi
 
 		[ ! -d "$_wwwPath$_wwwJS" ] && mkdir -p "$_wwwPath$_wwwJS"
 		local lcss=${_wwwCSS%/}
@@ -174,8 +176,8 @@ setWebDirectories()
 		local ljs=${_wwwData%/}
 		local llogs='logs'
 
-        [ -h "${_wwwPath}${_setupWebIndex}" ]  && rm -fv "${_wwwPath}${_setupWebIndex}"
-        [ -h "${_wwwPath}${ldata}" ]  && rm -fv "${_wwwPath}${ldata}"
+		[ -h "${_wwwPath}${_setupWebIndex}" ]  && rm -fv "${_wwwPath}${_setupWebIndex}"
+		[ -h "${_wwwPath}${ldata}" ]  && rm -fv "${_wwwPath}${ldata}"
 
 		[ ! -h "$_wwwPath$lcss" ] && ln -s "${_baseDir}$_setupWebDir$lcss" "$_wwwPath$lcss"
 		[ ! -h "$_wwwPath$limages" ] && ln -s "${_baseDir}$_setupWebDir$limages" "$_wwwPath$limages"
@@ -188,17 +190,17 @@ setWebDirectories()
 		copyfiles "${_baseDir}$_setupWebDir*" "$_wwwPath"
 	fi
 
-    if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ]  ; then
+	if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ]  ; then
 		local lan_ip=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
-    else
+	else
 		local lan_ip=$(nvram get lan_ipaddr)
-    fi
-    echo "
+	fi
+	echo "
 
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    ~  Your reports URL: http://${lan_ip}/user/$_setupWebIndex
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-    send2log "Reports URL: http://${lan_ip}/user/$_setupWebIndex" 1
+	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	~  Your reports URL: http://${lan_ip}/user/$_setupWebIndex
+	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+	send2log "Reports URL: http://${lan_ip}/user/$_setupWebIndex" 1
 }
 getMI()
 {
@@ -427,46 +429,71 @@ minI(){
 
 checkIPTableEntries()
 {
+	clearIPs(){
+		local cmd=$1
+		local chain=$2
+		local ip=$3
+		[ "$ip" == "$g_ip" ] && return
+		while [ true ]; do
+			local dup_num=$($cmd -vnxL "$chain" --line-numbers | grep -m 1 -i "\b$ip\b" | cut -d' ' -f1)
+			[ -z "$dup_num" ] && break
+			$($cmd -D "$chain" $dup_num)
+		done
+	}
+	addIP(){
+		local cmd=$1
+		local chain=$2
+		local ip=$3
+		clearIPs "$cmd" "$chain" "$g_ip\s*$g_ip"
+		$($cmd -I "$chain" -s "$ip" -j RETURN)
+		$($cmd -I "$chain" -d "$ip" -j RETURN)
+		$($cmd -A "$chain" -s "$g_ip" -j RETURN)
+		$($cmd -A "$chain" -d "$g_ip" -j RETURN)
+	}
+	clearIPs_t(){
+		local cmd=$1
+		local chain=$2
+		local ip=$3
+		[ "$ip" == "$g_ip" ] && return
+		while [ true ]; do
+			local dup_num=$($cmd -t mangle -vnxL "$chain" --line-numbers | grep -m 1 -i "\b$ip\b" | cut -d' ' -f1)
+			[ -z "$dup_num" ] && break
+			$($cmd -t mangle -D "$chain" $dup_num)
+		done
+	}
+	addIP_t(){
+		local cmd=$1
+		local chain=$2
+		local ip=$3
+		clearIPs_t "$cmd" "$chain" "$g_ip\s*$g_ip"
+		$($cmd -t mangle -I "$chain" -s "$ip" -j RETURN)
+		$($cmd -t mangle -I "$chain" -d "$ip" -j RETURN)
+		$($cmd -t mangle -A "$chain" -s "$g_ip" -j RETURN)
+		$($cmd -t mangle -A "$chain" -d "$g_ip" -j RETURN)
+	}
 	send2log "=== checkIPTableEntries === " 0
-	nm=$4
-	ip=$3
-	if [ "$nm" -eq "2" ]; then
-		send2log "  >>> $nm rules exist in $chain for $ip" -1
-		return
-	fi
 	cmd=$1
 	chain=$2
+	ip=$3
+	nm=$4
+	g_ip="$_generic_ipv4"
+	[ "$cmd" == 'ip6tables' ] && g_ip="$_generic_ipv6"
+
 
 	if [ "$_useTMangle" -eq "0" ] && [ "$nm" -eq "0" ]; then
 		send2log "  >>> Added rules to $chain for $mac-->$ip" 1
-		$($cmd -I "$chain" -d "$ip" -j RETURN)
-		$($cmd -I "$chain" -s "$ip" -j RETURN)
+		addIP "$cmd" "$chain" "$ip"
 	elif [ "$nm" -eq "0" ]; then
 		send2log "  >>> Added rules to $chain for $mac-->$ip" 1
-		$($cmd -t mangle -A "$chain" -d "$ip" -j RETURN)
-		$($cmd -t mangle -A "$chain" -s "$ip" -j RETURN)
-    elif [ "$_useTMangle" -eq "0" ] ; then
+		addIP_t "$cmd" "$chain" "$ip"
+	elif [ "$_useTMangle" -eq "0" ] ; then
 		send2log "  !!! Incorrect number of rules for $ip in $chain -> $nm... removing duplicates" 99
-		$($cmd -F $chain)
-		local i=1
-		while [  "$i" -le "$nm" ]; do
-			local dup_num=$($cmd -L "$chain" --line-numbers | grep -m 1 -i "\b$ip\b" | cut -d' ' -f1)
-			$($cmd -D "$chain" $dup_num)
-			i=$(($i+1))
-		done
-		$($cmd -I "$chain" -d "$ip" -j RETURN)
-		$($cmd -I "$chain" -s "$ip" -j RETURN)
+		clearIPs "$cmd" "$chain" "$ip"
+		addIP "$cmd" "$chain" "$ip"
 	else
 		send2log "  !!! Incorrect number of rules for $ip in $chain -> $nm... removing duplicates" 99
-		$($cmd -t mangle -F $chain)
-		local i=1
-		while [  "$i" -le "$nm" ]; do
-			local dup_num=$($cmd -t mangle -L "$chain" --line-numbers | grep -m 1 -i "\b$ip\b" | cut -d' ' -f1)
-			$($cmd -t mangle -D "$chain" $dup_num)
-			i=$(($i+1))
-		done
-		$($cmd -t mangle -A "$chain" -d "$ip" -j RETURN)
-		$($cmd - t mangle -A "$chain" -s "$ip" -j RETURN)
+		clearIPs_t "$cmd" "$chain" "$ip"
+		addIP_t "$cmd" "$chain" "$ip"
 	fi
 }
 checkIPChain()
@@ -476,55 +503,55 @@ checkIPChain()
 	local chain=$2
 	local rule=$3
 	send2log "=== check $cmd for $chain ===" 0
-    if [ "$_useTMangle" -eq "0" ] ; then
-        foundRule=$($cmd -L | grep -ic "chain $rule")
-        foundChain=$($cmd -L "$chain" | grep -ic "\b$rule\b")
-        if [ "$foundChain" -eq "1" ]; then
-            send2log "  >>> Rule $rule exists in chain $chain ==> $foundChain" 0
-        elif [ "$foundChain" -eq "0" ]; then
-            send2log "  >>> Created rule $rule in chain $chain ==> $foundChain" 2
-            [ "$foundRule" -eq "0" ] && $($cmd -N $rule) && sleep 2
-            $($cmd -I "$chain" -j "$rule")
-        else
-            send2log "  !!! Found $foundChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99
-            local i=1
-            while [  "$i" -le "$foundChain" ]; do
-                local dup_num=$($cmd -L "$chain" --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
-                $($cmd -D "$chain" $dup_num)
-                i=$(($i+1))
-            done
-            $($cmd -I "$chain" -j "$rule")
-        fi
-    else
-        foundRule=$($cmd -t mangle -L | grep -ic "chain $rule")
-        foundChain=$($cmd -t mangle -L "$chain" | grep -ic "\b$rule\b")
-        if [ "$foundChain" -eq "1" ]; then
-            send2log "  >>> Rule $rule exists in chain $chain ==> $foundChain" 0
-        elif [ "$foundChain" -eq "0" ]; then
-            send2log "  >>> Created rule $rule in chain $chain ==> $foundChain" 2
-            [ "$foundRule" -eq "0" ] && $($cmd -t mangle -N $rule)
-            $($cmd -t mangle -I "$chain" -j "$rule")
-        else
-            send2log "  !!! Found $foundChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99
-            local i=1
-            while [  "$i" -le "$foundChain" ]; do
-                local dup_num=$($cmd -t mangle -L $chain --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
-                $($cmd -t mangle -D $chain $dup_num)
-                i=$(($i+1))
-            done
-            $($cmd -t mangle -I $chain -j $rule)
-        fi
+	if [ "$_useTMangle" -eq "0" ] ; then
+		foundRule=$($cmd -L | grep -ic "chain $rule")
+		foundChain=$($cmd -L "$chain" | grep -ic "\b$rule\b")
+		if [ "$foundChain" -eq "1" ]; then
+			send2log "  >>> Rule $rule exists in chain $chain ==> $foundChain" 0
+		elif [ "$foundChain" -eq "0" ]; then
+			send2log "  >>> Created rule $rule in chain $chain ==> $foundChain" 2
+			[ "$foundRule" -eq "0" ] && $($cmd -N $rule) && sleep 2
+			$($cmd -I "$chain" -j "$rule")
+		else
+			send2log "  !!! Found $foundChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99
+			local i=1
+			while [  "$i" -le "$foundChain" ]; do
+				local dup_num=$($cmd -L "$chain" --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
+				$($cmd -D "$chain" $dup_num)
+				i=$(($i+1))
+			done
+			$($cmd -I "$chain" -j "$rule")
+		fi
+	else
+		foundRule=$($cmd -t mangle -L | grep -ic "chain $rule")
+		foundChain=$($cmd -t mangle -L "$chain" | grep -ic "\b$rule\b")
+		if [ "$foundChain" -eq "1" ]; then
+			send2log "  >>> Rule $rule exists in chain $chain ==> $foundChain" 0
+		elif [ "$foundChain" -eq "0" ]; then
+			send2log "  >>> Created rule $rule in chain $chain ==> $foundChain" 2
+			[ "$foundRule" -eq "0" ] && $($cmd -t mangle -N $rule)
+			$($cmd -t mangle -I "$chain" -j "$rule")
+		else
+			send2log "  !!! Found $foundChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99
+			local i=1
+			while [  "$i" -le "$foundChain" ]; do
+				local dup_num=$($cmd -t mangle -L $chain --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
+				$($cmd -t mangle -D $chain $dup_num)
+				i=$(($i+1))
+			done
+			$($cmd -t mangle -I $chain -j $rule)
+		fi
 	fi
 }
 getMACIPList(){
 	local cmd=$1
 	local rule=$2
 	send2log "=== getMACIPList ($cmd/$rule) === " 0
-    if [ "$_useTMangle" -eq "0" ] ; then
-        local rules=$(echo "$($cmd -nL "$rule" --line-numbers )" | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5)
-    else
-        local rules=$(echo "$($cmd -t mangle -nL "$rule" --line-numbers )" | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5)
-    fi
+	if [ "$_useTMangle" -eq "0" ] ; then
+		local rules=$(echo "$($cmd -nL "$rule" --line-numbers )" | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5)
+	else
+		local rules=$(echo "$($cmd -t mangle -nL "$rule" --line-numbers )" | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5)
+	fi
 	if [ -z "$rules" ] ; then
 		send2log "	$rule returned nothing?!?" 2
 		checkIPChain $cmd "FORWARD" $rule
@@ -541,7 +568,7 @@ $rules" -1
 		local tip=${ip//\./\\.}
 		local mac=$(echo "$line" | cut -d' ' -f2)
 		local nm=$(echo "$rules" | grep -ic "\b$tip\b" )
-		checkIPTableEntries $cmd $rule $ip $nm
+		[ "$nm" -ne "2" ] && checkIPTableEntries $cmd $rule $ip $nm
 
 		local me=$(echo "$result" | grep $mac )
 		if [ -z "$me" ] ; then
@@ -558,11 +585,11 @@ $mac $ip"
 getForwardData(){
 	local cmd="$1"
 	local chain="$2"
-    if [ "$_useTMangle" -eq "0" ] ; then
-        local fc=$($cmd -L FORWARD -vnx | tr -s '-'  ' ' | sed 's~^\s*~~')
-    else
-        local fc=$($cmd -t mangle -L FORWARD -vnx | tr -s '-'  ' ' | sed 's~^\s*~~')
-    fi
+	if [ "$_useTMangle" -eq "0" ] ; then
+		local fc=$($cmd -L FORWARD -vnx | tr -s '-'  ' ' | sed 's~^\s*~~')
+	else
+		local fc=$($cmd -t mangle -L FORWARD -vnx | tr -s '-'  ' ' | sed 's~^\s*~~')
+	fi
 	ym=$(echo "$fc" | grep "$chain" | cut -d' ' -f2)
 	[ -z "$ym" ] && ym=0
 	l2w=$(echo "$fc" | grep "lan2wan" | cut -d' ' -f2)
@@ -591,11 +618,11 @@ send2FTP(){
 	send2log "=== send2FTP === " 0
 	#local fname=${1##*/}
 	local fname=$(echo "$1" | sed -e "s~$_baseDir$_setupWebDir~~Ig" | sed -e "s~$d_baseDir~~Ig" | sed -e "s~$_wwwPath~~Ig" | sed -e "s~$_dataDir~$_wwwData~Ig")
-    if [ "${fname:0:1}" == "/" ] ; then
-        local ftp_path="$_ftp_dir$fname"
-    else
-        local ftp_path="$_ftp_dir/$fname"
-    fi
+	if [ "${fname:0:1}" == "/" ] ; then
+		local ftp_path="$_ftp_dir$fname"
+	else
+		local ftp_path="$_ftp_dir/$fname"
+	fi
 	ftpput -u "$_ftp_user" -p "$_ftp_pswd" "$_ftp_site" "$ftp_path" "$1"
 	send2log "send2FTP --> $1 sent to FTP site ($ftp_path)" 1
 }

@@ -26,12 +26,18 @@ source "$d_baseDir/strings/$_lang/strings.sh"
 # stop the script by removing the locking directory
 
 ir=$(ps | grep -v "grep" | grep -c "yamon")
-
 if [ ! -d $_lockDir ] && [ "$ir" -eq "0" ]; then
 	echo "$_s_notrunning"
 	exit 0
-elif [ -d $_lockDir ] && [ "$ir" -gt "0" ]; then
-	rmdir $_lockDir
+fi
+
+rmdir $_lockDir
+if [ "$ir" -eq "0" ]; then
+	echo "$_s_stopped"
+	exit 0
+fi
+
+if [ "$ir" -gt "0" ]; then
 	echo "$_s_stopping"
 	n=0
 	while [ true ] ; do
@@ -42,15 +48,18 @@ elif [ -d $_lockDir ] && [ "$ir" -gt "0" ]; then
 		sleep 1
 	done
 fi
+ir=$(ps | grep -v "grep" | grep -c "yamon")
 if [ "$ir" -gt "0" ]; then
 	echo "$ir Zombie processes need to be killed?!?"
+	echo "$(ps | grep -v 'grep' | grep 'yamon')"
 	while [ true ] ; do
-		n=$(($n + 1))
 		pid=$(ps | grep -v grep | grep yamon | cut -d' ' -f1)
-		[ "$n" -gt "$_updatefreq" ] || [ -z "$pid" ] && break;
+		[ -z "$pid" ] && break;
+        [ "$o_pid" == "$pid" ] && "did not kill process: $pid ?!? try rebooting your router" && break
 		kill $pid
 		echo "killed process: $pid"
 		sleep 1
+        o_pid=$pid
 	done
 fi
 

@@ -72,7 +72,7 @@ local zot_r=^[012]$
 
 local mo=$(date +%m)
 local rYear=$(date +%Y)
-prompt 'mo' "Enter the month number of the reporting interval for which your are missing data:" '(Jan-->0, Feb-->1... Dec-->12)' "$mo" ^[1-9]$\|^[1][0-2]$
+prompt 'mo' "Enter the month number of the reporting interval for which your are missing data:" '(Jan-->1, Feb-->2... Dec-->12)' "$mo" ^[1-9]$\|^[1][0-2]$
 prompt 'rYear' "Enter the year:" '' "$rYear" ^20[1-9][0-9]$
 prompt 'just' "Do you want to update the entire month or just one specific day?" 'Select 0 for the entire month or input the day number' "0" ^[0-9]$\|^[12][0-9]$\|^[3][01]$
 ap=0
@@ -108,6 +108,7 @@ if [ "$ap" -eq "0" ] ; then
 fi
 
 _macUsageDB="$savePath$rYear-$rMonth-$rDay-$_usageFileName"
+#_macUsageDB="$savePath$rYear-$rMonth-$_usageFileName"
 ds=$(date +"%Y-%m-%d %H:%M:%S")
 if [ ! -f "$_macUsageDB" ] ; then
 	touch $_macUsageDB

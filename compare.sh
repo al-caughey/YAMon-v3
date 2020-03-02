@@ -30,15 +30,29 @@ getlatest()
 	fi
 }
 
-YAMON=`dirname $0`
 _sync=''
 [ -f "/tmp/files.txt" ] && rm "/tmp/files.txt"
-arg=$1
-[ ! -z "$arg" ] && arg="?bv=$arg"
 
-wget "http://usage-monitoring.com/$directory/YAMon3/Setup/compare.php$arg" -U "YAMon-Setup" -qO "/tmp/files.txt"
+if [ "$param" == 'verify' ] ; then
+	arg=''
+	echo "
 
-echo "
+**********************************
+Verifying that all files were downloaded successfully.
+
+If the chart below shows files that are missing or differ
+from the server, re-run install.sh.
+
+If that still does not clear up the differences, see
+	http://usage-monitoring.com/common-problems.php
+"
+
+else
+
+    YAMON=`dirname $0`
+	[ ! -z "$1" ] && arg="?bv=$1"
+
+	echo "
 **********************************
 This script allows you to compare the md5 signatures of the files on
 your router with the current versions at http://usage-monitoring.com.
@@ -48,38 +62,42 @@ You can choose to compare or synchronize the files
 those at usage-monitoring.com).
 "
 
-resp=''
-echo "Compare \`current\` or \`dev\` directories?
+	resp=''
+	echo "Compare \`current\` or \`dev\` directories?
 NB - normally you should pick \`current\`"
-readstr="--> Enter \`d\` for \`dev\` or anything else for \`current\`:"
-read -p "$readstr" resp
-if [ "$resp" == 'd' ] || [ "$resp" == 'D' ] ; then
+	readstr="--> Enter \`d\` for \`dev\` or anything else for \`current\`:"
+	read -p "$readstr" resp
+	if [ "$resp" == 'd' ] || [ "$resp" == 'D' ] ; then
 	directory='dev'
-fi
-echo "
+	fi
+	echo "
 
 ***********************"
-resp=''
-echo "What would you like to do?"
-readstr="--> Enter \`s\` to sync the files or anything else to just compare:"
-read -p "$readstr" resp
-if [ "$resp" == 's' ] || [ "$resp" == 'S' ] ; then
+	resp=''
+	echo "What would you like to do?"
+	readstr="--> Enter \`s\` to sync the files or anything else to just compare:"
+	read -p "$readstr" resp
+	if [ "$resp" == 's' ] || [ "$resp" == 'S' ] ; then
 	_sync=1
+	fi
 fi
+
 echo "
 
 ***********************"
+
+wget "http://usage-monitoring.com/$directory/YAMon3/Setup/compare.php$arg" -U "YAMon-Setup" -qO "/tmp/files.txt"
 
 n=0
-spacing='                                                            '
+spacing='========================='
 needsRestart=''
 allMatch=''
 echo "
 Comparing files...
    remote path: \`http://usage-monitoring.com/$directory/YAMon3/Setup/\`
-    local path: \`$YAMON\`
+	local path: \`$YAMON\`
 
-   file                                 status
+   file                              status
 --------------------------------------------------"
 while IFS=, read fn smd5
 do
@@ -87,12 +105,13 @@ do
 	n=$((n + 1))
 	ts="$n. $fn:"
 	pad=${spacing:0:$((32-${#ts}+1))}
+	pad=${pad//=/ }
 
 	lmd5=$([ -f "$path" ] && echo $(md5sum "$path")| cut -d' ' -f1)
 	echo -n "$ts"
 	echo -n "$pad"
 	if [ "$smd5" == "$lmd5" ] ; then
-		echo "	matches"
+		echo "    matches"
 		continue
 	elif [ "$smd5" == "-" ] ; then
 		echo "?!? not on server"
@@ -124,13 +143,27 @@ if [ "$needsRestart" == "1" ] ; then
 	fi
 elif [ -z "$allMatch" ] ; then
 	echo "All of your files are up-to-date."
+elif [ ! -z "$allMatch" ] && [ "$param" == 'verify' ] ; then
+	echo "One or more of your files did not download properly.
+  Either re-run this script, or visit
+  \`http://usage-monitoring.com/manualInstall.php\` to update the
+  file(s) manually.
+
+  Send any questions or comments to install@usage-monitoring.com
+
+  Exiting install.sh....
+
+  "
+
+  exit 0
+
 elif [ ! -z "$allMatch" ] ; then
 	echo "One or more of your files is out-of-date and should be updated.
   Either re-run this script and hit \`s\` to sync all files, or
   visit \`http://usage-monitoring.com/manualInstall.php\` to update selectively."
 fi
 
-echo "
+[ -z "$param" ] && echo "
 Send any questions or comments to questions@usage-monitoring.com
 
 Thanks!

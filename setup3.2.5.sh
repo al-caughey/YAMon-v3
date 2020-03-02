@@ -20,13 +20,12 @@
 # 3.2.2 (2017-01-29): added check for DHCP
 # 3.2.3 (2017-02-05): _setupWebIndex & symlink cleanup
 # 3.2.4 (2017-02-20): no changes... updated for consistency
+# 3.2.5 (2017-03-06): no changes... updated for consistency
 
 d_baseDir="$YAMON"
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
 delay=$1
 [ -z $delay ] && delay=5
-
-_debugging=0  # set this value to 1 if Al tells you to... only needed if you are experiencing issues with this script
 
 source "${d_baseDir}/includes/versions.sh"
 source "${d_baseDir}/includes/defaults.sh"
@@ -164,7 +163,7 @@ schedule_enable=$(nvram get schedule_enable)
 schedule_hours=$(nvram get schedule_hours)
 schedule_minutes=$(nvram get schedule_minutes)
 send2log "schedule_enable --> $schedule_enable ($schedule_hours:$schedule_minutes)" 1
-[ "$schedule_enable" -eq "1" ] && [ "$schedule_hours" -eq "0" ] && [ "$schedule_minutes" -lt "10" ] && echo "
+[ ! -z "$schedule_enable" ] && [ "$schedule_enable" -eq "1" ] && [ "$schedule_hours" -eq "0" ] && [ "$schedule_minutes" -lt "10" ] && echo "
 $wrn
 $bl_a
   ##   Your router is scheduled to auto-reboot at '$schedule_hours:$schedule_minutes'.
@@ -401,7 +400,7 @@ else
 fi
 startup_delay=''
 prompt 'startup_delay' "By default, \`startup.sh\` will delay for 10 seconds prior to starting \`yamon${_version}.sh\`. Some routers may require extra time." 'Enter the start-up  delay [0-300]' '10' ^[0-9]$\|^[1-9][0-9]$\|^[1-2][0-9][0-9]$\|^300$
-if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] ; then
+if [ "$_firmware" -eq "1" ] ; then
 	etc_init="/etc/init.d/yamon3"
 	t_init=0
 	prompt 't_init' 'Create YAMon init script in `/etc/init.d/`?' "$yn_y" '1' $zo_r
@@ -431,6 +430,23 @@ boot() {
 	start
 }" > "$etc_init"
 		chmod +x "$etc_init"
+	fi
+elif [ "$_firmware" -eq "4" ] ; then
+    etc_rc="/etc/rc.local"
+	t_init=0
+	prompt 't_init' '"Create YAMon init script in `/etc/rc.local`?' "$yn_y" '1' $zo_r
+	if [ "$t_init" -eq "1" ] ; then
+		send2log "Created YAMon init script in $etc_rc" 1
+		[ ! -f "$etc_rc" ] && touch "$etc_rc" # is this even necessary?
+		c_txt=$(cat "$etc_rc")
+        if [ -z $(echo "$c_txt" | grep 'startup.sh') ] ; then
+           sed -i "s~exit 0~${su} \nexit 0~g" "$etc_rc"
+        else
+			send2log "Skipped adding startup.sh to $etc_rc" 1
+			echo -e "
+	etc_rc--> already contains the string \`startup.sh\`...
+	\`$su\` was not added"
+        fi
 	fi
 else
 	prompt 't_startup' 'Do you want to create startup and shutdown scripts?' "$yn_y" '1' $zo_r
@@ -480,6 +496,14 @@ $sd"
 		fi
 		[ ! -z "$need2commit" ] && nvram commit
 	fi
+fi
+
+if [ "$_useTMangle" -eq "0" ] ; then
+    $(iptables -F YAMONv4)
+    [ "$_includeIPv6" -eg "1" ] && $(ip6tables -F YAMONv6)
+else
+    $(iptables -t mangle -F YAMONv4)
+    [ "$_includeIPv6" -eg "1" ] && $(ip6tables -t mangle -F YAMONv6)
 fi
 
 prompt 't_launch' 'Do you want to launch YAMon now?' "$yn_y" '1' $zo_r

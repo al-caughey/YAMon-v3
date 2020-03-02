@@ -39,6 +39,7 @@
 # 3.2.2 (2017-01-29): tweaks to runtimestats & housecleaning; removed unused debugging call
 # 3.2.3 (2017-02-05): replace call to ip in line #91
 # 3.2.4 (2017-02-20): re-replaced call to ip in line #91
+# 3.2.5 (2017-02-20): added generic user (0.0.0.0/0) & mac (un:kn:ow:n0:0m:ac), fixed shutdown loop silliness; fixed issues for LEDE
 # ==========================================================
 #				  Functions
 # ==========================================================
@@ -90,17 +91,17 @@ setInitValues(){
 	local cansort=$(echo "$(command -v sort)")
 	[ ! -z "$canSort" ] && sortStr=" | sort -k2"
 
-    local p2ip=$(command -v ip)
+	local p2ip=$(command -v ip)
 	if [ -z "$p2ip" ] ; then
 		_getIP4List="cat /proc/net/arp | grep '^[0-9]' | grep -v '00:00:00:00:00:00' | tr -s ' ' | cut -d' ' -f 1,4 | tr '[A-Z]' '[a-z]' $sortStr"
 	else
-        local tip=$(echo "$($p2ip -4 neigh show)")
-        if [ -z "$tip" ] ; then
-            _getIP4List="cat /proc/net/arp | grep '^[0-9]' | grep -v '00:00:00:00:00:00' | tr -s ' ' | cut -d' ' -f 1,4 | tr '[A-Z]' '[a-z]' $sortStr"
-        else
-            _getIP4List="$p2ip -4 neigh | grep 'lladdr' | cut -d' ' -f 1,5 | tr '[A-Z]' '[a-z]' $sortStr"
-        fi
-    fi
+		local tip=$(echo "$($p2ip -4 neigh show)")
+		if [ -z "$tip" ] ; then
+			_getIP4List="cat /proc/net/arp | grep '^[0-9]' | grep -v '00:00:00:00:00:00' | tr -s ' ' | cut -d' ' -f 1,4 | tr '[A-Z]' '[a-z]' $sortStr"
+		else
+			_getIP4List="$p2ip -4 neigh | grep 'lladdr' | cut -d' ' -f 1,5 | tr '[A-Z]' '[a-z]' $sortStr"
+		fi
+	fi
 	_usersLastMod="$lmy-$lmmno-$lmd $lmt"
 	started=1
 }
@@ -304,7 +305,7 @@ setUsers(){
 	_currentUsers=$(cat "$_usersFile" | sed -e "s~(dup) (dup)~(dup)~Ig")
 	[ "$_includeBridge" -eq "1" ] && checkBridge
 	local lipe=$(echo "$_currentUsers" | grep "\b$_lan_ipaddr\b")
-	[ -z "$lipe" ] && [ ! -z "$_lan_ipaddr" ] && add2UsersJS $_lan_hwaddr $_lan_ipaddr 0
+	[ -z "$lipe" ] && [ ! -z "$_lan_ipaddr" ] && add2UsersJS $_lan_hwaddr $_lan_ipaddr 0 "Hardware" "LAN MAC"
 	if [ "$_useTMangle" -eq "0" ] ; then
 		local nm=$(iptables -vnxL "$YAMON_IP4" | grep -c "\b$_lan_ipaddr\b")
 	else
@@ -313,13 +314,30 @@ setUsers(){
 	[ ! -z "$_lan_ipaddr" ] && checkIPTableEntries "iptables" "$YAMON_IP4" "$_lan_ipaddr" $nm
 
 	lipe=$(echo "$_currentUsers" | grep "\b$_wan_ipaddr\b")
-	[ -z "$lipe" ] && [ ! -z "$_wan_ipaddr" ] && add2UsersJS $_wan_hwaddr $_wan_ipaddr 0
+	[ -z "$lipe" ] && [ ! -z "$_wan_ipaddr" ] && [ "$_wan_hwaddr" != "$_lan_hwaddr" ] && add2UsersJS $_wan_hwaddr $_wan_ipaddr 0 "Hardware" "WAN MAC"
 	if [ "$_useTMangle" -eq "0" ] ; then
 		local nm=$(iptables -vnxL "$YAMON_IP4" | grep -c "\b$_wan_ipaddr\b")
 	else
 		local nm=$(iptables -t mangle -vnxL "$YAMON_IP4" | grep -c "\b$_wan_ipaddr\b")
 	fi
 	[ ! -z "$_wan_ipaddr" ] && checkIPTableEntries "iptables" "$YAMON_IP4" "$_wan_ipaddr" $nm
+
+	lipe=$(echo "$_currentUsers" | grep "\b$_generic_ipv4\b")
+	[ -z "$lipe" ] && [ ! -z "$_generic_ipv4" ] && add2UsersJS $_generic_mac $_generic_ipv4 0 "Unknown" "No Matching MAC"
+	if [ "$_useTMangle" -eq "0" ] ; then
+		local nm=$(iptables -vnxL "$YAMON_IP4" | grep -c "\b$_generic_ipv4\b")
+	else
+		local nm=$(iptables -t mangle -vnxL "$YAMON_IP4" | grep -c "\b$_generic_ipv4\b")
+	fi
+	if [ "$_includeIPv6" -eq "1" ] ; then
+		lipe=$(echo "$_currentUsers" | grep "\b$_generic_ipv6\b")
+		[ -z "$lipe" ] && [ ! -z "$_generic_ipv6" ] && updateinUsersJS $_generic_mac $_generic_ipv6 1 "Unknown" "No Matching MAC"
+		if [ "$_useTMangle" -eq "0" ] ; then
+			local nm=$(iptables -vnxL "$YAMON_IP4" | grep -c "\b$_generic_ipv6\b")
+		else
+			local nm=$(iptables -t mangle -vnxL "$YAMON_IP4" | grep -c "\b$_generic_ipv6\b")
+		fi
+	fi
 
 	send2log "	  started-->$started  _includeIPv6-->$_includeIPv6  " -1
 	[ "$started" -eq "0" ] && checkUsers4IP
@@ -402,7 +420,7 @@ setFirmware()
 	elif [ "$_firmware" -eq "0" ]; then #DD-WRT
 		_conntrack="/proc/net/nf_conntrack"
 		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$3 == "tcp" ? $7 : $6,$3 == "tcp" ? $9 : $8,$3 == "tcp" ? $8 : $7,$3 == "tcp" ? $10 : $9; } END { print "[ null ] ]"}'
-	elif [ "$_firmware" -eq "1" ]; then #OpenWRT
+	elif [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ]; then #OpenWRT//LEDE
 		_lan_iface="br-lan"
 		_lan_ipaddr=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
 		_lan_hwaddr=$(ifconfig br-lan | awk '/HWaddr/ {print $5}' | tr '[A-Z]' '[a-z]')
@@ -420,7 +438,7 @@ checkBridge()
 {
 	send2log "=== checkBridge ===" -1
 	local foundBridge=$(echo "$_currentUsers" | grep -i "$_bridgeMAC")
-	[ -z "$foundBridge" ] && add2UsersJS $_bridgeMAC $_bridgeIP 0
+	[ -z "$foundBridge" ] && add2UsersJS $_bridgeMAC $_bridgeIP 0 "Hardware" "Bridge MAC"
 }
 setConfigJS()
 {
@@ -696,16 +714,22 @@ add2UsersJS()
 	local mac=$1
 	local ip=$2
 	local is_ipv6=$3
+	local oname=''
+	local dname=''
+	[ ! -z "$4" ] && oname="$4"
+	[ ! -z "$5" ] && dname="$5"
 	local kvs=''
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
-	local deviceName=$(getDeviceName $mac)
-	send2log "		deviceName-->$deviceName" -1
-	if [ -z "$_do_separator" ] ; then
-		local oname="$_defaultOwner"
-		local dname="$deviceName"
-	else
-		local oname=${deviceName%%"$_do_separator"*}
-		local dname=${deviceName#*"$_do_separator"}
+	if [ -z "$oname" ] || [ -z "$dname" ] ; then
+		local deviceName=$(getDeviceName $mac)
+		send2log "		deviceName-->$deviceName" -1
+		if [ -z "$_do_separator" ] ; then
+			local oname="$_defaultOwner"
+			local dname="$deviceName"
+		else
+			local oname=${deviceName%%"$_do_separator"*}
+			local dname=${deviceName#*"$_do_separator"}
+		fi
 	fi
 	[ -z "$dname" ] || [ "$dname" == '*' ] && dname="$_defaultDeviceName"
 	[ -z "$oname" ] || [ "$oname" == '*' ] && oname="$_defaultOwner"
@@ -1051,7 +1075,7 @@ updateHourly()
 	_br_u=$(getCV "$_thisHrpnd" 'up')
 	_br_d=$(getCV "$_thisHrpnd" 'down')
 	send2log "  _hourlyData--> $_hourlyData" -1
-	send2log "  _thisHrdata--> $_thisHrdata" 0
+	send2log "  _thisHrdata--> $_thisHrdata" 1
 	send2log "  _pndData-> $_pndData" -1
 	send2log "  _thisHrpnd-> $_thisHrpnd" 0
 	local nht="$_hourlyCreated
@@ -1153,7 +1177,9 @@ _hriterations=0
 _liveusage=''
 _ndAMS=0
 _ndAMS_dailymax=24
-#_log_str=''
+_generic_ipv4="0.0.0.0/0"
+_generic_ipv6="0/0 "
+_generic_mac="un:kn:ow:n0:0m:ac"
 started=0
 sl_max=""
 sl_max_ts=""

@@ -19,7 +19,7 @@ updateHourly2Monthly()
 	local rMonth=${_pMonth#0}
 	local rYear=$_pYear
 	local rday=$(printf %02d $_ispBillingDay)
-	
+
 	if [ "$_pDay" -lt "$_ispBillingDay" ] ; then
 		local rMonth=$(($rMonth-1))
 		if [ "$rMonth" == "0" ] ; then
@@ -32,7 +32,7 @@ updateHourly2Monthly()
 
 	if [ "${_dataDir:0:1}" == "/" ] ; then
 		local _dataPath=$_dataDir
-	else 
+	else
 		local _dataPath="${_baseDir}$_dataDir"
 	fi
 	case $_organizeData in
@@ -47,6 +47,7 @@ updateHourly2Monthly()
 		;;
 	esac
 	_macUsageDB="$savePath$rYear-$rMonth-$rday-$_usageFileName"
+	#_macUsageDB="$savePath$rYear-$rMonth-$_usageFileName"
 	[ "$_enable_ftp" -eq "1" ] && _macUsageFTP="$_cYear-$_cMonth-$_cDay-$_usageFileName"
 
 	local _prevhourlyUsageDB="$savePath$_pYear-$_pMonth-$_pDay-$_hourlyFileName"
@@ -60,13 +61,13 @@ updateHourly2Monthly()
 	local _maxInt="4294967295"
 	local hrlyData=$(cat "$_prevhourlyUsageDB")
 	send2log "  >>> reading from $_prevhourlyUsageDB & writing to $_macUsageDB" 0
-	
+
 	local hr=''
 	local nreboots=0
 	local down=0
 	local up=0
 	local uptime=0
-	
+
 	local pnd=$(echo "$hrlyData" | grep -i '"start"')
 	local p_uptime=$(getCV "$pnd" "uptime")
 	local p_pnd_d=$(getCV "$pnd" "down")
@@ -84,7 +85,6 @@ updateHourly2Monthly()
 		down=$(getCV "$pnd" "down")
 		up=$(getCV "$pnd" "up")
 		send2log "  hr-->$hr  uptime-->$uptime  down-->$down  up-->up" -1
-		#continue
 		if [ "$uptime" -gt "$p_uptime" ] ; then
 			svd=$(digitSub "$down" "$p_pnd_d")
 			svu=$(digitSub "$up" "$p_pnd_u")
@@ -111,7 +111,7 @@ updateHourly2Monthly()
 		p_uptime=$uptime
 	done
 	unset IFS
-	echo '' >&2	
+	echo '' >&2
 	results="
 dtp({\"day\":\"$_pDay\",\"down\":$p_do_tot,\"up\":$p_up_tot,\"reboots\":$nreboots})"
 
@@ -137,7 +137,7 @@ dtp({\"day\":\"$_pDay\",\"down\":$p_do_tot,\"up\":$p_up_tot,\"reboots\":$nreboot
 		curline=$(echo "$results" | grep -i "$linematch")
 		woline=$(echo "$results" | grep -iv "$linematch")
 		send2log "  curline-->$curline" -1
-		
+
 		do_tot=$(digitAdd $(getCV "$curline" "down") $(getCV "$line" "down"))
 		up_tot=$(digitAdd $(getCV "$curline" "up") $(getCV "$line" "up"))
 		if [ "$do_tot" \< "0" ] ; then
@@ -159,10 +159,10 @@ dtp({\"day\":\"$_pDay\",\"down\":$p_do_tot,\"up\":$p_up_tot,\"reboots\":$nreboot
 		results="$woline
 $newline"
 	done
-	echo '' >&2	
+	echo '' >&2
 	unset IFS
 	save2File "$results" "$_macUsageDB" "append"
- 
+
 	send2log "  results for: $_pYear-$_pMonth-$_pDay
 $results" 0
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
@@ -211,10 +211,14 @@ digitSub()
 {
 	local n1=$(echo "$1" | sed 's/-*//')
 	local n2=$(echo "$2" | sed 's/-*//')
-	local l1=${#n1}
-	local l2=${#n2}
 	[ -z "$n1" ] && n1=0
 	[ -z "$n2" ] && n2=0
+	if [ "$n1" == "$n2" ] ; then
+		echo 0
+		return
+	fi
+	local l1=${#n1}
+	local l2=${#n2}
 	if [ "$l1" -lt "10" ] && [ "$l2" -lt "10" ] ; then
 		echo $(($n1-$n2))
 		return

@@ -1,5 +1,5 @@
-Yet Another Monitor (version 3.2.3)
-Last updated: Feb 15, 2017
+Yet Another Monitor (version 3.2.5)
+Last updated: Mar 17, 2017
 
 Yet Another Monitor (YAMon) records and reports on the traffic (downloads and uploads) for all of the devices connecting to your router.  The data is aggregated by hour, day and month (within your ISP billing interval) and can be rolled-up into arbitrary groups (e.g., by family member, function, location or by any other logical grouping of devices).  
 
@@ -138,9 +138,9 @@ KNOWN ISSUES:
 
 2. The Privoxy extension will interfere with data collection by YAMon... it either adds iptables or UPnP rules that intercept traffic usage data before YAMon sees it.  Unfortunately, ATM I do not know of any way to get around this.
 
-3. Also, a number of users have found that you should not use MSWord or WordPad under Windows or TextEdit on a Mac to edit the files (especially your `config.file` but I expect that the same problems would also occur if any of the files are edited in the same tool)... apparently they will add additional end of line characters or use smart quotes and those really mess things up when you try to run the script.
+3. Also, at least one user has reported that you should not use MSWord or WordPad to edit the files (especially your `config.file` but I expect that the same problems would also occur if the startup and shutdown scripts are edited in the same too)... apparently it adds additional end of line characters that really mess things up when you try to run the script.  This problem also seems to occur if you use the standard text editor on a Mac.
 
-If you edit any of the files on your windows box, please make sure that you're using an editor that does not change the end-of-line characters to windows format `CRLF` characters (WordPad will do this to you and some other editors if they're not configured properly).  If you find that you're getting and error message that the file "startup.sh" was not found, this is likely what has happened... to check, open the file in notepad++ and navigate to View >> Show symbols >> Show end of line. If you see CRLF at the end of each line, that is windows format. In Notepad++, to change EOL back to unix format navigate to Edit >> EOL conversion >> UNIX/OSX format. Your EOL should now show LF. [Thanks to Canadian Geek, bpsmicro, David Moore and spanman for tracking this down and identifying the root cause.]
+If you edit any of the files on your windows box, please make sure that you're using an editor that does not change the end-of-line characters to windows format `CRLF` characters (WordPad will do this to you and some other editors if they're not configured properly).  If you find that you're getting and error message that the file "startup.sh" was not found, this is likely what has happened... to check, open the file in notepad++ and navigate to View >> Show symbols >> Show end of line. If you see CRLF at the end of each line, that is windows format. In Notepad++, to change EOL back to unix format navigate to Edit >> EOL conversion >> UNIX/OSX format. Your EOL should now show LF. [Thanks to Canadian Geek, bpsmicro and spanman for tracking this down and identifying the root cause.]
 
 4. If you run out of disk space on your USB drive, the script will not run properly (and it doesn't fail gracefully)!  Clear out the log files and/or daily backups to create more space or get a bigger USB drive.
 
