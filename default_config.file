@@ -21,6 +21,7 @@
 # version 3.3.0 - updated minor version... no changes to this file
 # version 3.3.1 - added _use_nf_conntrack, remove unused _lan_iface_only, _enable_db
 # version 3.3.4 - removed no longer used _baseDir; added _doArchiveLiveUpdates
+# version 3.3.5 - added _wwwURL
 
 _firmware='0'                                # which firmware is running on the router: permitted values: 0->DD-WRT(*) || 1->OpenWrt || 2->Asuswrt-Merlin
 _updatefreq='30'                             # number of seconds between updates (* default `15` sec)
@@ -33,7 +34,8 @@ _logDir='logs/'                              # path to log files  (* default `lo
                                              #   NB - If _dataDir OR _logDir starts with a slash it will be an absolute path (and d_baseDir will be ignored)
 _symlink2data='1'                            # use a symbolic link to /opt/YAMon2/data rather than /tmp/www/data... permitted values: 0->false || 1->true(*)
 _wwwPath='/tmp/www/'                         # path to web directory (* default `/tmp/www/`)
-_wwwData="data3/"                            # path to web data directory(* default `data3.x/`)
+_wwwURL='/user'                              # path to reports (* default `/user`)
+_wwwData="data/"                             # path to web data directory(* default `data/`)
 _wwwJS='js/'                                 # path to JavaScript directory(* default `js/`)
 _wwwCSS='css/'                               # path to CSS directory(* default `css/`)
 _wwwImages='images/'                         # path to Images directory(* default `images/`)

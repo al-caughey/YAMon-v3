@@ -12,9 +12,14 @@
 #       - removed unused d_lan_iface_only, d_enable_db
 ##########################################################################
 
+_has_nvram=0
+_has_uci=0
+_canClear=$(which clear)
+
+[ ! -z "$YAMON" ] && d_baseDir="${YAMON%/}"
 [ -z "$d_baseDir" ] && d_baseDir=$(cd "$(dirname "$0")" && pwd)
-[ -z "$_has_nvram" ] && [ ! -z $(command -v nvram) ] && _has_nvram=1
-[ -z "$has_uci" ] && [ ! -z $(command -v uci) ] && has_uci=1
+[ ! -z $(which nvram) ] && _has_nvram=1
+[ ! -z $(which uci) ] && _has_uci=1
 
 _lockDir="/tmp/YAMon$_file_version-running"
 
@@ -30,15 +35,16 @@ d_updatefreq=30
 d_publishInterval=4
 _lang='en'
 d_path2strings="$d_baseDir/strings/$_lang/"
-d_setupWebDir="Setup/www/"
+d_setupWebDir="www/"
 d_setupWebIndex="yamon$_file_version.html"
 d_dataDir="data/"
 d_logDir="logs/"
 d_wwwPath="/tmp/www/"
+d_wwwURL="/user"
 d_wwwJS="js/"
 d_wwwCSS="css/"
 d_wwwImages='images/'
-d_wwwData="data3"
+d_wwwData="data"
 d_dowwwBU=0
 d_wwwBU="wwwBU/"
 d_usersFileName="users.js"
@@ -109,6 +115,21 @@ loadconfig()
 		mfl="$mfl
 	* $line ($dv)"
 	done
+	
+	if [ "$_enableLogging" -eq "0" ] ; then
+		send2log="send2log_"$_enableLogging
+	else
+		send2log="send2log_"$_enableLogging"_"$_log2file
+	fi
+
+	if [ "$_sendAlerts" -eq "0" ] ; then
+		sendAlert="sendAlert_$_sendAlerts" 
+	elif [ -z "$_sendAlertTo" ] ; then
+		sendAlert="sendAlert_0" 
+		$send2log "_sendAlertTo cannot be null if '_sendAlerts' is not zero" 2
+	else
+		sendAlert="sendAlert_1"
+	fi
 	[ ! -z "$dirty" ] && echo "
 ###########################################################
 NB - One or more parameters were missing in your config.file!$mfl
@@ -122,13 +143,18 @@ again to update your config.file.
 		_ul_start=$(date -d "$_unlimited_start" +%s);
 		_ul_end=$(date -d "$_unlimited_end" +%s);
 		[ "$_ul_end" -lt "$_ul_start" ] && _ul_start=$((_ul_start - 86400))
-		#send2log "	  _unlimited_usage-->$_unlimited_usage ($_unlimited_start->$_unlimited_end / $_ul_start->$_ul_end)" 1
+		#$send2log "	  _unlimited_usage-->$_unlimited_usage ($_unlimited_start->$_unlimited_end / $_ul_start->$_ul_end)" 1
 	fi
+
 	local ipv6_enable=''
 	if [ "$_has_nvram" -eq 1 ] ; then
 		ipv6_enable=$(nvram get ipv6_enable)
 	fi
+
 	[ "$_firmware" -eq '0' ] && [ "$_includeIPv6" -eq '1' ] && [ -z "$ipv6_enable" ] && _includeIPv6=0 && echo "Setting \`_includeIPv6=0\` because ipv6_enable!=1 in nvram"
+
 	_tMangleOption=''
 	[ "$_useTMangle" -eq "1" ] && _tMangleOption='-t mangle'
 }
+
+[ -z "$YAMON" ] && loadconfig

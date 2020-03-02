@@ -11,16 +11,10 @@
 
 d_baseDir=$(cd "$(dirname "$0")" && pwd)
 
+source "$d_baseDir/config.file"
 source "${d_baseDir}/includes/versions.sh"
 source "${d_baseDir}/includes/defaults.sh"
-if [ -f "$d_baseDir/includes/util$_version.sh" ] ; then
-	source "$d_baseDir/includes/util$_version.sh"
-else
-	source "$d_baseDir/includes/util.sh"
-fi
-_configFile="$d_baseDir/config.file"
-source "$_configFile"
-loadconfig
+source "$d_baseDir/includes/util$_version.sh"
 source "$d_baseDir/strings/$_lang/strings.sh"
 
 # stop the script by removing the locking directory

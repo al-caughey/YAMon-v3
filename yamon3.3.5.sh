@@ -28,17 +28,18 @@
 # 3.3.2 (2017-07-19): replaced `command` with `which`; removed ls -e; some Tomato fixes
 # 3.3.3 (2017-09-25): tidied up d_baseDir; monthly files are now year-mo (without date); added option to archive live updates
 # 3.3.4 (2017-10-11): fixed issues in setup.sh; fixed _liveFilePath
+# 3.3.5a (2017-11-17): fixed addLocalIPs
 # ==========================================================
 #				  Functions
 # ==========================================================
 setupIPChains(){
-	send2log "=== setupIPChains ($cmd/$rule) === " 2
+	$send2log "=== setupIPChains ($cmd/$rule) === " 2
     checkChain(){
         local cmd="$1"
         local chain="$2"
         local ce=$(echo "$ipchains" | grep "$chain\b")
         if [ -z "$ce" ] ; then
-            send2log "Adding $chain in $cmd ($_tMangleOption)" 2
+            $send2log "Adding $chain in $cmd ($_tMangleOption)" 2
             eval $cmd $_tMangleOption -N $chain
         else 
             send2log "$chain exists in $cmd ($_tMangleOption)" 0
@@ -57,7 +58,7 @@ setupIPChains(){
         do
             for iprd in $(echo "$ip_blocks")
             do
-                [ "$iprs" != "$iprd" ] && eval $cmd $_tMangleOption -I "${chain}Entry" -j "RETURN" -s $iprs -d $iprd
+                eval $cmd $_tMangleOption -I "${chain}Entry" -j "RETURN" -s $iprs -d $iprd
                 eval $cmd $_tMangleOption -I "${chain}Entry" -j "${chain}Local" -s $iprs -d $iprd
             done
         done
@@ -114,7 +115,11 @@ setInitValues(){
 
 	_configFile="$d_baseDir/config.file"
 	source "$_configFile"
-	loadconfig
+
+	[ -z $(which ftpput) ] && [ "$_enable_ftp" -eq 1 ] && _enable_ftp=0 && echo "
+*** _enable_ftp set to 0 because command ftpput was not found?!?
+*** Please check your config.file
+"
 
 	source "$d_baseDir/strings/$_lang/strings.sh"
 	_savedconfigMd5=$(md5sum $_configFile | cut -f1 -d" ")
@@ -136,7 +141,7 @@ setInitValues(){
 			source "$d_baseDir/includes/getLocalCopies.sh"
 			getLocalCopies
 		fi
-		send2log "YAMon was started at $ts" 99
+		$send2log "YAMon was started at $ts" 99
 	fi
 	local meminfo=$(cat /proc/meminfo)
 	_totMem=$(getMI "$meminfo" "MemTotal")
@@ -168,13 +173,13 @@ setLogFile()
 	fi
 	[ ! -d "$lfpath" ] && mkdir -p "$lfpath"
 	_logfilename="${lfpath}monitor$_version-$_cYear-$_cMonth-$_cDay.log"
-	[ ! -f "$_logfilename" ] && touch "$_logfilename" && send2log "YAMon :: version $_version	_loglevel: $_loglevel" 2
-	send2log "=== setLogFile ===" -1
-	send2log "Installed firmware: $installedfirmware $installedversion $installedtype" 2
+	[ ! -f "$_logfilename" ] && touch "$_logfilename" && $send2log "YAMon :: version $_version	_loglevel: $_loglevel" 2
+	$send2log "=== setLogFile ===" -1
+	$send2log "Installed firmware: $installedfirmware $installedversion $installedtype" 2
 }
 setDataDirectories()
 {
-	send2log "=== setDataDirectories ===" -1
+	$send2log "=== setDataDirectories ===" -1
 	local rMonth=${_cMonth#0}
 	local rYear="$_cYear"
 	local rday=$(printf %02d $_ispBillingDay)
@@ -191,9 +196,9 @@ setDataDirectories()
 	else
 		_dataPath="${d_baseDir}/$_dataDir"
 	fi
-	send2log "  >>> _dataPath --> $_dataPath" 0
+	$send2log "  >>> _dataPath --> $_dataPath" 0
 	if [ ! -d "$_dataPath" ] ; then
-		send2log "  >>> Creating data directory" 0
+		$send2log "  >>> Creating data directory" 0
 		mkdir -p "$_dataPath"
 		chmod -R 666 "$_dataPath"
 	fi
@@ -212,18 +217,18 @@ setDataDirectories()
 		;;
 	esac
 	if [ ! -d "$savePath" ] ; then
-		send2log "  >>> Adding data directory - $savePath " 0
+		$send2log "  >>> Adding data directory - $savePath " 0
 		mkdir -p "$savePath"
 		chmod -R 666 "$savePath"
 	else
-		send2log "  >>> data directory exists - $savePath " -1
+		$send2log "  >>> data directory exists - $savePath " -1
 	fi
 	if [ "$_symlink2data" -eq "0" ] && [ ! -d "$wwwsavePath" ] ; then
-		send2log "  >>> Adding web directory - $wwwsavePath " 0
+		$send2log "  >>> Adding web directory - $wwwsavePath " 0
 		mkdir -p "$wwwsavePath"
 		chmod -R 666 "$wwwsavePath"
 	else
-		send2log "  >>> web directory exists - $wwwsavePath " -1
+		$send2log "  >>> web directory exists - $wwwsavePath " -1
 	fi
 
 	[ "$_symlink2data" -eq "0" ] &&  [ "$(ls -A $_dataPath)" ] && copyfiles "$_dataPath*" "$_wwwPath$_wwwData"
@@ -231,9 +236,9 @@ setDataDirectories()
 	_macUsageWWW="$wwwsavePath$rYear-$rMonth-$rday-$_usageFileName"
 	local old_macUsageDB="$savePath$rYear-$rMonth-$rday-$_usageFileName"
 	if [ -f "$_macUsageDB" ] ; then
-		send2log "  _macUsageDB exists--> $_macUsageDB" 2
+		$send2log "  _macUsageDB exists--> $_macUsageDB" 2
 	elif [ -f "$old_macUsageDB" ] ; then
-		send2log "  copying $old_macUsageDB --> $_macUsageDB" 2
+		$send2log "  copying $old_macUsageDB --> $_macUsageDB" 2
 		$(cp -a $old_macUsageDB $_macUsageDB)
 	else
 		createMonthlyFile
@@ -269,15 +274,15 @@ setDataDirectories()
 	_thisHrdata=$(echo "$hdhu" | grep "\"hour\":\"$hr\"")
 	_pndData=$(echo "$hdpd" | grep -v "\"hour\":\"$hr\"")
 	_thisHrpnd=$(echo "$hdpd" | grep "\"hour\":\"$hr\"")
-	send2log "  _hourlyData--> $_hourlyData" -1
-	send2log "  _thisHrdata ($hr)--> $_thisHrdata" 0
-	send2log "  _pndData--> $_pndData" -1
-	send2log "  _thisHrpnd ($hr)--> $_thisHrpnd" 0
+	$send2log "  _hourlyData--> $_hourlyData" -1
+	$send2log "  _thisHrdata ($hr)--> $_thisHrdata" 0
+	$send2log "  _pndData--> $_pndData" -1
+	$send2log "  _thisHrpnd ($hr)--> $_thisHrpnd" 0
 }
 createMonthlyFile()
 {
-	send2log "=== createMonthlyFile ===" -1
-	send2log "  >>> Monthly usage file not found... creating new file: $_macUsageDB" 2
+	$send2log "=== createMonthlyFile ===" -1
+	$send2log "  >>> Monthly usage file not found... creating new file: $_macUsageDB" 2
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
 	touch $_macUsageDB
 	chmod 666 $_macUsageDB
@@ -290,10 +295,10 @@ var monthly_updated=\"$ds\""
 }
 createHourlyFile()
 {
-	send2log "=== createHourlyFile ===" -1
+	$send2log "=== createHourlyFile ===" -1
 	touch $_hourlyUsageDB
 	chmod 666 $_hourlyUsageDB
-	send2log "  >>> Hourly usage file not found... creating new file: $_hourlyUsageDB" 2
+	$send2log "  >>> Hourly usage file not found... creating new file: $_hourlyUsageDB" 2
 	doliveUpdates
 	local upsec=$(cat /proc/uptime | cut -d' ' -f1)
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
@@ -311,7 +316,7 @@ $_pndData"
 
 }
 getHourlyHeader(){
-	send2log "=== getHourlyHeader ===" -1
+	$send2log "=== getHourlyHeader ===" -1
 
 	local meminfo=$(cat /proc/meminfo)
 	local freeMem=$(getMI "$meminfo" "MemFree")
@@ -319,7 +324,7 @@ getHourlyHeader(){
 	local cacheMem=$(getMI "$meminfo" "Cached")
 	local availMem=$(($freeMem+$bufferMem+$cacheMem))
 	local disk_utilization=$(df "${d_baseDir}/" | grep -o "[0-9]\{1,\}%")
-	send2log "  getHourlyHeader:_totMem-->$_totMem" -1
+	$send2log "  getHourlyHeader:_totMem-->$_totMem" -1
 
 	echo "
 var hourly_updated=\"$2\"
@@ -332,15 +337,15 @@ serverloads(\"$sl_min\",\"$sl_min_ts\",\"$sl_max\",\"$sl_max_ts\")
 "
 }
 getStartPND(){
-	send2log "=== getStartPND ===" -1
+	$send2log "=== getStartPND ===" -1
 	local thr="$1"
-	send2log "  *** setting start in pnd - $_br_d / $_br_u" 1
+	$send2log "  *** setting start in pnd - $_br_d / $_br_u" 1
 	if [ -z "$_br_d" ] || [ -z "$_br_u" ] ; then
 		local tstr=$(getPND "$thr" "$upsec")
 		_br_u=$(getCV "$tstr" 'up')
 		_br_d=$(getCV "$tstr" 'down')
 	fi
-	send2log "  *** getStartPND: _br_d: $_br_d  _br_u: $_br_u" -1
+	$send2log "  *** getStartPND: _br_d: $_br_d  _br_u: $_br_u" -1
 
 	local ip4=$(getForwardData 'iptables' $YAMON_IP4)
 	local ip6=''
@@ -350,17 +355,17 @@ getStartPND(){
 	echo "$result"
 }
 getPND(){
-	send2log "=== getPND ===" -1
+	$send2log "=== getPND ===" -1
 	local thr="$1"
 	local br0=$(cat "/proc/net/dev" | grep -i "$_lan_iface" | tr -s ': ' ' ')
-	send2log "  *** PND: br0: [$br0]" -1
+	$send2log "  *** PND: br0: [$br0]" -1
 	local br_d=$(echo $br0 | cut -d' ' -f10)
 	local br_u=$(echo $br0 | cut -d' ' -f2)
 	[ "$br_d" == '0' ] && br_d=$(echo $br0 | cut -d' ' -f11)
 	[ "$br_u" == '0' ] && br_u=$(echo $br0 | cut -d' ' -f3)
 	[ -z "$br_d" ] && br_d=0
 	[ -z "$br_u" ] && br_u=0
-	send2log "  *** PND: br_d: $br_d  br_u: $br_u" -1
+	$send2log "  *** PND: br_d: $br_d  br_u: $br_u" -1
 
 	local ip4=$(getForwardData 'iptables' $YAMON_IP4)
 	local ip6=''
@@ -370,7 +375,7 @@ getPND(){
 	echo "$result"
 }
 setUsers(){
-	send2log "=== setUsers ===" -1
+	$send2log "=== setUsers ===" -1
 	_usersFile="$_dataPath$_usersFileName"
 	[ "$_symlink2data" -eq "0" ] && _usersFileWWW="$_wwwPath$_wwwData$_usersFileName"
 
@@ -396,14 +401,14 @@ setUsers(){
 		[ -z "$lipe" ] && updateinUsersJS $_generic_mac $_generic_ipv6 1 "Unknown" "No Matching MAC"
 	fi
 
-	send2log "	  started-->$started  _includeIPv6-->$_includeIPv6  " -1
+	$send2log "	  started-->$started  _includeIPv6-->$_includeIPv6  " -1
 	[ "$started" -eq "0" ] && checkUsers4IP
-	send2log "  _currentUsers -->
+	$send2log "  _currentUsers -->
 $_currentUsers" -1
 }
 checkUsers4IP()
 {
-	send2log "=== checkUsers4IP ===" -1
+	$send2log "=== checkUsers4IP ===" -1
 	local ccd=$(echo "$_currentUsers" | grep 'users_created' | cut -d= -f2)
 	ccd=${ccd//\"/}
 	[ -z "$ccd" ] && ccd=$(date +"%Y-%m-%d %H:%M:%S")
@@ -444,24 +449,24 @@ $nline"
 	$mac"
 		fi
 	done
-	[ ! -z "$dups" ] && [ "$_allowMultipleIPsperMAC" -eq "0" ] && send2log "There are duplicated mac addresses in $_usersFile:
+	[ ! -z "$dups" ] && [ "$_allowMultipleIPsperMAC" -eq "0" ] && $send2log "There are duplicated mac addresses in $_usersFile:
 $dups" 99
 	_currentUsers="$ncu"
 	save2File "$_currentUsers" "$_usersFile"
 }
 createUsersFile()
 {
-	send2log "=== createUsersFile ===" -1
+	$send2log "=== createUsersFile ===" -1
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
 	local users=''
-	send2log "  >>> Creating empty users file: $_usersFile" -1
+	$send2log "  >>> Creating empty users file: $_usersFile" -1
 	touch $_usersFile
 	chmod 666 $_usersFile
 	users="var users_created=\"$ds\""
 }
 setFirmware()
 {
-	send2log "=== setFirmware ===" -1
+	$send2log "=== setFirmware ===" -1
 	
 	
 	if [ "$_use_nf_conntrack" -ne "1" ] ; then
@@ -492,13 +497,13 @@ setFirmware()
 }
 checkBridge()
 {
-	send2log "=== checkBridge ===" -1
+	$send2log "=== checkBridge ===" -1
 	local foundBridge=$(echo "$_currentUsers" | grep -i "$_bridgeMAC")
 	[ -z "$foundBridge" ] && add2UsersJS $_bridgeMAC $_bridgeIP 0 "Hardware" "Bridge MAC"
 }
 setConfigJS()
 {
-	send2log "=== setConfigJS ===" -1
+	$send2log "=== setConfigJS ===" -1
 	if [ "$_symlink2data" -eq "0" ] ; then
 		local configjs="$_wwwPath$_wwwJS$_configWWW"
 	else
@@ -508,7 +513,7 @@ setConfigJS()
 
 	#Check for directories
 	if [ ! -f "$configjs" ] ; then
-		send2log "  >>> $_configWWW not found... creating new file: $configjs" 2
+		$send2log "  >>> $_configWWW not found... creating new file: $configjs" 2
 		touch $configjs
 		chmod 666 $configjs
 	fi
@@ -544,12 +549,12 @@ var _dbkey='$_dbkey'"
 
 	save2File "$configtxt" "$configjs"
 
-	send2log "  >>> configjs --> $configjs" -1
-	send2log "  >>> configtxt --> $configtxt" -1
+	$send2log "  >>> configjs --> $configjs" -1
+	$send2log "  >>> configtxt --> $configtxt" -1
 }
 shutDown(){
 	#one last backup before shutting down
-	send2log "=== shutDown ===" 1
+	$send2log "=== shutDown ===" 1
 
 	updateHourly
 	[ "$_symlink2data" -eq "0" ] && [ "$_dowwwBU" -eq 1 ] && doFinalBU
@@ -561,7 +566,7 @@ shutDown(){
         #eval ip6tables $_tMangleOption -F "$YAMON_IP6"
         #eval ip6tables $_tMangleOption -A "$YAMON_IP6" -j "RETURN" -s $_generic_ipv6 -d $_generic_ipv6
     #fi
-	send2log "
+	$send2log "
 	=====================================
 	\`yamon.sh\` has been stopped.
 	-------------------------------------" 2
@@ -571,12 +576,12 @@ shutDown(){
 
 changeDates()
 {
-	send2log "	 >>> date change: $_pDay --> $_cDay " 1
+	$send2log "	 >>> date change: $_pDay --> $_cDay " 1
 	updateHourly $_p_hr
 	updateHourly2Monthly $_cYear $_cMonth $_pDay &
 	local avrt='n/a'
 	[ "$_dailyiterations" -gt "0" ] && avrt=$(echo "$_totalDailyRunTime $_dailyiterations" | awk '{printf "%.3f \n", $1/$2}')
-	send2log "	 >>> Daily stats:  day-> $_pDay  #iterations--> $_dailyiterations   total runtime--> $_totalDailyRunTime   Ave--> $avrt	min-> $_daily_rt_min   max--> $_daily_rt_max" 1
+	$send2log "	 >>> Daily stats:  day-> $_pDay  #iterations--> $_dailyiterations   total runtime--> $_totalDailyRunTime   Ave--> $avrt	min-> $_daily_rt_min   max--> $_daily_rt_max" 1
 	_hriterations=0
 	_dailyiterations=0
 	_totalhrRunTime=0
@@ -588,11 +593,11 @@ changeDates()
 	local yEntry=$(iptables -L YAMON33v4Entry -vnxZ | tr -s '-' ' ' | grep "^ [1-9]" | cut -d' ' -f2,3,8,9,10 | sort -k3)
 	local yLocal=$(iptables -L YAMON33v4Local -vnxZ | tr -s '-' ' ' | grep "^ [1-9]" | cut -d' ' -f2,3,8,9,10 | sort -k3)
 	local yall=$(iptables -L yall -vnxZ | tr -s '-' ' ' | grep "^ [1-9]" | cut -d' ' -f2,3,8,9,10 | sort -k3)
-	send2log "	 >>> YAMON33v4Entry:
+	$send2log "	 >>> YAMON33v4Entry:
 $yEntry" 0
-	send2log "	 >>> YAMON33v4Local:
+	$send2log "	 >>> YAMON33v4Local:
 $yLocal" 0
-	send2log "	 >>> yall:
+	$send2log "	 >>> yall:
 $yall" 0
 	[ "$_doDailyBU" -eq "1" ] && dailyBU "$_cYear-$_cMonth-$_pDay" &
 	sl_max=''
@@ -614,7 +619,7 @@ $yall" 0
 		_ul_start=$(date -d "$_unlimited_start" +%s);
 		_ul_end=$(date -d "$_unlimited_end" +%s);
 		[ "$_ul_end" -lt "$_ul_start" ] && _ul_start=$((_ul_start - 86400))
-		send2log "	  _unlimited_usage-->$_unlimited_usage ($_unlimited_start->$_unlimited_end / $_ul_start->$_ul_end)" 1
+		$send2log "	  _unlimited_usage-->$_unlimited_usage ($_unlimited_start->$_unlimited_end / $_ul_start->$_ul_end)" 1
 	fi
 
 	setLogFile
@@ -624,22 +629,22 @@ $yall" 0
 }
 checkIPs()
 {
-	send2log "=== checkIPs ===" 0
+	$send2log "=== checkIPs ===" 0
 	_changesInUsersJS=0
 	checkIPv4 $YAMON_IP4
 	[ "$_includeIPv6" -eq "1" ] && checkIPv6
 	if [ "$_changesInUsersJS" -gt "0" ] ; then
-		send2log "	>>> $_changesInUsersJS changes in users.js" 1
+		$send2log "	>>> $_changesInUsersJS changes in users.js" 1
 		save2File "$_currentUsers" "$_usersFile"
 	fi
 }
 
 checkIPv4()
 {
-	send2log "=== checkIPv4 ===" -1
+	$send2log "=== checkIPv4 ===" -1
 	local ipl="$(eval "$_getIP4List")"
 	local ipv4=$(getMACIPList "iptables" "$YAMON_IP4" "$ipl")
-	send2log "	>>> ipv4 ->
+	$send2log "	>>> ipv4 ->
 $ipv4" -1
 	IFS=$'\n'
 	for line in $(echo "$ipv4")
@@ -653,10 +658,10 @@ $ipv4" -1
 }
 checkIPv6()
 {
-	send2log "=== checkIPv6 ===" -1
+	$send2log "=== checkIPv6 ===" -1
 	local ipl="$(eval "$_getIP6List")"
 	local ipv6=$(getMACIPList "ip6tables" "$YAMON_IP6" "$ipl")
-	send2log "	>>> ipv6 ->
+	$send2log "	>>> ipv6 ->
 $ipv6" -1
 	IFS=$'\n'
 	for line in $(echo "$ipv6")
@@ -670,8 +675,8 @@ $ipv6" -1
 }
 CheckUsersJS()
 {
-	send2log "  === CheckUsersJS ===" -1
-	send2log "	  Arguments: $1 $2 $3" -1
+	$send2log "  === CheckUsersJS ===" -1
+	$send2log "	  Arguments: $1 $2 $3" -1
 
 	local mac=$1
 	local ip=$2
@@ -680,12 +685,12 @@ CheckUsersJS()
 	if [ "$_includeBridge" -eq "1" ] && [ "$mac" == "$_bridgeMAC" ] ; then
 			local ipcount=$(echo "$_currentUsers" | grep -ic "[\b\",]$tip\b")
 		if [ "$ipcount" -eq 0 ] ; then
-			send2log "	--- matched bridge mac but no matching entry for $ip.  Data will be tallied under bridge mac" 1
+			$send2log "	--- matched bridge mac but no matching entry for $ip.  Data will be tallied under bridge mac" 1
 		elif [ "$ipcount" -eq 1 ] ; then
 			mac=$(echo "$_currentUsers" | grep -i "[\b\",]$tip\b" | grep -io '\([a-z0-9]\{2\}\:\)\{5,\}[a-z0-9]\{2\}')
-			send2log "	--- matched bridge mac and found a unique entry for associated IP: $ip.  Changing MAC from $_bridgeMAC (bridge) to $mac (device)" 1
+			$send2log "	--- matched bridge mac and found a unique entry for associated IP: $ip.  Changing MAC from $_bridgeMAC (bridge) to $mac (device)" 1
 		else
-			send2log "	--- matched bridge mac but found $ipcount matching entries for $ip.  Data will be tallied under bridge mac" 1
+			$send2log "	--- matched bridge mac but found $ipcount matching entries for $ip.  Data will be tallied under bridge mac" 1
 		fi
 	fi
 
@@ -695,49 +700,49 @@ CheckUsersJS()
 	local mie=$(echo "$cu_no_dup" | grep -i "$mac" | grep -ic "[\b\",]$tip\b")
 	if [ "$mie" -eq "1" ] ; then
 		[ "$ie" -gt "1" ] && clearDupIPs $ip $ie
-		send2log "	>>> $mac & $ip exist in users.js" -1
+		$send2log "	>>> $mac & $ip exist in users.js" -1
 		return
 	fi
 	local mied=$(echo "$_currentUsers" | grep -i "$mac" | grep -ic "[\b\",]$tip (dup)")
 	if [ "$mie" -eq "1" ] ; then
 		[ "$ie" -gt "1" ] && clearDupIPs $ip $ie
-		send2log "	>>> $mac & $ip removing (dup)" -1
+		$send2log "	>>> $mac & $ip removing (dup)" -1
 		updateinUsersJS "$mac" "$ip" "$is_ipv6"
 		return
 	fi
 	local me=$(echo "$_currentUsers" | grep -ic "$mac")
-	send2log "  mac: $mac	ip: $ip	mie-->$mie	me-->$me	ie-->$ie" 1
+	$send2log "  mac: $mac	ip: $ip	mie-->$mie	me-->$me	ie-->$ie" 1
 	[ "$ie" -ge "1" ] && clearDupIPs $ip $ie
 	if [ "$me" -eq "0" ] ; then
-		send2log "	>>> $mac does not exist in users.js... adding a new entry" 1
-		send2log "	  _currentUsers before:
+		$send2log "	>>> $mac does not exist in users.js... adding a new entry" 1
+		$send2log "	  _currentUsers before:
 $_currentUsers" -1
 		add2UsersJS $mac $ip $is_ipv6
 	elif [ "$_allowMultipleIPsperMAC" -eq "0" ] ; then
 		if [ "$me" -eq "1" ] ; then
-			send2log "	>>> $mac exists in users.js... updating existing unique entry" 1
+			$send2log "	>>> $mac exists in users.js... updating existing unique entry" 1
 			updateinUsersJS "$mac" "$ip" "$is_ipv6"
 		else
-			send2log "There are $me entries for $mac in users.js but it should be unique" 2
+			$send2log "There are $me entries for $mac in users.js but it should be unique" 2
 		fi
 	elif [ "$_allowMultipleIPsperMAC" -eq "1" ]; then
-		send2log "	>>> multiple ips are allowed for $mac in users.js... adding a new entry" 1
+		$send2log "	>>> multiple ips are allowed for $mac in users.js... adding a new entry" 1
 		add2UsersJS $mac $ip $is_ipv6
 	fi
 }
 clearDupIPs()
 {
-	send2log "  === clearDupIPs ===" -1
+	$send2log "  === clearDupIPs ===" -1
 	local ip=$1
 	local ie=$2
-	send2log "	>>> $ie other instance(s) of $ip exist in users.js... removing duplicate(s)" 1
+	$send2log "	>>> $ie other instance(s) of $ip exist in users.js... removing duplicate(s)" 1
 	local tip=${ip//\./\\.}
 	_currentUsers=$(echo "$_currentUsers" | sed -e "s~\b$tip\b~$ip (dup)~Ig" | sed -e "s~(dup) (dup)~(dup)~Ig")
 }
 updateinUsersJS()
 {
-	send2log "=== updateinUsersJS ===" -1
-	send2log "  arguments: $1 $2 $3" -1
+	$send2log "=== updateinUsersJS ===" -1
+	$send2log "  arguments: $1 $2 $3" -1
 
 	local mac=$1
 	local new_ip=$2
@@ -745,10 +750,10 @@ updateinUsersJS()
 
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
 	local line=$(echo "$_currentUsers" | grep -i "$mac" )
-	send2log "	  line1-->$line" -1
+	$send2log "	  line1-->$line" -1
 
 	if [ -z "$line" ] ; then
-		send2log "updateinUsersJS: Could not find $mac in _currentUsers... this should not be possible?!? " 2
+		$send2log "updateinUsersJS: Could not find $mac in _currentUsers... this should not be possible?!? " 2
 		return
 	fi
 	local old_ip=''
@@ -760,12 +765,12 @@ updateinUsersJS()
 	line=$(replace "$line" "updated" "$ds")
 	_currentUsers=$(echo "$_currentUsers" | sed -e "s~.\{0,\}\"$mac\".\{0,\}~$line~Ig")
 	_changesInUsersJS=$(($_changesInUsersJS + 1))
-	send2log "  >>> Device $mac & $old_ip ($is_ipv6) was updated to $mac & $new_ip
+	$send2log "  >>> Device $mac & $old_ip ($is_ipv6) was updated to $mac & $new_ip
 $line" 1
 }
 add2UsersJS()
 {
-	send2log "=== add2UsersJS ===" -1
+	$send2log "=== add2UsersJS ===" -1
 	local mac=$1
 	local ip=$2
 	local is_ipv6=$3
@@ -777,7 +782,7 @@ add2UsersJS()
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
 	if [ -z "$oname" ] || [ -z "$dname" ] ; then
 		local deviceName=$(getDeviceName $mac)
-		send2log "		deviceName-->$deviceName" -1
+		$send2log "		deviceName-->$deviceName" -1
 		if [ -z "$_do_separator" ] ; then
 			local oname="$_defaultOwner"
 			local dname="$deviceName"
@@ -809,16 +814,16 @@ add2UsersJS()
 		[ "$kv" -gt "0" ] && kvs="\"key\":$kv,"
 	fi
 	local newuser="ud_a({\"mac\":\"$mac\",$ip_str$ip6_str$kvs\"owner\":\"$oname\",\"name\":\"$dname\",\"colour\":\"\",\"added\":\"$ds\",\"updated\":\"$ds\",\"last-seen\":\"$ds\"})"
-	send2log "New device $dname (group $oname) was added to the network: $mac & $ip ($is_ipv6)" 99
-	send2log "		newuser-->$newuser" -1
+	$send2log "New device $dname (group $oname) was added to the network: $mac & $ip ($is_ipv6)" 99
+	$send2log "		newuser-->$newuser" -1
 	_changesInUsersJS=$(($_changesInUsersJS + 1))
 	_currentUsers="$_currentUsers
 $newuser"
-	send2log "	  _currentUsers-->$_currentUsers" -1
+	$send2log "	  _currentUsers-->$_currentUsers" -1
 }
 getDeviceName()
 {
-	send2log "=== getDeviceName ===" -1
+	$send2log "=== getDeviceName ===" -1
 	local mac=$1
 
 	if [ "$_firmware" -eq "0" ] ; then
@@ -850,7 +855,7 @@ getDeviceName()
 }
 checkTimes()
 {
-	send2log "=== checkTimes ===" 0
+	$send2log "=== checkTimes ===" 0
 	_cDay=$(date +"%d")
 	[ "$_cDay" != "$_pDay" ] && changeDates
 
@@ -864,10 +869,10 @@ checkTimes()
 
 	local currTime=$(date +"%s")
 	_inUnlimited=$((currTime >= _ul_start && currTime <= _ul_end))
-	send2log "  _inUnlimited-->$_inUnlimited	_p_inUnlimited-->$_p_inUnlimited   currTime-->$currTime   _ul_start-->$_ul_start   _ul_end-->$_ul_end" -1
+	$send2log "  _inUnlimited-->$_inUnlimited	_p_inUnlimited-->$_p_inUnlimited   currTime-->$currTime   _ul_start-->$_ul_start   _ul_end-->$_ul_end" -1
 
-	[ "$_inUnlimited" -eq "1" ] && [ "$_p_inUnlimited" -eq "0" ] && send2log "	--- starting unlimited usage interval: $_unlimited_start" 1
-	[ "$_inUnlimited" -eq "0" ] && [ "$_p_inUnlimited" -eq "1" ] && send2log "	--- ending unlimited usage interval: $_unlimited_end" 1
+	[ "$_inUnlimited" -eq "1" ] && [ "$_p_inUnlimited" -eq "0" ] && $send2log "	--- starting unlimited usage interval: $_unlimited_start" 1
+	[ "$_inUnlimited" -eq "0" ] && [ "$_p_inUnlimited" -eq "1" ] && $send2log "	--- ending unlimited usage interval: $_unlimited_end" 1
 	_p_inUnlimited=$_inUnlimited
 
 }
@@ -875,15 +880,15 @@ changeHour()
 {
 	local hr="$1"
 	updateHourly $_p_hr
-	send2log "	 >>> hour change: $_p_hr --> $hr " 0
+	$send2log "	 >>> hour change: $_p_hr --> $hr " 0
 	local avrt='n/a'
 	[ "$_hriterations" -gt "0" ] && avrt=$(echo "$_totalhrRunTime $_hriterations" | awk '{printf "%.3f \n", $1/$2}')
-	send2log "	 >>> Hourly stats:  hr-> $_p_hr  #iterations--> $_hriterations   total runtime--> $_totalhrRunTime   Ave--> $avrt	min-> $_hr_rt_min   max--> $_hr_rt_max" 1
+	$send2log "	 >>> Hourly stats:  hr-> $_p_hr  #iterations--> $_hriterations   total runtime--> $_totalhrRunTime   Ave--> $avrt	min-> $_hr_rt_min   max--> $_hr_rt_max" 1
 	_dailyiterations=$(($_dailyiterations+$_hriterations))
 	_totalDailyRunTime=$(($_totalDailyRunTime+$_totalhrRunTime))
 	_daily_rt_max=$(maxI $_daily_rt_max $_hr_rt_max )
 	_daily_rt_min=$(minI $_daily_rt_min $_hr_rt_min )
-	send2log "_thisHrpnd ($_p_hr): $_thisHrpnd" 1
+	$send2log "_thisHrpnd ($_p_hr): $_thisHrpnd" 1
 
 	_hr_rt_max=''
 	_hr_rt_min=''
@@ -896,11 +901,11 @@ changeHour()
 	_totalLostBytes=0
 
 	if [ ! -z "$end" ] ; then
-		send2log "_thisHrdata: ($_p_hr)
+		$send2log "_thisHrdata: ($_p_hr)
 $_thisHrdata" 1
 		_hourlyData="$_hourlyData
 $_thisHrdata"
-		send2log "_thisHrpnd: ($_p_hr)
+		$send2log "_thisHrpnd: ($_p_hr)
 $_thisHrpnd" 1
 		_pndData="$_pndData
 $_thisHrpnd"
@@ -911,7 +916,7 @@ $_thisHrpnd"
 }
 updateServerStats()
 {
-	send2log "=== updateServerStats === " 0
+	$send2log "=== updateServerStats === " 0
 	local cTime=$(date +"%T")
 	if [ -z "$sl_max" ] || [ "$sl_max" \< "$load5" ] ; then
 		sl_max=$load5
@@ -929,9 +934,9 @@ updateServerStats()
 
 doliveUpdates()
 {
-	send2log "=== doliveUpdates === ($_liveFilePath)" 0
+	$send2log "=== doliveUpdates === ($_liveFilePath)" 0
 	local loadavg=$(cat /proc/loadavg)
-	send2log "  >>> loadavg: $loadavg" -1
+	$send2log "  >>> loadavg: $loadavg" -1
 	load1=$(echo "$loadavg" | cut -f1 -d" ")
 	load5=$(echo "$loadavg" | cut -f2 -d" ")
 	local load15=$(echo "$loadavg" | cut -f3 -d" ")
@@ -940,30 +945,30 @@ doliveUpdates()
 serverload($load1,$load5,$load15)" > $_liveFilePath
 
 	if [ "$_doCurrConnections" -eq "1" ] ; then
-		send2log "	>>> curr_connections" -1
+		$send2log "	>>> curr_connections" -1
 		local ddd=$(awk "$_conntrack_awk" "$_conntrack")
 		echo "$ddd"  >> $_liveFilePath
-		send2log "	curr_connections >>>
+		$send2log "	curr_connections >>>
 $ddd" 0
 	fi
 
-	send2log "	>>> _liveusage: $_liveusage" -1
+	$send2log "	>>> _liveusage: $_liveusage" -1
 	echo "$_liveusage" >> $_liveFilePath
 	_liveusage=''
  	[ "$_doArchiveLiveUpdates" -eq "1" ] && cat "$_liveFilePath" >> $_liveArchiveFilePath
 }
 checkConfig()
 {
-	send2log "=== checkConfig ===" 0
+	$send2log "=== checkConfig ===" 0
 	local _configMd5=$(md5sum $_configFile | cut -f1 -d" ")
-	[ "$started" -eq "1" ] && send2log "  >>> _configMd5 --> $_configMd5   _savedconfigMd5 --> $_savedconfigMd5  " -1
+	[ "$started" -eq "1" ] && $send2log "  >>> _configMd5 --> $_configMd5   _savedconfigMd5 --> $_savedconfigMd5  " -1
 
 	if [ "$_configMd5" == "$_savedconfigMd5" ] ; then
-		send2log '  >>> _configMd5 == _savedconfigMd5' -1
+		$send2log '  >>> _configMd5 == _savedconfigMd5' -1
 		return
 	fi
 	_savedconfigMd5="$_configMd5"
-	send2log "--- config.file has changed!  Resetting setInitValues ---" 2
+	$send2log "--- config.file has changed!  Resetting setInitValues ---" 2
 	setConfigJS
 	[ "$_enable_ftp" -eq 1 ] && send2FTP "$_configFile"
 	updateHourly
@@ -976,13 +981,13 @@ update()
 	{
 		local nb=$2
 		[ -z "$nb" ] && nb=0
-		send2log "	  +++ lostBytes-->$_totalLostBytes ($nb)" -1
+		$send2log "	  +++ lostBytes-->$_totalLostBytes ($nb)" -1
 		_totalLostBytes=$(digitAdd "$_totalLostBytes" "$nb")
-		send2log "$1 (_totalLostBytes=$_totalLostBytes / $nb)" 2
+		$send2log "$1 (_totalLostBytes=$_totalLostBytes / $nb)" 2
 	}
 	
-	send2log "	  +++ update" -1
-	send2log "	 update arguments: $1 $2 $3 $4" -1
+	$send2log "	  +++ update" -1
+	$send2log "	 update arguments: $1 $2 $3 $4" -1
 
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
 
@@ -1013,7 +1018,7 @@ update()
 	local cu=$(echo "$cu_no_dup" | grep -i "[\b\",]$tip\b")
 	local mac=$(getField "$cu" 'mac')
 	if [ -z "$mac" ] ; then
-		send2log "		  cu-->$cu" -1
+		$send2log "		  cu-->$cu" -1
 		lostBytes "	  !!! No matching MAC in _currentUsers for $ip?!? - adding $bytes to unknown mac " $bytes
 		update "$_generic_ipv4" "$new_do" "$new_up" "$hr"
 		return
@@ -1025,9 +1030,9 @@ update()
 		local ipcount=$(echo "$cu_no_dup" | grep -v "\b$_bridgeMAC\b" | grep -ic "[\b\",]$tip\b")
 		if [ "$ipcount" -eq 1 ] ;  then
 			mac=$(echo "$cu_no_dup" | grep -i "[\b\",]$tip\b" | grep -io '\([a-z0-9]\{2\}\:\)\{5,\}[a-z0-9]\{2\}')
-			send2log "	--- matched bridge mac and found a unique entry for associated IP: $ip.  Changing MAC from $_bridgeMAC (bridge) to $mac (device)" 1
+			$send2log "	--- matched bridge mac and found a unique entry for associated IP: $ip.  Changing MAC from $_bridgeMAC (bridge) to $mac (device)" 1
 		else
-			send2log "	--- matched bridge mac but found $ipcount matching entries for $ip.  Data will be tallied under bridge mac" 1
+			$send2log "	--- matched bridge mac but found $ipcount matching entries for $ip.  Data will be tallied under bridge mac" 1
 		fi
 	fi
 	_liveusage="$_liveusage
@@ -1040,7 +1045,7 @@ curr_users({mac:'$mac',ip:'$ip',down:$new_do,up:$new_up})"
 		else
 			cur_hd="hu({\"mac\":\"$mac\",\"hour\":\"$hr\","\"down\":$new_do,\"up\":$new_up","\"ul_do\":$new_do,\"ul_up\":$new_up"})"
 		fi
-		send2log "	  new ul row-->$cur_hd" 1
+		$send2log "	  new ul row-->$cur_hd" 1
 		_thisHrdata="$_thisHrdata
 $cur_hd"
 		return
@@ -1059,34 +1064,34 @@ $cur_hd"
 	else
 		cur_hd="hu({\"mac\":\"$mac\",\"hour\":\"$hr\","\"down\":$new_do,\"up\":$new_up"})"
 	fi
-	send2log "		  updated $1 $2 $3 $4" -1
-	send2log "		  updated ul row-->$cur_hd" 0
+	$send2log "		  updated $1 $2 $3 $4" -1
+	$send2log "		  updated ul row-->$cur_hd" 0
 	_thisHrdata=$(echo "$_thisHrdata" | sed -e "s~.\{0,\}\"$mac\".\{0,\}\"$hr\".\{0,\}~$cur_hd~Ig")
 }
 updateUsage()
 {
 	local cmd=$1
 	local chain=$2
-	send2log "=== updateUsage ($cmd/$chain)=== " 0
+	$send2log "=== updateUsage ($cmd/$chain)=== " 0
 	local hr=$(date +%H)
 	_ud_list=''
 
     local iptablesData=$(eval $cmd $_tMangleOption -L "$chain" -vnxZ | tr -s '-' ' ' | grep "^ [1-9]" | cut -d' ' -f3,8,9)
 
 	if [ -z "$iptablesData" ] ; then
-		send2log "	>>> $cmd returned no data... returning " 0
+		$send2log "	>>> $cmd returned no data... returning " 0
 		return
 	fi
 	createUDList "$iptablesData"
-	send2log "iptablesData-->
+	$send2log "iptablesData-->
 $iptablesData" 0
-	send2log "_ud_list-->
+	$send2log "_ud_list-->
 $_ud_list" 0
 
 	IFS=$'\n'
 	for line in $(echo "$_ud_list")
 	do
-		send2log "  >>> line-->$line" -1
+		$send2log "  >>> line-->$line" -1
 		local ip=$(echo "$line" | cut -d',' -f1)
 		local do=$(echo "$line" | cut -d',' -f2)
 		local up=$(echo "$line" | cut -d',' -f3)
@@ -1098,17 +1103,17 @@ updateHourly()
 {
 	local hr=$1
 	[ -z "$hr" ] && hr=$(date +%H)
-	send2log "=== updateHourly === [$1 - $hr]" 1
+	$send2log "=== updateHourly === [$1 - $hr]" 1
 	local upsec=$(cat /proc/uptime | cut -d' ' -f1)
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
 	local hourlyHeader=$(getHourlyHeader "$upsec" "$ds")
 	_thisHrpnd=$(getPND "$hr" "$upsec")
 	_br_u=$(getCV "$_thisHrpnd" 'up')
 	_br_d=$(getCV "$_thisHrpnd" 'down')
-	send2log "  _hourlyData--> $_hourlyData" -1
-	send2log "  _thisHrdata--> $_thisHrdata" 1
-	send2log "  _pndData-> $_pndData" -1
-	send2log "  _thisHrpnd-> $_thisHrpnd" 0
+	$send2log "  _hourlyData--> $_hourlyData" -1
+	$send2log "  _thisHrdata--> $_thisHrdata" 1
+	$send2log "  _pndData-> $_pndData" -1
+	$send2log "  _thisHrpnd-> $_thisHrpnd" 0
 	local nht="$_hourlyCreated
 $hourlyHeader
 
@@ -1125,16 +1130,16 @@ runtimestats()
 	local start=$1
 	local end=$2
 
-	send2log "=== runtimestats === $_totalhrRunTime $_hriterations" 0
+	$send2log "=== runtimestats === $_totalhrRunTime $_hriterations" 0
 	local runtime=$(($end-$start))
-	local offset=$(($start%$_updatefreq))
+	#local offset=$(($end%$_updatefreq))
 	_totalhrRunTime=$(($_totalhrRunTime + $runtime))
 	_hriterations=$(($_hriterations + 1))
 	_hr_rt_max=$(maxI $_hr_rt_max $runtime )
 	_hr_rt_min=$(minI $_hr_rt_min $runtime )
-	pause=$(($_updatefreq-$runtime-$offset>0?$_updatefreq-$runtime-$offset:0))
-	send2log "  >>> #$_iteration - Execution time: $runtime seconds - pause: $pause seconds ($_hr_rt_min/$_hr_rt_max)" -1
-	[ "$runtime" -gt "$_updatefreq" ] && send2log "	 Execution time exceeded delay (${runtime}s)!" 2
+	pause=$(($_updatefreq-$runtime>0?$_updatefreq-$runtime:0))
+	$send2log "  >>> #$_iteration - Execution time: $runtime seconds - pause: $pause seconds ($_hr_rt_min/$_hr_rt_max)" -1
+	[ "$runtime" -gt "$_updatefreq" ] && $send2log "	 Execution time exceeded delay (${runtime}s)!" 2
 }
 
 # ==========================================================
@@ -1155,28 +1160,15 @@ if [ ! -d "$d_baseDir/includes" ] || [ ! -f "$d_baseDir/includes/defaults.sh" ] 
 fi
 
 source "${d_baseDir}/includes/versions.sh"
-source "${d_baseDir}/includes/defaults.sh"
-if [ -f "$d_baseDir/includes/util$_version.sh" ] ; then
-	source "$d_baseDir/includes/util$_version.sh"
-elif [ -f "$d_baseDir/includes/util.sh" ] ; then
-	source "$d_baseDir/includes/util.sh"
-else
-	echo "
-**************************** ERROR!!! ****************************
-  You are missing \`$d_baseDir/includes/util$_version.sh\`.
-  Please re-download the latest version of YAMon and make sure
-  that all of the necessary files and folders are copied to \`$d_baseDir\`!
-******************************************************************
-"
-	exit 0
-fi
-source "$d_baseDir/includes/hourly2monthly.sh"
 _configFile="$d_baseDir/config.file"
+[ ! -f "$_configFile" ] && echo "$_s_noconfig" && exit 0
 source "$_configFile"
-loadconfig
+
+source "${d_baseDir}/includes/defaults.sh"
+source "$d_baseDir/includes/util$_version.sh"
 source "$d_baseDir/strings/$_lang/strings.sh"
 
-[ ! -f "$_configFile" ] && echo "$_s_noconfig" && exit 0
+source "$d_baseDir/includes/hourly2monthly.sh"
 
 #globals
 _logfilename=''
@@ -1234,6 +1226,7 @@ fi
 echo "$_s_title"
 _cYear=$(date +%Y)
 [ "$_cYear" -lt "2015" ] && echo "$_s_cannotgettime" && exit 0
+
 _cDay=$(date +%d)
 _pDay="$_cDay"
 _cMonth=$(date +%m)
@@ -1242,16 +1235,16 @@ _ds="$_cYear-$_cMonth-$_cDay"
 
 sleep 5
 setInitValues
-send2log "
+$send2log "
 **********************************************************
 *  YAMon $_version was started
 **********************************************************
 " 2
 timealign=$(($_updatefreq-$(date +%s)%$_updatefreq))
-send2log "  >>> Delaying ${timealign}s to align updates" 1
+$send2log "  >>> Delaying ${timealign}s to align updates" 1
 sleep  "$timealign";
 _p_hr=$(date +%H)
-send2log "  >>> Starting main loop" 1
+$send2log "  >>> Starting main loop" 1
 
 while [ 1 ]; do
 	start=$(date +%s)
@@ -1275,7 +1268,7 @@ while [ 1 ]; do
 	n=1
 	while [ 1 ]; do
 		[ ! -d "$_lockDir" ] && shutDown
-		[ "$n" -ge "$_updatefreq" ] && break
+		[ "$n" -gt "$pause" ] && break
 		n=$(($n+1))
 		sleep 1
 	done

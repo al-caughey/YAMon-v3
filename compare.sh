@@ -7,7 +7,7 @@
 #
 ##########################################################################
 
-directory='current'
+[ -z "$directory" ] && directory='current'
 d_baseDir="$YAMON"
 [ -z "$d_baseDir" ] && d_baseDir=$(cd "$(dirname "$0")" && pwd)
 source "${d_baseDir}/includes/versions.sh"
@@ -35,7 +35,7 @@ getlatest()
 }
 
 _sync=''
-[ -f "/tmp/files.txt" ] && rm "/tmp/files.txt"
+[ -f "/tmp/files-$directory.txt" ] && rm "/tmp/files-$directory.txt"
 
 if [ "$param" == 'verify' ] ; then
 	arg=''
@@ -90,7 +90,7 @@ echo "
 
 ***********************"
 
-wget "http://usage-monitoring.com/$directory/YAMon3/Setup/compare.php$arg" -U "YAMon-Setup" -qO "/tmp/files.txt"
+wget "http://usage-monitoring.com/$directory/YAMon3/Setup/compare.php$arg" -U "YAMon-Setup" -qO "/tmp/files-$directory.txt"
 
 n=0
 spacing='========================='
@@ -131,7 +131,7 @@ do
 	fi
 	allMatch=1
 	[ "$_sync" == "1" ] && getlatest "$fn" && needsRestart=1
-done < /tmp/files.txt
+done < "/tmp/files-$directory.txt"
 echo -n "--------------------------------------------------
 
 Results:

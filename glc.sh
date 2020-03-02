@@ -11,17 +11,14 @@
 
 d_baseDir=$(cd "$(dirname "$0")" && pwd)
 delay=$1
-_debugging=0
 [ -z $delay ] && delay=5
 
+source "$d_baseDir/config.file"
 source "${d_baseDir}/includes/versions.sh"
+source "$d_baseDir/includes/util$_version.sh"
 source "${d_baseDir}/includes/defaults.sh"
-if [ -f "$d_baseDir/includes/util$_version.sh" ] ; then
-	source "${d_baseDir}/includes/util$_version.sh"
-else
-	source "${d_baseDir}/includes/util.sh"
-fi
 source "${d_baseDir}/strings/$_lang/strings.sh"
+
 source "$d_baseDir/includes/getLocalCopies.sh"
 
 clear
@@ -49,8 +46,8 @@ sleep $delay
 _logfilename="${d_baseDir}/${_logDir}glc.log"
 echo "Log info will be written to $_logfilename"
 [ ! -f "$_logfilename" ] && touch "$_logfilename"
-send2log  "Log file:  \`$_logfilename\`." 1
-send2log "Loading baseline settings from \`$_configFile\`." 2
+$send2log  "Log file:  \`$_logfilename\`" 1
+$send2log "Loading baseline settings from \`$_configFile\`." 2
 
 sleep $delay
 

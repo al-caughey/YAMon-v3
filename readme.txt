@@ -1,5 +1,5 @@
-Yet Another Monitor (version 3.3.4)
-Last updated: Oct 22, 2017
+Yet Another Monitor (version 3.3.6)
+Last updated: Nov 17, 2017
 
 Yet Another Monitor (YAMon) records and reports on the traffic (downloads and uploads) for all of the devices connecting to your router.  The data is aggregated by hour, day and month (within your ISP billing interval) and can be rolled-up into arbitrary groups (e.g., by family member, function, location or by any other logical grouping of devices).  
 
@@ -17,11 +17,13 @@ For a more detail explanation of YAMon's features and benefits, please go to htt
 SHORT REQUIREMENTS CHECKLIST FOR YAMon
 --------------------------------------
 These instructions presume that 
-1) you have already upgraded your router to an appropriate firmware variant (e.g., DD-WRT, OpenWRT, AsusWRT, etc.).  See the particular discussion forums, if you have any questions about installing or configuring the firmware.
+1) you have a router running a supported firmware variant (e.g., DD-WRT, OpenWRT, Turris Omnia, Tomator, X-wrt, AsusWRT, etc.).  See your firmware discussion forums, if you have any questions about installing or configuring the firmware.
 
 2) you have a permanent storage location for YAMon's data files.  This is easiest if you are able to plug a USB drive directly into your router.  If your router does not have a USB port, do not despair as it is possible to mount a shared volume on your network and use that instead - however, you'll have to deviate somewhat from the default installation steps describe below (and this document does not cover those configuration steps).  
 
    NB - if you are plugging a USB drive into your router, I recommend that it is formatted to the `ext4` file system.  Some users have tried other formatting schemes and have gotten messages about a `read-only file system error`.  I am currently using `ext4` and not experiencing any difficulties... I did have occasional difficulties when I used `ext2`.
+   Apparently some odd chipset/firmware combinations do not support `ext4` (the drive either does not mount or mounts with read-only permissions).  See http://usage-monitoring.com/common-problems.php?t=bad-drive
+   Make sure that your USB drive has reasonable read/write speeds! See http://usage-monitoring.com/help/?t=usb-size
    Do not use a Fat32 drive... apparently Fat32 does not support symlinks which YAMon uses to minimize the file movements & server loads.
 
 3) you are familiar with the tools necessary to update files and run commands on your router.  Personally, I have Windows-based machines and use `winSCP` for copying/moving files (http://winscp.net) and `Putty` for running commands on the router (http://www.putty.org/).  When I edit the files, I use Notepad++ (http://notepad-plus-plus.org/).  There are a number of other suitable tools but these are the ones that I use and prefer.
@@ -61,12 +63,9 @@ CONFIGURING YOUR WEB REPORTS
 
 There's not much that you have to do here.  As mentioned above, the script will automatically download and/or create all of the necessary files.
 
-To access the reports, go to http://<router_ip>/user/index.html - e.g., http://192.168.1.1/user/index.html
-NB - users upgrading from yamon3.1.x might still use http://192.168.1.1/user/yamon3.1.html until you update the value of `_setupWebIndex` in `config.file`
+To access the reports, go to http://<router_ip>/<path>/index.html - e.g., http://192.168.1.1/user/index.html  The value of `<path>` will be set when you run install.sh or setup.sh
 
 When you open the reports for the first time, you will get an intro screen that asks you to confirm that settings in the reports are consistent with those you've set in `config.file`.  Change the values as necessary (or accept the defaults) and click the green checkmark to confirm each setting.  Once all of the checkmarks have been cleared, the page will automatically reload and you'll see the reports. (NB - you'll have to repeat this confirmation step if you view the reports from a different device or browser.)
-
-NB - a rare number of firmware variants do not like the timestamps which are appended to the json queries which dynamically update the page while you are viewing the reports.  If this is the case for you, open yamon3.1.html (in /opt/YAMon3/www) and uncomment the line `//$.ajaxSetup({'cache':true});` (i.e., remove the `//`)
 
 ----------
 OTHER INFO
@@ -191,6 +190,6 @@ In version 2.0.17, I added an optional feature that will allow you to share all 
 
 In version 2.0.18, I added an optional feature that will send alerts if new devices are added to your users.js file (or if your iptables settings are messed up).  Rather than wrestling with configuring settings for everyone's mail options, the alerts are sent via the mail server on usage-monitoring.com.  To prevent abuse of this mail server, I keep a log of when alerts were sent, from which IP address and to whom they were sent.  If you object to this, do not enable this option.
 
-In version 2.2, I added a feature in the Current Connections table on the Live Usage tab that performs a geo-location look-up for the IP addresses in that table i.e., it returns the organization name and city & country for the IP addresses.  Those look-ups are completed using functionality at usage-monitoring.com.  There is also an option that will anonymously share the IP address information across users (so that you do not have too look up addresses I've already checked).  If you object to this, do not click that link!
+In version 2.2, I added a feature in the Current Connections table on the Live Usage tab that performs a geo-location look-up for the IP addresses in that table i.e., it returns the organization name and city & country for the IP addresses.  Those look-ups are completed using functionality at usage-monitoring.com.  There is also an option that will anonymously share the IP address information across users (so that you do not have to look up addresses I've already checked).  If you object to this, do not click that link!
 
 Thank you for your understanding.
