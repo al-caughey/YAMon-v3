@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/sh
 
 ##########################################################################
 # Yet Another Monitor (YAMon)
@@ -32,6 +32,7 @@
 # 3.1.5 (2016-11-16): fixed regexs (never released to the wild though)
 # 3.1.6 (2016-11-17): changed br_u/br_d for hr=start in new 'getStartPND' (to roll over values from previous day); fixed issue in sendAlerts
 # 3.1.7 (2016-11-20): changed fixed 'getStartPND' _br_u/_br_d
+# 3.1.8 (2016-12-14): added DrMona's fix for ips across the bridge; disabled function write2log 
 # ==========================================================
 #				  Functions
 # ==========================================================
@@ -494,13 +495,14 @@ shutDown(){
 	=====================================
 	\`yamon.sh\` has been stopped.
 	-------------------------------------" 2
-	write2log
+	#write2log
 	set +x
 }
 
 changeDates()
 {
 	send2log "	 >>> date change: $_pDay --> $_cDay " 1
+	updateHourly $_p_hr
 	updateHourly2Monthly $_cYear $_cMonth $_pDay &
 	
 	local avrt='n/a'
@@ -528,7 +530,7 @@ changeDates()
 	ndAMS=0
 	_totalLostBytes=0
 	_pndData=""
-	write2log
+	#write2log
 
 	_cMonth=$(date +%m)
 	_cYear=$(date +%Y)
@@ -815,6 +817,7 @@ checkTimes()
 changeHour()
 {
 	local hr="$1"
+	updateHourly $_p_hr
 	send2log "	 >>> hour change: $_p_hr --> $hr " 0
 	local avrt='n/a'
 	[ "$_hriterations" -gt "0" ] && avrt=$(echo "$_totalhrRunTime $_hriterations" | awk '{printf "%.3f \n", $1/$2}')
@@ -833,6 +836,7 @@ changeHour()
 	hr_min5=''
 	hr_max1=''
 	hr_min1=''
+	dumpUsers=''
 	_totalLostBytes=0
 
 	if [ ! -z "$end" ] ; then
@@ -982,6 +986,23 @@ update()
 	elif [ "$mac" == "00:00:00:00:00:00" ] || [ "$mac" == "failed" ] || [ "$mac" == "incomplete" ] ; then
 		send2log "  >>> skipping null/invalid MAC address for $ip" 0 
 		return
+	elif [ "$_includeBridge" -eq "1" ] && [ "$mac" == "$_bridgeMAC" ] ; then
+		[ "$_debugging" -eq "1" ] && set +x
+		local ipcount=$(echo "$cu_no_dup" | grep -v "\b$_bridgeMAC\b" | grep -ic "\b$tip\b")
+		if [ "$ipcount" -eq 1 ] ;  then
+			mac=$(echo "$cu_no_dup" | grep -i "\b$tip\b" | grep -io '\([a-z0-9]\{2\}\:\)\{5,\}[a-z0-9]\{2\}')
+			send2log "	--- matched bridge mac and found a unique entry for associated IP: $ip.  Changing MAC from $_bridgeMAC (bridge) to $mac (device)" 1
+		else
+			send2log "	--- matched bridge mac but found $ipcount matching entries for $ip.  Data will be tallied under bridge mac" 1
+			if [ -z "$dumpUsers" ] ; then
+				send2log "cu_no_dup -->
+$cu_no_dup" 1
+				send2log "_currentUsers -->
+$_currentUsers" 1
+				dumpUsers=1
+			fi
+		fi
+		[ "$_debugging" -eq "1" ] && set -x
 	fi
 	_liveusage="$_liveusage
 curr_users({mac:'$mac',ip:'$ip',down:$do,up:$up})"
@@ -1053,8 +1074,9 @@ $_ud_list" -1
 }
 updateHourly()
 {
-	send2log "=== updateHourly === " 0
-	local hr=$(date +%H)
+	local hr=$1
+	[ -z "$hr" ] && hr=$(date +%H)
+	send2log "=== updateHourly === [$1 - $hr]" 1
 	[ "$_debugging" -eq "1" ] && set +x 
 	local upsec=$(cat /proc/uptime | cut -d' ' -f1)
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
@@ -1096,7 +1118,7 @@ runtimestats()
 
 d_baseDir=`dirname $0`
 
-if [ ! -d "$d_baseDir/includes" ] || [ ! -f "$d_baseDir/includes/defaults.sh" ] || [ ! -f "$d_baseDir/includes/util.sh" ]  ; then
+if [ ! -d "$d_baseDir/includes" ] || [ ! -f "$d_baseDir/includes/defaults.sh" ] ; then
 	echo "
 **************************** ERROR!!! ****************************
   You are missing the \`$d_baseDir/includes\` directory and/or 
@@ -1106,10 +1128,23 @@ if [ ! -d "$d_baseDir/includes" ] || [ ! -f "$d_baseDir/includes/defaults.sh" ] 
 ******************************************************************
 "
 	exit 0
-fi 
+fi
 
 source "$d_baseDir/includes/defaults.sh"
-source "$d_baseDir/includes/util.sh"
+if [ -f "$d_baseDir/includes/util$_version.sh" ] ; then
+	source "$d_baseDir/includes/util$_version.sh"
+elif [ -f "$d_baseDir/includes/util.sh" ] ; then
+	source "$d_baseDir/includes/util.sh"
+else
+	echo "
+**************************** ERROR!!! ****************************
+  You are missing \`$d_baseDir/includes/util$_version.sh\`.
+  Please re-download the latest version of YAMon and make sure 
+  that all of the necessary files and folders are copied to \`$d_baseDir\`!
+******************************************************************
+"
+	exit 0
+fi
 source "$d_baseDir/includes/hourly2monthly.sh"
 _configFile="$d_baseDir/config.file"
 source "$_configFile"
@@ -1140,7 +1175,6 @@ _inUnlimited=0
 _p_inUnlimited=0
 _savedconfigMd5=''
 _usersLastMod=''
-_p_hr=-1
 _totMem=''
 _totalLostBytes=0
 _changesInUsersJS=0
@@ -1149,7 +1183,7 @@ _hriterations=0
 _liveusage=''
 _ndAMS=0
 _ndAMS_dailymax=24
-_log_str=''
+#_log_str=''
 started=0
 sl_max=""
 sl_max_ts=""
@@ -1185,7 +1219,7 @@ send2log "
 *  YAMon $_version was started
 **********************************************************
 " 2
-write2log
+#write2log
 timealign=$(($_updatefreq-$(date +%s)%$_updatefreq))
 send2log "  >>> Delaying ${timealign}s to align updates" 1
 sleep  "$timealign";
@@ -1208,8 +1242,8 @@ while [ -d $_lockDir ]; do
 		updateServerStats
 		checkConfig
 		updateHourly
-		write2log
-		_log_str=''
+		#write2log
+		#_log_str=''
 	fi
 
 	end=$(date +%s)
