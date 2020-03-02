@@ -28,8 +28,9 @@
 # 3.1.2 (2016-10-10): fixes in defaults.sh to set missing values in config.file to defaults
 # 3.1.3 (2016-10-24): update config3.js if config.file changes; defensively check for $_dnsmasq_conf & proper values for FTPing
 # 3.1.4 (2016-11-13): added YAMon rule to iptables INPUT & OUTPUT (in addition to FORWARD); fixed date issue in checkTimes
-#                   : check for duplicate MAC addresses in users.js; reduced number of messages going to logs
-
+#				   : check for duplicate MAC addresses in users.js; reduced number of messages going to logs
+# 3.1.5 (2016-11-16): fixed regexs (never released to the wild though)
+# 3.1.6 (2016-11-17): changed br_u/br_d for hr=start in new 'getStartPND' (to roll over values from previous day); fixed issue in sendAlerts
 # ==========================================================
 #				  Functions
 # ==========================================================
@@ -103,6 +104,7 @@ setLogFile()
 	_logfilename="${lfpath}monitor-$_cYear-$_cMonth-$_cDay.log"
 	[ ! -f "$_logfilename" ] && touch "$_logfilename" && send2log "YAMon :: version $_version	_loglevel: $_loglevel" 2
 	send2log "=== setLogFile ===" -1
+	send2log "Installed firmware: $installedfirmware $installedversion $installedtype" 2
 }
 setWebDirectories()
 {
@@ -238,7 +240,8 @@ createHourlyFile()
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
 	
 	local hc="var hourly_created=\"$ds\""
-	_pndData=$(getPND 'start' "$upsec")
+	_pndData=$(getStartPND 'start' "$upsec")
+	send2log "  *** set start in pnd - $br_d / $br_u" 1
 	local hourlyHeader=$(getHourlyHeader "$upsec" "$ds")
 	_hourlyData=''
 	local nht="$_hourlyCreated
@@ -273,14 +276,29 @@ serverloads(\"$sl_min\",\"$sl_min_ts\",\"$sl_max\",\"$sl_max_ts\")
 
 "
 }
+getStartPND(){
+	send2log "=== getStartPND ===" -1
+	local thr="$1"
+	send2log "  *** setting start in pnd - $br_d / $br_u" 1
+	[ -z "$br_d" ] && br_d=0
+	[ -z "$br_u" ] && br_u=0
+	send2log "  *** getStartPND: br_d: $br_d  br_u: $br_u" -1
+	
+	local ip4=$(getForwardData 'iptables' $YAMON_IP4)
+	local ip6=''
+	[ "$_includeIPv6" -eq "1" ] && ip6=$(getForwardData 'ip6tables' $YAMON_IP6)
 
+	local result="pnd({\"hour\":\"$thr\",\"uptime\":$2,\"down\":$br_d,\"up\":$br_u,\"lost\":$_totalLostBytes,\"hr-loads\":\"$hr_min1,$hr_min5,$hr_max5,$hr_max1\"$ip4$ip6})"
+	echo "$result"
+}
 getPND(){
 	send2log "=== getPND ===" -1
 	[ "$_debugging" -eq "1" ] && set +x 
-	local br0=$(grep -i "$_lan_iface" /proc/net/dev | tr -s ': ' ' ')
+	local thr="$1"
+	local br0=$(cat "/proc/net/dev" | grep -i "$_lan_iface" | tr -s ': ' ' ')
 	send2log "  *** PND: br0: [$br0]" -1
- 	local br_d=$(echo $br0 | cut -d' ' -f10)
-	local br_u=$(echo $br0 | cut -d' ' -f2)
+	br_d=$(echo $br0 | cut -d' ' -f10)
+	br_u=$(echo $br0 | cut -d' ' -f2)
 	[ "$br_d" == '0' ] && br_d=$(echo $br0 | cut -d' ' -f11)
 	[ "$br_u" == '0' ] && br_u=$(echo $br0 | cut -d' ' -f3)
 	[ -z "$br_d" ] && br_d=0
@@ -292,7 +310,7 @@ getPND(){
 	local ip6=''
 	[ "$_includeIPv6" -eq "1" ] && ip6=$(getForwardData 'ip6tables' $YAMON_IP6)
 
-	local result="pnd({\"hour\":\"$1\",\"uptime\":$2,\"down\":$br_d,\"up\":$br_u,\"lost\":$_totalLostBytes,\"hr-loads\":\"$hr_min1,$hr_min5,$hr_max5,$hr_max1\"$ip4$ip6})"
+	local result="pnd({\"hour\":\"$thr\",\"uptime\":$2,\"down\":$br_d,\"up\":$br_u,\"lost\":$_totalLostBytes,\"hr-loads\":\"$hr_min1,$hr_min5,$hr_max5,$hr_max1\"$ip4$ip6})"
 	echo "$result"
 }
 setUsers(){
@@ -381,13 +399,14 @@ createUsersFile()
 setFirmware()
 {
 	send2log "=== setFirmware ===" -1
+	_lan_iface='br0'
 	if [ "$_firmware" -eq "0" ] ; then 
 		_lan_iface=$(nvram get lan_ifname)
 		_lan_ipaddr=$(nvram get lan_ipaddr)
 		_lan_hwaddr=$(nvram get lan_hwaddr | tr '[A-Z]' '[a-z]')
 		_wan_ipaddr=$(nvram get wan_ipaddr)
-		#_wan_gateway=$(nvram get wan_gateway)
 		_wan_hwaddr=$(nvram get wan_hwaddr | tr '[A-Z]' '[a-z]')
+		#_wan_gateway=$(nvram get wan_gateway)
 		_conntrack="/proc/net/ip_conntrack"
 	fi
 	if [ "$_firmware" -eq "0" ] && [ "$_includeIPv6" -eq "0" ] ; then
@@ -1006,7 +1025,8 @@ updateUsage()
 	send2log "=== updateUsage ($cmd/$chain)=== " 0
 	local hr=$(date +%H)
 	_ud_list=''
-	local iptablesData=$($cmd -L "$chain" -vnxZ | tr -s '[\-]' ' ' | grep "^\s[1-9]" | cut -d' ' -f3,8,9)
+	#local iptablesData=$($cmd -L "$chain" -vnxZ | tr -s '-' ' ' | grep "^\s[1-9]" | cut -d' ' -f3,8,9)
+	local iptablesData=$($cmd -L "$chain" -vnxZ | tail -n +3 | tr -s '-' ' ' | grep -v "0 0 RETURN" | cut -d' ' -f3,8,9)
 	if [ -z "$iptablesData" ] ; then
 		send2log "	>>> $cmd returned no data... returning " 0 
 		return
@@ -1132,6 +1152,12 @@ sl_max_ts=""
 sl_min=""
 sl_min_ts=""
 _iteration=0
+br_d=''
+br_u=''
+
+installedfirmware=$(uname -o)
+installedversion=$(nvram get os_version)
+installedtype=$(nvram get dist_type)
 
 [ -d "$_lockDir" ] && echo "$_s_running" && exit 0
 
