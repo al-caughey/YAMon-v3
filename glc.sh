@@ -11,7 +11,7 @@
 
 d_baseDir=$(cd "$(dirname "$0")" && pwd)
 delay=$1
-[ -z $delay ] && delay=5
+[ -z "$delay" ] && delay=5
 
 source "$d_baseDir/config.file"
 source "${d_baseDir}/includes/versions.sh"

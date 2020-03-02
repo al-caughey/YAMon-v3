@@ -27,7 +27,7 @@ getlatest()
 	fi
 	if [ -f "$dst" ] ; then
 		echo "   --> downloaded to $dst"
-		local ext=$(echo -n $dst | tail -c 2)
+		local ext=$(echo -n "$dst" | tail -c 2)
 		[ "$ext" == 'sh' ] && chmod 770 "$dst"
 	else
 		echo "   --> download failed?!?"
@@ -54,7 +54,7 @@ If that still does not clear up the differences, see
 else
 
     YAMON=$(cd "$(dirname "$0")" && pwd)
-	[ ! -z "$1" ] && arg="?bv=$1"
+	[ -n "$1" ] && arg="?bv=$1"
 
 	echo "
 **********************************
@@ -147,7 +147,7 @@ if [ "$needsRestart" == "1" ] ; then
 	fi
 elif [ -z "$allMatch" ] ; then
 	echo "All of your files are up-to-date."
-elif [ ! -z "$allMatch" ] && [ "$param" == 'verify' ] ; then
+elif [ -n "$allMatch" ] && [ "$param" == 'verify' ] ; then
 	echo "One or more of your files did not download properly.
   Either re-run this script, or visit
   \`http://usage-monitoring.com/manualInstall.php\` to update the
@@ -166,7 +166,7 @@ elif [ ! -z "$allMatch" ] && [ "$param" == 'verify' ] ; then
 
   exit 0
 
-elif [ ! -z "$allMatch" ] ; then
+elif [ -n "$allMatch" ] ; then
 	echo "One or more of your files is out-of-date and should be updated.
   Either re-run this script and hit \`s\` to sync all files, or
   visit \`http://usage-monitoring.com/manualInstall.php\` to update selectively.

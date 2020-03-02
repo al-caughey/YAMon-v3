@@ -11,7 +11,7 @@
 
 d_baseDir=$(cd "$(dirname "$0")" && pwd)
 delay=$1
-[ -z $delay ] && delay=5
+[ -z "$delay" ] && delay=5
 
 source "$d_baseDir/config.file"
 source "${d_baseDir}/includes/versions.sh"
@@ -126,7 +126,7 @@ echo ">>> saving to: $_macUsageDB"
 showProgress=1
 
 # Set nice level to 10 of current PID (low priority)
-if [ -z $(which renice) ] ; then 
+if [ -z "$(which renice)" ] ; then 
 	$send2log ">>> Setting renice does not exist in this firmware" 1
 else
 	$send2log ">>> Setting renice level to 10 on PID: $$" 1

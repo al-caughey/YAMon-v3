@@ -12,7 +12,7 @@
 d_baseDir=$(cd "$(dirname "$0")" && pwd)
 
 delay=$1
-[ -z $delay ] && delay=10
+[ -z "$delay" ] && delay=10
 
 logger "YAMON:" "Restarting"
 sleep $delay

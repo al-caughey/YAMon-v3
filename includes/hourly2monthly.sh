@@ -379,7 +379,7 @@ $dgt"
 
 	local _prevhourlyUsageDB="$savePath$_pYear-$_pMonth-$_pDay-$_hourlyFileName"
 	if [ ! -f "$_prevhourlyUsageDB" ]; then
-		$send2log "*** Hourly usage file not found ($_prevhourlyUsageDB)  (_organizeData:$_organizeData)" 0
+		$send2log "*** Hourly usage file not found ($_prevhourlyUsageDB)  (_organizeData:$_organizeData)" 1
 		return
 	fi
 	local pnd_results=''
@@ -402,8 +402,8 @@ $dgt"
 	local p_pnd_u=$(getCV "$pnd" "up")
 	$send2log "Initial: p_uptime-->$p_uptime  p_pnd_d-->$p_pnd_d  p_pnd_u-->$p_pnd_u" -1
 	IFS=$'\n'
-	[ -z "$showProgress" ] || echo -n '
-	PND: ' >&2
+	[ -z "$showProgress" ] || echo -n "$_pYear-$_pMonth-$_pDay
+	PND: " >&2
 	for pnd in $(echo "$hrlyData" | grep "^pnd" | grep -v "\"start\"")
 	do
 		[ -z "$showProgress" ] || echo -n '.' >&2

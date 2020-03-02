@@ -7,13 +7,15 @@
 		<!--meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=3.0"-->
 		<title>YAMon:: Usage monitoring by group and device...</title>
 		<meta name="description" content="Internet Usage Statistics" />
-		<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
-		<script type="text/javascript" src="js/config3.3.js"></script>
-		<script type="text/javascript" src="//code.jquery.com/jquery-latest.min.js"></script>
-		<script type="text/javascript" src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
-		<script type="text/javascript">
-			var _html_version='3.3.7'
-			if(typeof(_file_version)=='undefined') var _file_version='3.3'
+		<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
+		<script type="text/javascript" src="js/config3.4.js"></script>
+		<!--script src="//code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script-->
+		<!--script src="//code.jquery.com/ui/1.12.0/jquery-ui.min.js" integrity="sha256-eGE6blurk5sHj+rmkfsGYeKyZx3M4bG+ZlFyA7Kns7E=" crossorigin="anonymous"></script-->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+		<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+		<script defer type="text/javascript">
+			var _html_version='3.4.5'
+			if(typeof(_file_version)=='undefined') var _file_version='3.4'
 			var args=window.location.search.replace('?','').split('&'),ver=args[1]||_file_version,domain='',path=''
 			if(typeof(_doLocalFiles)=='undefined'||_doLocalFiles=='0'){
 				path = (localStorage.getItem('devOrCurr') || 'current') + '/'
@@ -22,10 +24,13 @@
 			$("<link/>", {rel: "stylesheet", type: "text/css", href: domain + path + 'css/normalize.css'}).appendTo("head");
 			$("<link/>", {rel: "stylesheet", type: "text/css", href: domain + path + 'css/yamon' + ver + '.css'}).appendTo("head");
 			$("<link/>", {rel: "shortcut icon",href: domain + path + 'images/favicon.png'}).appendTo("head");
-			(typeof(_settings_pswd)!='undefined') && $.ajax({url: domain + path + 'js/jquery.md5.min.js', dataType: "script"});
+			$.ajax({url: domain + path + 'js/jquery.md5.min.js', dataType: "script"});
 		</script>
 		<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 		<script type="text/javascript">
+			google.charts.load('current', {packages: ['corechart']});
+		</script>
+		<script defer type="text/javascript">
 			if(!localStorage.getItem('ajaxCache')) localStorage.setItem('ajaxCache', 'true')
 			$.ajaxSetup({'cache':localStorage.getItem('ajaxCache')=='true'});  //Comment out this line if your router requires timestamps appended to data URLs
 			google.charts.load('current', {'packages':['corechart', 'gauge']});
@@ -106,19 +111,59 @@
 					<section class='main-section'>
 						<table id='SummaryUsageTable' class='lc'>
 							<tr>
-								<th class='br bl bt' colspan=3>Traffic Summary</th>
+								<td class='bl td-rot' rowspan=7><span class='rot-90'>Router Stats</span></td>
+							</tr>
+							<tr class='bg-lt'>
+								<td class='a-r fw-b bt bl br' title='Router Brand'>Router:</td>
+								<td class='a-c bt br router-brand' title='Router Brand'>TBD</td>
+								<td class='a-c bt br router-installed' title='YAMon was first installed'>TBD</td>
 							</tr>
 							<tr>
-								<th class='br bl'></th>
-								<th class='a-c br' title='Current Report Date'>Current Date</th>
-								<th class='a-c br' title='Current Report Interval'>Current Interval</th>
+								<td class='a-r fw-b bl br' title='Router Firmware'>Firmware:</td>
+								<td class='a-c br router-firmware' title='Router Firmware'>TBD</td>
+								<td class='a-c br router-updated' title='YAMon was last updated'>TBD</td>
+							</tr>
+							<tr class='bg-lt'>
+								<td class='a-r fw-b br bl bt' id='sp-uptime'>Uptime:</td>
+								<td id='uptime' class='a-c br bt n-a' colspan=2></td>
+							</tr>
+							<tr id='serverload' >
+								<td class='a-r fw-b br bl'>Load:</td>
+								<td class='br p-r' colspan=2>
+									<p><span id='sp_curSL' title='Current Ave 5-min Load'></span></p>
+									<p><span class='gradient'></span></p>
+									<p class=''>
+										<span id='sp_minSL' class='p-a'>
+											<span class='txt'></span>
+										</span>
+										<span id='sp_maxSL' class='p-a'>
+											<span class='txt'></span>
+										</span>
+									</p>
+								</td>
+							</tr>
+							<tr class='bg-lt'>
+								<td class='a-r fw-b br bl'>Free Memory:</td>
+								<td class='a-c br' colspan=2><span id='sp-freeMem'>0</span></td>
+							</tr>
+							<tr>
+								<td class='a-r fw-b br bl'>Memory &amp;<br/>Disk Utilization:</td>
+								<td id='gauges' class='a-c br' colspan=2></td>
+							</tr>
+							<tr>
+								<td class='bl td-rot' rowspan=5><span class='rot-90'>Traffic</span></td>
+							</tr>
+							<tr>
+								<th class='a-c br bl bt' title='Current Report Date'>Intervals</th>
+								<th class='a-c br bt current-date' title='Current Report Date'>Current Date</th>
+								<th class='a-c br bt current-interval' title='Current Report Interval'>Billing Interval</th>
 							</tr>
 							<tr>
 								<td class='a-r fw-b br bl'>Downloads:</td>
 								<td id='st-d-db' class='btn num a-c br downloads'></td>
 								<td id='st-i-db' class='btn num a-c br downloads'></td>
 							</tr>
-							<tr>
+							<tr class='bg-lt'>
 								<td class='a-r fw-b br bl'>Uploads:</td>
 								<td id='st-d-ub' class='btn num a-c br uploads'></td>
 								<td id='st-i-ub' class='btn num a-c br uploads'></td>
@@ -128,85 +173,39 @@
 								<td id='st-d-tb' class='btn num a-c br tByts'></td>
 								<td id='st-i-tb' class='btn num a-c br tByts'></td>
 							</tr>
-							<tr>
-								<th class='br bt bl' colspan=3>Router Stats</th>
-							</tr>
-							<tr>
-								<td class='a-r fw-b br bl' id='sp-uptime'>Uptime:</td>
-								<td id='uptime' class='a-c br' colspan=2>n/a</td>
-							</tr>
-							<tr>
-								<td class='a-r fw-b br bl'>Load:</td>
-								<td id='serverload' class='br p-r' colspan=2>
-									<p><span id='sp_curSL' title='Current Ave 5-min Load'></span></p>
-									<p><span class='gradient'></span></p>
-									<p class=''><span id='sp_minSL' class='p-a'></span><span id='sp_maxSL' class='p-a'></span></p>
-								</td>
-							</tr>
-							<tr>
-								<td class='a-r fw-b br bl'>Free Memory:</td>
-								<td class='a-c br' colspan=2><span id='sp-freeMem'>0</span> bytes</td>
-							</tr>
-							<tr>
-								<td class='a-r fw-b br bl'>Memory &amp; Disk Utilization:</td>
-								<td id='gauges' class='a-c br' colspan=2></td>
-							</tr>
-							<tr>
-								<th class='br bt bl' colspan=3>Devices &amp; Groups Summary</th>
-							</tr>
-							<tr>
-								<td class='a-r fw-b br bl'># Devices Online:</td>
-								<td id='ds-olt' class='btn a-c br'>n/a</td>
-								<td id='ds-oli' class='btn a-c br'>n/a</td>
-							</tr>
-							<tr>
-								<td rowspan=3 class='a-r fw-b br bl'>Busiest Devices:</td>
-								<td class='g2dr btn br a-c'>
-									<span id='st-d-tdn0'></span> (<span id='st-d-tdv0' class='num tByts'></span>)
-								</td>
-								<td class='g2mr btn br a-c'>
-									<span id='st-i-tdn0'></span> (<span id='st-i-tdv0' class='num tByts'></span>)
-								</td>
-							</tr>
-							<tr>
-								<td class='g2dr btn br a-c'>
-									<span id='st-d-tdn1'></span> (<span id='st-d-tdv1' class='num tByts'></span>)
-								</td>
-								<td class='g2mr btn br a-c'>
-									<span id='st-i-tdn1'></span> (<span id='st-i-tdv1' class='num tByts'></span>)
-								</td>
-							</tr>
-							<tr>
-								<td class='g2dr btn br a-c'>
-									<span id='st-d-tdn2'></span> (<span id='st-d-tdv2' class='num tByts'></span>)
-								</td>
-								<td class='g2mr btn br a-c'>
-									<span id='st-i-tdn2'></span> (<span id='st-i-tdv2' class='num tByts'></span>)
-								</td>
-							</tr>
-							<tr>
-								<td rowspan=3 class='a-r fw-b br bl'>Busiest Groups:</td>
-								<td rowspan=3 id='st-d-tgn' class='a-c br'>n/a</td>
-								<td class='g2gr btn br a-c'>
-									<span id='st-i-tgn0'></span> (<span id='st-i-tgv0' class='num tByts'></span>)
-								</td>
-							</tr>
-							<tr>
-								<td class='g2gr btn br a-c'>
-									<span id='st-i-tgn1'></span> (<span id='st-i-tgv1' class='num tByts'></span>)
-								</td>
-							</tr>
-							<tr>
-								<td class='g2gr btn br a-c'>
-									<span id='st-i-tgn2'></span> (<span id='st-i-tgv2' class='num tByts'></span>)
-								</td>
-							</tr>
-							<tr>
-								<td class='a-r fw-b br bl'>New Devices:</td>
-								<td id='ds-att' class='a-c br'>n/a</td>
-								<td id='ds-ati' class='a-c br'>n/a</td>
-							</tr>
+							<tbody id='sum-d-g'>
+								<tr>
+									<td class='bl td-rot' rowspan=5><span class='rot-90'>Devices &amp; Groups</span></td>
+								</tr>
+								<tr class='bg-lt'>
+									<td class='a-r a-t fw-b br bl'># Devices Online:</td>
+									<td id='ds-olt' class='btn a-c br n-a'></td>
+									<td id='ds-oli' class='btn a-c br n-a'></td>
+								</tr>
+								<tr>
+									<td class='a-r a-t fw-b br bl'>Busiest <span class='numBusyDevices'></span> Devices:<br/>
+										<div id='numBusyDevices' title='Pick the number of devices to show'></div>
+									</td>
+									<td id='ds-bdt' class='a-c a-t br n-a'></td>
+									<td id='ds-bdi' class='a-c a-t br n-a'></td>
+								</tr>
+
+								<tr class='bg-lt'>
+									<td class='a-r a-t fw-b br bl'>Busiest <span class='numBusyGroups'></span> Groups:<br/>
+										<div id='numBusyGroups' title='Pick the number of groups to show'></div>
+									</td>
+									<td id='ds-bgt' class='a-c a-t br n-a'></td>
+									<td id='ds-bgi' class='a-c a-t br n-a'></td>
+								</tr>
+
+								<tr>
+									<td class='a-r a-t fw-b br bl'>New Devices:</td>
+									<td id='ds-att' class='a-c a-t br n-a'></td>
+									<td id='ds-ati' class='a-c a-t br n-a'></td>
+								</tr>
+							</tbody>
 						</table>
+
 						<article class='rc'>
 							<table class='info-top p-r' id="SystemTotalsTable">
 								<thead>
@@ -225,7 +224,7 @@
 											<span class='table-units'>KB</span>
 										</th>
 										<th class='st-t tot-dlo th-tot br bt' rowspan=2>Total</th>
-										<th class='st-c is-cap br2 bt' rowspan=2>% of <span id="spUsageCap" class='imp-text'>Not Set... see 'Settings' tab</span> Cap</th>
+										<th class='st-c is-cap br2 bt' rowspan=2>% of <span class='spUsageCap imp-text'>Not Set... see 'Settings' tab</span> Cap</th>
 										<th class='st-pt a-c br bt' rowspan=2>
 											Projected<br/>Total
 										</th>
@@ -373,6 +372,19 @@
 										<td class="tByts br2 num"></td>
 										<td class="percent br"></td>
 									</tr>
+									<tr class="DailyFooter ftotals hidden">
+										<td class="a-r br bl">
+											<button type="button" class="pDBtn" title='Go to the previous day in this interval'></button>
+											:::Totals:::
+											<button type="button" class="nDBtn" title='Go to the next day in this interval'></button>
+										</td>
+										<td class="downloads num"></td>
+										<td class="uploads num br"></td>
+										<td class="isUL ul-down num"></td>
+										<td class="isUL ul-up num br"></td>
+										<td class="tByts br2 num"></td>
+										<td class="a-c percent br"></td>
+									</tr>
 								</thead>
 								<tbody id="DailyData"> </tbody>
 								<tfoot>
@@ -388,7 +400,7 @@
 										<td class="tByts num a-r br2 bytes" value="0">0</td>
 										<td class="br a-c percent">-</td>
 									</tr>
-									<tr id="DailyFooter">
+									<tr class="DailyFooter ftotals">
 										<td class="a-r br bl">
 											<button type="button" class="pDBtn" title='Go to the previous day in this interval'></button>
 											:::Totals:::
@@ -604,6 +616,15 @@
 										</div>
 									</td>
 								</tr>
+								<tr class="MonthlyFooter hidden ftotals">
+									<td class="a-r br bl">:::Totals:::</td>
+									<td class="downloads num"></td>
+									<td class="uploads num br"></td>
+									<td class="isUL ul-down num"></td>
+									<td class="isUL ul-up num br"></td>
+									<td class="tByts br2 num"></td>
+									<td class="a-c percent br"></td>
+								</tr>
 							</thead>
 							<tbody id="MonthlyData"></tbody>
 							<tfoot>
@@ -616,7 +637,7 @@
 									<td class="tByts br2 num a-r"></td>
 									<td class="br a-c percent">-</td>
 								</tr>
-								<tr id="MonthlyFooter">
+								<tr class="MonthlyFooter ftotals">
 									<td class="a-r br bl">:::Totals:::</td>
 									<td class="downloads num"></td>
 									<td class="uploads num br"></td>
@@ -756,7 +777,8 @@
 
 						<button type="button" id="luStart" class='hidden'>Start</button>
 						<button type="button" id="luStop">Stop</button>
-						<button type="button" id="luReset" class='hidden' title='Careful - this will clear all of the data from this table!'>Reset</button>
+						<button type="button" id="luReset" class='hidden' title='Careful - this will clear all of the data from this table!'>Reset</button><br/>
+						Last update: <a id='last_update' href='' target='_blank'></a>
 					</p>
 					<p><a href='/'>Router GUI</a></p>
 					<section class='main-section'>
@@ -790,7 +812,7 @@
 							<table class='info-top p-r' >
 								<thead>
 									<tr class='info-p p-r'>
-										<th class="td-time br bl bt a-r" rowspan=2>Time
+										<th class="br bl bt a-r" rowspan=2>Time
 											<span class='info-w p-a'>
 												<span class='info btn'></span>
 												<span class='ts btn'></span>
@@ -853,23 +875,24 @@
 						</article>
 						<article class='rc p-r' id='active-connections'>
 							<h2>
-								<span id='acrc'></span> Active Connections
+								<span id='acrc'></span> Active Connections <span class='legend internal'>Internal</span><span class='legend tcp'>TCP</span><span class='legend udp'>UDP</span><span class='legend unknown'>Unknown</span>
 							</h2>
 							<p id='acc-filter' class='p-filterIP hidden'>(filtered for <span class='filterIP btn clear-filter'></span>)</p>
 
 							<table class='info-top p-r' id="act-cons">
 								<thead>
 									<tr class='info-p p-r'>
-										<th class='br bl bt'>Con</th>
-										<th class='bt'>Source
+										<!--th class='br bl bt'>Con</th-->
+										<th class='bt bl'>Source
 											<span class='info-w p-a'>
 												<span class='info btn'></span>
 												<span class='ts btn'></span>
 											</span>
 										</th>
 										<th class='br bt'>Port</th>
-										<th  class='bt' id='act-dest'>Destination</th>
+										<th class='bt' id='act-dest'>Destination</th>
 										<th class='br bt'>Port</th>
+										<th class='br bt'>Bytes</th>
 									</tr>
 									<tr class='info-tr hidden'>
 										<td class='info-td p-a' colspan=100%>
@@ -879,11 +902,15 @@
 												<p class='info-d'>Click <span class="ts"></span> to show/hide local IP addresses and set the local IP range</p>
 
 												<p class='ts-d'>
-													<label for='show-local' title='Show/hide connections to internal IP addresses in the table'><input type='checkbox' id='show-local'>Show Local IPs</label>
+													Show: <label for='show-internal' class='settings-cb internal' title='Show/hide connections to internal connections in the table'><input type='checkbox' id='show-internal'>Internal</label>
+													<label for='show-tcp' class='settings-cb tcp' title='Show/hide tcp cconnections in the table'><input type='checkbox' id='show-tcp'>TCP</label>
+													<label for='show-udp' class='settings-cb udp' title='Show/hide udp cconnections in the table'><input type='checkbox' id='show-udp'>UDP</label>
+													<label for='show-unknown' class='settings-cb unknown' title='Show/hide unknown cconnections in the table'><input type='checkbox' id='show-unknown'>unknown</label>
 												</p>
 												<p class='ts-d show-local'>
-													Local IPs: <input type='text' placeholder='192.168.1' id='acc-filter-ip' size=7> e.g., 192.168.1, 10.13.15, etc.<br/>
-													NB - 255.255.255.255 is automatically included
+													Local IPs: <input type='text' placeholder='192.168.1' id='acc-filter-ip' size=14> <br/>
+													&nbsp;&nbsp;&nbsp;CSV list - e.g., 192.168.1, 10.13.15, etc.<br/>
+													&nbsp;&nbsp;&nbsp;NB - 255.255.255.255 is automatically included
 												</p>
 
 												<p id='ip-sync' class='ts-d btn'>Sync IPs with usage-monitoring.com <span class='ip-prog hidden'> &rarr; Imported: <span id='ip-n'></span></span></p>
@@ -891,12 +918,12 @@
 										</td>
 									</tr>
 									<tr id='blank-acon-row' class="acon-row hidden">
-										<td class="conn br bl"></td>
-										<td class="src-ip a-c"></td>
+										<!--td class="conn br bl"></td-->
+										<td class="src-ip a-l bl"></td>
 										<td class="sprt a-c br"></td>
-										<td class="a-c btn dest-ip"></td>
-										<td><span class='flag'></span></td>
+										<td class="a-l p-r dest-ip btn"></td>
 										<td class="dprt a-c br"></td>
+										<td class="num br"></td>
 									</tr>
 								</thead>
 								<tbody id='act-cons-body'></tbody>
@@ -911,7 +938,7 @@
 
 					<h2>Groups &amp; Devices</h2>
 					<section class='main-section p-r'>
-						<p>Report for: <span class='current-interval imp-text'></span></p>
+						<p>Report for: <span class='current-interval imp-text'></span>Filter: <input type='text' id='filter-results' placeholder='Filter this table'></p>
 						<table class='info-top p-r lc' id='devices-table'>
 							<thead id="devicesHeader">
 								<tr class='info-p p-r'>
@@ -968,7 +995,7 @@
 								</tr>
 							</thead>
 							<tbody id="devicesData"></tbody>
-							<tfoot id="devicesFooter">
+							<tfoot id="devicesFooter ftotals">
 								<tr>
 									<td class="a-r" colspan="4">:::Totals:::</td>
 									<td class="ipv6"></td>
@@ -1007,33 +1034,14 @@
 							<p>The buttons to the left and right of the slider allow you see date for the previous/next day, first/last day of the current interval or the previous/next intervals.</p>
 						</div>
 						<div class='intro-t req-settings'>
-							<h1><span class='settings-tab settings'></span>Required Settings</h1>
-							<p>The `Settings` tab allows you to configure how data is presented in the reports.  Before you can see yours, you must first:</p>
-							<ol>
-								<li>select whether you have unlimited data or a monthly usage cap:
-									<p id='intro-bw_cap'></p>
-								</li>
-								<li class='isUL'>set your `Bonus Data` limits:
-									<p id='intro-bonus_cap'></p>
-								</li>
-							</ol>
-							<p>Click the <span class='mval'> &#x2714; </span> to confirm your selection is correct.  You can return to the `Settings` tab at any time to adjust these settings.</p>
+							<h1><span class='settings-tab settings'></span>Settings</h1>
+							<p>The `Settings` tab allows you to configure how data is presented in the reports.  By default, these settings and any customizations you make for device names & groupings are saved in a `<a href='http://www.w3schools.com/html/html5_webstorage.asp' target='_blank'>LocalStorage</a>` variable which means that your settings are specific to this browser and this device.  If you plan to view these reports from multiple devics, I recommend that you look at the `Database Integration` settings which will share your settings with any device used to view these reports. See detailed `Database Integration` instructions <a href='http://usage-monitoring.com/help/?t=share-settings' target='_blank'>here</a>.</p>
 						</div>
 						<div class='intro-t'>
-							<h1><span class='settings-tab settings'></span>Optional Settings</h1>
-							<p>There are a couple of other options on the `<b><i>Settings</i></b>` tab that you might want to consider:</p>
-							<ol>
-								<li>
-									<p>If you are going to to view these reports in a different browser or on different devices, I recommend that you look at the `Database Integration` settings.</p>
-									<p>By default, your YAMon report settings and customizations are stored in a `localStorage` variable which means that are available only on *this* computer and in *this* browser. (More about <a href='http://www.w3schools.com/html/html5_webstorage.asp' target='_blank'>localStorage</a> variables)</p>
-									<p>The `Database Integration` feature shares your settings with any device used to view these reports.</p>
-								</li>
-								<li>
-									<p>If you want to compare your YAMon traffic reports with those provided by your ISP, check out the `ISP Settings` too.</p>
-									<p>This will allow you to see how YAMon's values differ from what your ISP reports.  (Generally my ISP's totals are ~3-5% higher than YAMon.)</p>
-									<p>See detailed instructions <a href='http://usage-monitoring.com/help/?t=isp-data' target='_blank'>here</a>.</p>
-								</li>
-							</ol>
+							<h1><span class='settings-tab settings'></span>ISP Integration</h1>
+							<p>If you want to compare your YAMon traffic reports with those provided by your ISP, check out the `ISP Settings` too.</p>
+							<p>This will allow you to see how YAMon's values differ from what your ISP reports.  (Generally my ISP's totals are ~3-5% higher than YAMon.)</p>
+							<p>See detailed instructions <a href='http://usage-monitoring.com/help/?t=isp-data' target='_blank'>here</a>.</p>
 						</div>
 						<div class='intro-t'>
 							<h1><span class='settings-tab devices'></span>Customizing Device Names & Groups</h1>
@@ -1043,7 +1051,7 @@
 						</div>
 						<div class='intro-t'>
 							<h1>Getting Help</h1>
-							<p>If you have any troubles with the reports, please visit <a href='http://usage-monitoring.com' target='_blank'>http://usage-monitoring.com</a> or the<a href='http://www.dd-wrt.com/phpBB2/viewtopic.php?t=289324' target='_blank'>YAMon thread</a> at the DD-WRT forum.  If you have any questions/suggestions or find an error, drop me a <a href="mailto:questions@usage-monitoring.com?subject=Yet Another Monitor Questions%2FComments">line</a>...  I'll do my best to respond ASAP!
+							<p>If you have any troubles with the reports, please visit <a href='http://usage-monitoring.com/help/?c=Reports ' target='_blank'>http://usage-monitoring.com</a> or the<a href='http://www.dd-wrt.com/phpBB2/viewtopic.php?t=289324' target='_blank'>YAMon thread</a> at the DD-WRT forum.  If you have any questions/suggestions or find an error, drop me a <a href="mailto:questions@usage-monitoring.com?subject=Yet Another Monitor Questions%2FComments">line</a>...  I'll do my best to respond ASAP!
 							</p>
 						</div>
 						<div class='intro-t'>
@@ -1067,24 +1075,18 @@
 							<input type="checkbox" name="settings_pswd_cb" id="settings_pswd_cb"> Remember the password on this device</label>
 						</p>
 					</div>
-					<h3>You must specify and/or confirm the value for all <span class=' required'> required</span> fields.  The others are optional (or you can accept the defaults).</h3>
+					<h3>Adjust these options to tailor the general appearance of your reports.</h3>
 					<div id='settings-columns' class='main-section'>
 						<div id='settings-col_1'>
 							<fieldset>
 								<legend>Bandwidth Settings</legend>
-								<p class='settings-desc'>Alter these settings to tailor your reports.</p>
-								<p id='p-bw_cap' title='What your ISP allows you to use each month (in GB)' >
-									<label class='required'>Bandwidth Allowance Cap</label>:<br/>&nbsp;&nbsp;<label for='bandwidth-u'><input type=radio id='bandwidth-u' name="bandwidth" value="unlimited"> Unlimited</label>&nbsp;or&nbsp;
-									<input type=radio id='bandwidth-l' name="bandwidth" value="limited"> <input type='number' pattern='^[0-9]{1,3}$' id='bw_cap' name='bw_cap' class='a-r' size=4> GB/mo
-								</p>
+								<p class='settings-desc'>These values are set in `config.file` on your router</p>
+								<p id='p-bw_cap' title='What your ISP allows you to use each month (in GB)... now set on the server' ><label class=''>Bandwidth Allowance Cap</label>: <span class='spUsageCap'></span></p>
 								<p class='is-cap ti-6 hidden' title='Select this checkbox if only downloads (and not uploads) count against your usage cap'>
 									<input type="checkbox" id="cb-dl-o">
 									<label for="cb-dl-o">Only Downloads count towards cap</label>
 								</p>
-								<p class='isUL' id='p-bonus_cap' title='Bonus data your ISP allows you to use each month (in GB)' >
-									<label class='required'>`<i>Bonus Data</i>` Allowance Cap <br/>(between <span id='bd-start'></span> & <span id='bd-end'></span>)</label>:<br/>&nbsp;&nbsp;<label for='bonusdata-u'><input type=radio id='bonusdata-u' name="bonusdata" value="unlimited"> Unlimited</label>&nbsp;or&nbsp;
-									<input type=radio id='bonusdata-l' name="bonusdata" value="limited"> <input type='number' pattern='^[0-9]{1,3}$' id='bonus_cap' name='bonus_cap' class='a-r' size=4> GB/mo
-								</p>
+								<p id='p-bonus_data_txt' title='If your ISP allows `bonus` data' ><label class=''>Bonus Data</label>:<span class='bonus_data_txt'></span></p>
 								<p class='isUL ti-6' title='Select this checkbox if you have a Bonus Data usage interval (e.g. between 2-5AM)'>
 									<input type="checkbox" id="ul-redtot">
 									<label for="ul-redtot">Reduce totals by `<i>Bonus Data</i>` amounts</label>
@@ -1145,6 +1147,10 @@
 									<input id='ShowRD' type='checkbox'>
 									<label for='ShowRD'>Show Data at Router</label>
 								</p>
+								<p title='Duplicate totals at top of table (daily and monthly)'>
+									<input id='DupTotals' type='checkbox'>
+									<label for='DupTotals'>Duplicate totals row</label>
+								</p>
 								<p title='Interval to auto refresh the reports (in seconds)'>
 									<label for="RefreshInterval">Refresh Interval:</label>
 									<input type="number" pattern='^[1-9][0-9]*$' size="4" name="Refresh" id="RefreshInterval" class='linked a-r' value="120"> sec.
@@ -1165,9 +1171,16 @@
 										<option value='/'>/</option>
 									</select>
 								</p>
-								<p title='Show/Hide updating popups'>
-									<input type="checkbox" id="SuppressUpdates">
-									<label for="SuppressUpdates">Suppress loading alerts</label>
+								<p title='Set the speed of the loading animations'>
+									<!--input type="checkbox" id="SuppressUpdates">
+									<label for="SuppressUpdates">Suppress loading alerts</label-->
+									<label for="Animations">Animations:</label>
+									<select name="Animations" id="Animations">
+										<option value='0'>None</option>
+										<option value='1' selected>Normal</option>
+										<option value='2'>Fast</option>
+										<option value='4'>Really Fast</option>
+									</select>
 								</p>
 								<p title='Check whether YAMons files have been updated'>
 									Check for updates: <select name="check4Updates" id="check4Updates">

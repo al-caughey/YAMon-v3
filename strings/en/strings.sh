@@ -47,7 +47,7 @@ $los
 _s_tostop="
 To stop the script:
  * run \`shutdown.sh\` [*RECOMMENDED*]
-      e.g., \`${_baseDir}shutdown.sh\`
+      e.g., \`${d_baseDir}/shutdown.sh\`
  * or delete the \`$_lockDir\` directory
       e.g., \`rmdir $_lockDir\`"
 

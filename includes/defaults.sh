@@ -17,10 +17,10 @@ _has_nvram=0
 _has_uci=0
 _canClear=$(which clear)
 
-[ ! -z "$YAMON" ] && d_baseDir="${YAMON%/}"
+[ -n "$YAMON" ] && d_baseDir="${YAMON%/}"
 [ -z "$d_baseDir" ] && d_baseDir=$(cd "$(dirname "$0")" && pwd)
-[ ! -z $(which nvram) ] && _has_nvram=1
-[ ! -z $(which uci) ] && _has_uci=1
+[ -n "$(which nvram)" ] && _has_nvram=1
+[ -n "$(which uci)" ] && _has_uci=1
 
 _lockDir="/tmp/YAMon$_file_version-running"
 
@@ -37,8 +37,8 @@ d_updatefreq=30
 d_publishInterval=4
 _lang='en'
 d_path2strings="$d_baseDir/strings/$_lang/"
-d_setupWebDir="www/"
-d_setupWebIndex="yamon$_file_version.html"
+d_webDir="www/"
+d_webIndex="yamon$_file_version.html"
 d_dataDir="data/"
 d_logDir="logs/"
 d_wwwPath="/tmp/www/"
@@ -72,7 +72,6 @@ d_dnsmasq_leases="/tmp/dnsmasq.leases"
 d_do_separator=""
 d_includeBridge=0
 d_bridgeMAC='XX:XX:XX:XX:XX:XX'
-d_bridgeIP='###.###.###.###'
 d_defaultOwner='Unknown'
 d_defaultDeviceName='New Device'
 d_includeIPv6=0
@@ -83,6 +82,7 @@ d_gatewayMAC=''
 d_sendAlerts=0
 d_organizeData=2
 d_allowMultipleIPsperMAC=0
+d_multipleIPMAC='XX:XX:XX:XX:XX:XX'
 d_includeIPv6=0
 d_enable_ftp=0
 d_ftp_site=''
@@ -109,7 +109,7 @@ loadconfig()
 	for line in $(echo "$p_list")
 	do
 		eval nv=\"\$$line\"
-		[ ! -z "$nv" ] && continue
+		[ -n "$nv" ] && continue
 		local dvn="d$line"
 		eval dv=\"\$$dvn\"
 		[ -z "$dv" ] && continue
@@ -121,6 +121,10 @@ loadconfig()
 	
 	updateUsage="updateUsage_"$_includeIPv6
 	doliveUpdates="doliveUpdates_"$_doLiveUpdates
+	[ -z "$(which ftpput)" ] && [ "$_enable_ftp" -eq 1 ] && _enable_ftp=0 && echo "
+*** _enable_ftp changed to 0 because command ftpput was not found?!?
+*** Please check your config.file
+" >&2
 	save2File="save2File_"$_enable_ftp
 	copyfiles="copyfiles_"$_symlink2data
 	checkUnlimited="checkUnlimited_"$_unlimited_usage
@@ -139,7 +143,7 @@ loadconfig()
 	else
 		sendAlert="sendAlert_1"
 	fi
-	[ ! -z "$dirty" ] && echo "
+	[ -n "$dirty" ] && echo "
 ###########################################################
 NB - One or more parameters are missing in your config.file!$mfl
 The missing entries have been assigned the defaults from \`default_config.file\`.
@@ -158,7 +162,7 @@ See also http://usage-monitoring.com/help/?t=missing_parameters
 	fi
 
 	local ipv6_enable=''
-	if [ "$_has_nvram" -eq 1 ] ; then
+	if [ "$_has_nvram" -eq "1" ] ; then
 		ipv6_enable=$(nvram get ipv6_enable)
 	fi
 

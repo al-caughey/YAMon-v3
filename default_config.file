@@ -12,13 +12,14 @@
 # version 3.4.0 - uprev'd for new release
 # version 3.4.1 - removed _bridgeIP, _path2ip; added _multipleIPMAC
 # version 3.4.2 - added _logNoMatchingMac
+# version 3.4.4 - re-added _path2ip; renamed _webDir & _webIndex
 
-_firmware='0'                                # which firmware is running on the router: permitted values: 0->DD-WRT(*) || 1->OpenWrt || 2->Asuswrt-Merlin
+_firmware='0'                                # which firmware is running on the router: permitted values: 0->DD-WRT(*) || 1->OpenWrt || 2->Asuswrt-Merlin || 3->Asuswrt-Merlin || 4->LEDE || 5->Xwrt-Vortex || 6->Turris || 7->Padavan
 _updatefreq='30'                             # number of seconds between updates (* default `15` sec)
 _publishInterval='4'                         # number of intervals between updates for to the website (* default `12`)
 _ispBillingDay='5'                           # roll-over day of the month for ISP billing (* default `1`)
-_setupWebDir='www/'                          # path to the web files (* default `Setup/www/`)
-_setupWebIndex='index.html'                  # path to the index page (* default `index.html`)
+_webDir='www/'                               # path to the web files (* default `www/`)
+_webIndex='index.html'                       # path to the index page (* default `index.html`)
 _dataDir='data/'                             # path to the data directory (* default `data/`)
 _logDir='logs/'                              # path to log files  (* default `logs/`)
                                              #   NB - If _dataDir OR _logDir starts with a slash it will be an absolute path (and d_baseDir will be ignored)
@@ -92,3 +93,4 @@ _ftp_dir=''                                  # set to root directory path to you
 _useTMangle=0                                # whether or not to use the `-t mangle` option for ipchain: 0->no(*) || 1->yes
 _use_nf_conntrack=1                          # use nf_conntrack rather than ip_conntrack: 0->no(*) || 1->yes
 _logNoMatchingMac=0                          # add an iptables entry to log unknown traffic: 0->no(*) || 1->yes
+_path2ip=''                                  # path to the full version of ip if installed (manually)

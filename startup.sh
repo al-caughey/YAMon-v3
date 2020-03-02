@@ -29,7 +29,7 @@ if [ "$np" -gt "0" ] || [ -d "$_lockDir" ] ; then
 fi
 # wait for a bit (10 seconds)... depending on your router you can make this longer or shorter
 delay=$1
-[ -z $delay ] && delay=10
+[ -z "$delay" ] && delay=10
 
 echo "
 $los
@@ -47,9 +47,9 @@ while [ $i -lt $delay ] ; do
   i=$(($i + 1))
 done
 
-[ ! -z $_canClear ] && clear
+[ -n "$_canClear" ] && clear
 # launch the script in nice mode (thanks to Jeff Page)
-if [ -z $(which nice) ] ; then
+if [ -z "$(which nice)" ] ; then
 	${d_baseDir}/yamon${_version}.sh &
 else
 	nice ${d_baseDir}/yamon${_version}.sh &
