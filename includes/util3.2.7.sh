@@ -12,6 +12,7 @@
 # 3.2.4 (2017-02-20): no changes... updated for consistency
 # 3.2.5 (2017-02-20): added generic user 0.0.0.0/0
 # 3.2.6 (2017-02-26): spacing in prompt
+# 3.2.7 (2017-05-07): clean-up so that yamon3.2 can run concurrently with 3.3... this will likely be the last update to YAMon3.2013-present.
 ##########################################################################
 
 _enableLogging=1
@@ -200,9 +201,10 @@ setWebDirectories()
 	echo "
 
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-	~  Your reports URL: http://${lan_ip}/$lwww/$_setupWebIndex
+	~  Your reports URL: http://${lan_ip}/user/$_setupWebIndex
+    ~     (subject to some firmware peculiarities)
 	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-	send2log "Reports URL: http://${lan_ip}/$lwww/$_setupWebIndex" 1
+	send2log "Reports URL: http://${lan_ip}/user/$_setupWebIndex" 1
 }
 getMI()
 {
@@ -437,9 +439,9 @@ checkIPTableEntries()
 		local ip=$3
 		[ "$ip" == "$g_ip" ] && return
 		while [ true ]; do
-			local dup_num=$($cmd -vnxL "$chain" --line-numbers | grep -m 1 -i "\b$ip\b" | cut -d' ' -f1)
+			local dup_num=$(eval $cmd $t_options -vnxL "$chain" --line-numbers | grep -m 1 -i "\b$ip\b" | cut -d' ' -f1)
 			[ -z "$dup_num" ] && break
-			$($cmd -D "$chain" $dup_num)
+			$(eval $cmd $t_options -D "$chain" $dup_num)
 		done
 	}
 	addIP(){
@@ -447,31 +449,10 @@ checkIPTableEntries()
 		local chain=$2
 		local ip=$3
 		clearIPs "$cmd" "$chain" "$g_ip\s*$g_ip"
-		$($cmd -I "$chain" -s "$ip" -j RETURN)
-		$($cmd -I "$chain" -d "$ip" -j RETURN)
-		$($cmd -A "$chain" -s "$g_ip" -j RETURN)
-		$($cmd -A "$chain" -d "$g_ip" -j RETURN)
-	}
-	clearIPs_t(){
-		local cmd=$1
-		local chain=$2
-		local ip=$3
-		[ "$ip" == "$g_ip" ] && return
-		while [ true ]; do
-			local dup_num=$($cmd -t mangle -vnxL "$chain" --line-numbers | grep -m 1 -i "\b$ip\b" | cut -d' ' -f1)
-			[ -z "$dup_num" ] && break
-			$($cmd -t mangle -D "$chain" $dup_num)
-		done
-	}
-	addIP_t(){
-		local cmd=$1
-		local chain=$2
-		local ip=$3
-		clearIPs_t "$cmd" "$chain" "$g_ip\s*$g_ip"
-		$($cmd -t mangle -I "$chain" -s "$ip" -j RETURN)
-		$($cmd -t mangle -I "$chain" -d "$ip" -j RETURN)
-		$($cmd -t mangle -A "$chain" -s "$g_ip" -j RETURN)
-		$($cmd -t mangle -A "$chain" -d "$g_ip" -j RETURN)
+		$(eval $cmd $t_options -I "$chain" -s "$ip" -j RETURN)
+		$(eval $cmd $t_options -I "$chain" -d "$ip" -j RETURN)
+		$(eval $cmd $t_options -A "$chain" -s "$g_ip" -j RETURN)
+		$(eval $cmd $t_options -A "$chain" -d "$g_ip" -j RETURN)
 	}
 	send2log "=== checkIPTableEntries === " 0
 	cmd=$1
@@ -481,21 +462,15 @@ checkIPTableEntries()
 	g_ip="$_generic_ipv4"
 	[ "$cmd" == 'ip6tables' ] && g_ip="$_generic_ipv6"
 
-
-	if [ "$_useTMangle" -eq "0" ] && [ "$nm" -eq "0" ]; then
+    local t_options=''
+	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
+	if [ "$nm" -eq "0" ]; then
 		send2log "  >>> Added rules to $chain for $mac-->$ip" 1
-		addIP "$cmd" "$chain" "$ip"
-	elif [ "$nm" -eq "0" ]; then
-		send2log "  >>> Added rules to $chain for $mac-->$ip" 1
-		addIP_t "$cmd" "$chain" "$ip"
-	elif [ "$_useTMangle" -eq "0" ] ; then
-		send2log "  !!! Incorrect number of rules for $ip in $chain -> $nm... removing duplicates" 99
-		clearIPs "$cmd" "$chain" "$ip"
 		addIP "$cmd" "$chain" "$ip"
 	else
 		send2log "  !!! Incorrect number of rules for $ip in $chain -> $nm... removing duplicates" 99
-		clearIPs_t "$cmd" "$chain" "$ip"
-		addIP_t "$cmd" "$chain" "$ip"
+		clearIPs "$cmd" "$chain" "$ip"
+		addIP "$cmd" "$chain" "$ip"
 	fi
 }
 checkIPChain()
@@ -505,55 +480,39 @@ checkIPChain()
 	local chain=$2
 	local rule=$3
 	send2log "=== check $cmd for $chain ===" 0
-	if [ "$_useTMangle" -eq "0" ] ; then
-		foundRule=$($cmd -L | grep -ic "chain $rule")
-		foundChain=$($cmd -L "$chain" | grep -ic "\b$rule\b")
-		if [ "$foundChain" -eq "1" ]; then
-			send2log "  >>> Rule $rule exists in chain $chain ==> $foundChain" 0
-		elif [ "$foundChain" -eq "0" ]; then
-			send2log "  >>> Created rule $rule in chain $chain ==> $foundChain" 2
-			[ "$foundRule" -eq "0" ] && $($cmd -N $rule) && sleep 2
-			$($cmd -I "$chain" -j "$rule")
-		else
-			send2log "  !!! Found $foundChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99
-			local i=1
-			while [  "$i" -le "$foundChain" ]; do
-				local dup_num=$($cmd -L "$chain" --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
-				$($cmd -D "$chain" $dup_num)
-				i=$(($i+1))
-			done
-			$($cmd -I "$chain" -j "$rule")
-		fi
+
+    local t_options=''
+	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
+	local rules=$(eval $cmd $t_options -nL "$rule" --line-numbers | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5)
+
+	foundRule=$(eval $cmd $t_options -L | grep -ic "chain $rule")
+	foundChain=$(eval $cmd $t_options -L "$chain" | grep -ic "\b$rule\b")
+	if [ "$foundChain" -eq "1" ]; then
+		send2log "  >>> Rule $rule exists in chain $chain ==> $foundChain" 0
+	elif [ "$foundChain" -eq "0" ]; then
+		send2log "  >>> Created rule $rule in chain $chain ==> $foundChain" 2
+		[ "$foundRule" -eq "0" ] && $(eval $cmd $t_options -N $rule)
+		$(eval $cmd $t_options -I "$chain" -j "$rule")
 	else
-		foundRule=$($cmd -t mangle -L | grep -ic "chain $rule")
-		foundChain=$($cmd -t mangle -L "$chain" | grep -ic "\b$rule\b")
-		if [ "$foundChain" -eq "1" ]; then
-			send2log "  >>> Rule $rule exists in chain $chain ==> $foundChain" 0
-		elif [ "$foundChain" -eq "0" ]; then
-			send2log "  >>> Created rule $rule in chain $chain ==> $foundChain" 2
-			[ "$foundRule" -eq "0" ] && $($cmd -t mangle -N $rule)
-			$($cmd -t mangle -I "$chain" -j "$rule")
-		else
-			send2log "  !!! Found $foundChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99
-			local i=1
-			while [  "$i" -le "$foundChain" ]; do
-				local dup_num=$($cmd -t mangle -L $chain --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
-				$($cmd -t mangle -D $chain $dup_num)
-				i=$(($i+1))
-			done
-			$($cmd -t mangle -I $chain -j $rule)
-		fi
+		send2log "  !!! Found $foundChain instances of $rule in chain $chain... deleting them individually rather than flushing!" 99
+		local i=1
+		while [  "$i" -le "$foundChain" ]; do
+			local dup_num=$(eval $cmd $t_options -L $chain --line-numbers | grep -m 1 -i "\b$rule\b" | cut -d' ' -f1)
+			$(eval $cmd $t_options -D $chain $dup_num)
+			i=$(($i+1))
+		done
+		$(eval $cmd $t_options -I $chain -j $rule)
 	fi
 }
 getMACIPList(){
 	local cmd=$1
 	local rule=$2
 	send2log "=== getMACIPList ($cmd/$rule) === " 0
-	if [ "$_useTMangle" -eq "0" ] ; then
-		local rules=$(echo "$($cmd -nL "$rule" --line-numbers )" | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5)
-	else
-		local rules=$(echo "$($cmd -t mangle -nL "$rule" --line-numbers )" | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5)
-	fi
+
+	local t_options=''
+	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
+	local rules=$(eval $cmd $t_options -nL "$rule" --line-numbers | grep '^[0-9]' | tr -s '-' ' ' | cut -d' ' -f1,4,5)
+
 	if [ -z "$rules" ] ; then
 		send2log "	$rule returned nothing?!?" 2
 		checkIPChain $cmd "FORWARD" $rule
@@ -587,12 +546,10 @@ $mac $ip"
 getForwardData(){
 	local cmd="$1"
 	local chain="$2"
-	if [ "$_useTMangle" -eq "0" ] ; then
-		local fc=$($cmd -L FORWARD -vnx | tr -s '-'  ' ' | sed 's~^\s*~~')
-	else
-		local fc=$($cmd -t mangle -L FORWARD -vnx | tr -s '-'  ' ' | sed 's~^\s*~~')
-	fi
-	ym=$(echo "$fc" | grep "$chain" | cut -d' ' -f2)
+    local t_options=''
+	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
+	local fc=$(eval $cmd $t_options -L FORWARD -vnx | tr -s '-'  ' ' | sed 's~^\s*~~')
+	ym=$(echo "$fc" | grep "\b$chain\b" | cut -d' ' -f2)
 	[ -z "$ym" ] && ym=0
 	l2w=$(echo "$fc" | grep "lan2wan" | cut -d' ' -f2)
 	[ -z "$l2w" ] && l2w=0

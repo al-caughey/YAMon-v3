@@ -10,14 +10,14 @@
 #
 ##########################################################################
 
-[ -z "$_version" ] && _version='3.2.1'
-[ -z "$_file_version" ] && _file_version='3.2'
-
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
-_lockDir="/tmp/YAMon3-running"
+_lockDir="/tmp/YAMon$_file_version-running"
 
 YAMON_IP4='YAMONv4'
 YAMON_IP6='YAMONv6'
+
+_PRIVATE_IP4_BLOCKS='10.0.0.0/8,172.16.0.0/12,192.168.0.0/16'
+_PRIVATE_IP6_BLOCKS='fc00::/7'
 
 #global defaults
 d_firmware=0
@@ -81,7 +81,6 @@ d_ftp_user=''
 d_ftp_pswd=''
 d_ftp_dir=''
 d_useTMangle=0
-d_includeLAN=0
 d_enable_db=0
 d_db_url=''
 d_db_name=''
@@ -91,29 +90,29 @@ d_MSMTP_CONFIG=/opt/scripts/msmtprc
 loadconfig()
 {
 	#if the parameters are missing then set them to the defaults
-    local dirty=''
-    local mfl=''
-    local p_list=$(cat "${d_baseDir}/default_config.file" | grep -o "^_[^=]\{1,\}")
+	local dirty=''
+	local mfl=''
+	local p_list=$(cat "${d_baseDir}/default_config.file" | grep -o "^_[^=]\{1,\}")
 
-    IFS=$'\n'
-    for line in $(echo "$p_list")
-    do
-        eval nv=\"\$$line\"
-        [ ! -z "$nv" ] && continue
-        local dvn="d$line"
-        eval dv=\"\$$dvn\"
-        [ -z "$dv" ] && continue
-        dirty="true"
-        eval $line=\"\$$dvn\"
-        mfl="$mfl
-    * $line ($dv)"
-    done
-    [ ! -z "$dirty" ] && echo "
+	IFS=$'\n'
+	for line in $(echo "$p_list")
+	do
+		eval nv=\"\$$line\"
+		[ ! -z "$nv" ] && continue
+		local dvn="d$line"
+		eval dv=\"\$$dvn\"
+		[ -z "$dv" ] && continue
+		dirty="true"
+		eval $line=\"\$$dvn\"
+		mfl="$mfl
+	* $line ($dv)"
+	done
+	[ ! -z "$dirty" ] && echo "
 ###########################################################
 NB - One or more parameters were missing in your config.file!$mfl
-The missing entries have been assigned the defaults from \`default_config.file\`. 
- 
-See \`default_config.file\` for more info about these values and/or run setup.sh 
+The missing entries have been assigned the defaults from \`default_config.file\`.
+
+See \`default_config.file\` for more info about these values and/or run setup.sh
 again to update your config.file.
 ###########################################################
 "
@@ -123,7 +122,10 @@ again to update your config.file.
 		[ "$_ul_end" -lt "$_ul_start" ] && _ul_start=$((_ul_start - 86400))
 		#send2log "	  _unlimited_usage-->$_unlimited_usage ($_unlimited_start->$_unlimited_end / $_ul_start->$_ul_end)" 1
 	fi
-    local nvram=$(nvram show 2>&1)
-    ipv6_enable=$(echo "$nvram" | grep -i 'ipv6_enable=1')
-    [ "$_firmware" -eq '0' ] && [ "$_includeIPv6" -eq '1' ] && [ -z "$ipv6_enable" ] && _includeIPv6=0 && echo "Setting \`_includeIPv6=0\` because ipv6_enable!=1 in nvram"
+	local nvram=$(nvram show 2>&1)
+	ipv6_enable=$(echo "$nvram" | grep -i 'ipv6_enable=1')
+	[ "$_firmware" -eq '0' ] && [ "$_includeIPv6" -eq '1' ] && [ -z "$ipv6_enable" ] && _includeIPv6=0 && echo "Setting \`_includeIPv6=0\` because ipv6_enable!=1 in nvram"
+
+	_tMangleOption=''
+	[ "$_useTMangle" -eq "1" ] && _tMangleOption='-t mangle'
 }

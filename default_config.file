@@ -18,7 +18,6 @@
 # version 3.2.0 - added _ftp_dir, _useTMangle
 # version 3.2.1 - set default for _useTMangle=0
 # version 3.2.2 - removed _debug
-# version 3.2.6 - added _includeLAN
 
 _firmware='0'                                # which firmware is running on the router: permitted values: 0->DD-WRT(*) || 1->OpenWrt || 2->Asuswrt-Merlin
 _updatefreq='30'                             # number of seconds between updates (* default `15` sec)
@@ -101,7 +100,6 @@ _ftp_user=''                                 # set to the username for your FTP 
 _ftp_pswd=''                                 # set to the password for your FTP site
 _ftp_dir=''                                  # set to root directory path to your desired storage location
 _useTMangle=0                                # whether or not to use the `-t mangle` option for ipchain: 0->no(*) || 1->yes
-_includeLAN=0                                # whether or not to add LAN IP/MAC to iptables and users.js: 0->no(*) || 1->yes
 #--------------------------------- COMING IN YAMon 3.3+ ---------------------------------
 _enable_db=0                                 # set to 1 if you want to save data value to an external database - values: 0-->No(*) || 1->Yes
 _db_url=''                                   # set to url to your db site... I ***DO NOT*** know what this is!

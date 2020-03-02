@@ -25,13 +25,16 @@ source "$d_baseDir/strings/$_lang/strings.sh"
 
 # stop the script by removing the locking directory
 
-ir=$(ps | grep -v "grep" | grep -c "yamon")
+_oldLockDir="/tmp/YAMon3-running"
+
+ir=$(ps | grep -v "grep" | grep -c "yamon$_file_version")
 if [ ! -d $_lockDir ] && [ "$ir" -eq "0" ]; then
 	echo "$_s_notrunning"
 	exit 0
 fi
 
-rmdir $_lockDir
+[ -d "$_oldLockDir" ] && rmdir $_oldLockDir
+[ -d $_lockDir ] && rmdir $_lockDir
 if [ "$ir" -eq "0" ]; then
 	echo "$_s_stopped"
 	exit 0
@@ -42,24 +45,24 @@ if [ "$ir" -gt "0" ]; then
 	n=0
 	while [ true ] ; do
 		n=$(($n + 1))
-		ir=$(ps | grep -v "grep" | grep -c "yamon")
+		ir=$(ps | grep -v "grep" | grep -c "yamon$_file_version")
 		[ "$n" -gt "$_updatefreq" ] || [ "$ir" -lt "1" ] && break;
 		echo -n '.'
 		sleep 1
 	done
 fi
-ir=$(ps | grep -v "grep" | grep -c "yamon")
+ir=$(ps | grep -v "grep" | grep -c "yamon$_file_version")
 if [ "$ir" -gt "0" ]; then
 	echo "$ir Zombie processes need to be killed?!?"
-	echo "$(ps | grep -v 'grep' | grep 'yamon')"
+	echo "$(ps | grep -v 'grep' | grep 'yamon$_file_version')"
 	while [ true ] ; do
-		pid=$(ps | grep -v grep | grep yamon | cut -d' ' -f1)
+		pid=$(ps | grep -v grep | grep yamon$_file_version | cut -d' ' -f1)
 		[ -z "$pid" ] && break;
-        [ "$o_pid" == "$pid" ] && "did not kill process: $pid ?!? try rebooting your router" && break
+		[ "$o_pid" == "$pid" ] && "did not kill process: $pid ?!? try rebooting your router" && break
 		kill $pid
 		echo "killed process: $pid"
 		sleep 1
-        o_pid=$pid
+		o_pid=$pid
 	done
 fi
 

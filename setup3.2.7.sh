@@ -22,6 +22,7 @@
 # 3.2.4 (2017-02-20): no changes... updated for consistency
 # 3.2.5 (2017-03-06): no changes... updated for consistency
 # 3.2.6 (2017-03-24): tidied up Tomato functionality
+# 3.2.7 (2017-03-24): updated for consistency
 
 d_baseDir="$YAMON"
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
@@ -422,7 +423,7 @@ STOP=10
 start() {
 	# commands to launch application
 	if [ -d "$_lockDir" ]; then
-		echo 'Unable to start, found YAMon3-running directory'
+		echo "Unable to start, found $_lockDir directory"
 		return 1
 	fi
 	${d_baseDir}startup.sh 10 &

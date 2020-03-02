@@ -9,7 +9,7 @@
 #
 # NEW: by default this script will delay for 10 seconds before launching
 #	  yamon###.sh... you can shorten or lengthen the delay via a parameter
-#	  e.g., >>> startup.sh 0 
+#	  e.g., >>> startup.sh 0
 #		 or >>> startup.sh 30
 #
 ##########################################################################
@@ -30,7 +30,7 @@ source "$_configFile"
 loadconfig
 source "$d_baseDir/strings/$_lang/strings.sh"
 
-np=$(ps | grep -v grep | grep -c yamon)
+np=$(ps | grep -v grep | grep -c yamon$_version)
 if [ "$np" -gt "0" ] || [ -d "$_lockDir" ] ; then
 	echo "$_s_running"
 	exit 0
@@ -42,7 +42,6 @@ delay=$1
 echo "
 $los
 YAMon will be started following a delay of $delay seconds.
- 
 NB - depending on your router and firmware, you may have to increase
 	 this delay (to allow  other processes to startup properly),
 	 or you may be able to eliminate the delay altogether.
@@ -55,7 +54,7 @@ while [ $i -lt $delay ] ; do
   i=$(($i + 1))
 done
 
-[ -x /usr/bin/clear ] && clear 
+[ -x /usr/bin/clear ] && clear
 
 # launch the script
 ${d_baseDir}/yamon${_version}.sh &

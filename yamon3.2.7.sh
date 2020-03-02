@@ -41,6 +41,8 @@
 # 3.2.4 (2017-02-20): re-replaced call to ip in line #91
 # 3.2.5 (2017-02-20): added generic user (0.0.0.0/0) & mac (un:kn:ow:n0:0m:ac), fixed shutdown loop silliness; fixed issues for LEDE
 # 3.2.6 (2017-05-07): several small tweaks...
+# 3.2.7 (2017-05-07): clean-up so that yamon3.2 can run concurrently with 3.3... this will likely be the last update to YAMon3.2013-present.
+
 # ==========================================================
 #				  Functions
 # ==========================================================
@@ -308,7 +310,7 @@ setUsers(){
 	[ "$_includeBridge" -eq "1" ] && checkBridge
 
 	local t_options=''
-	[ "$_useTMangle" -eq "0" ] && t_options='-t mangle'
+	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
 
 	if [ ! -z "$_lan_ipaddr" ] ; then
 		local lipe=$(echo "$_currentUsers" | grep "\b$_lan_ipaddr\b")
@@ -400,7 +402,7 @@ setFirmware()
 	_lan_iface='br0'
 	if [ "$_firmware" -eq "0" ] ; then
 		_lan_iface=$(nvram get lan_ifname)
-		[ "$_includeLAN" -ne "0" ] && _lan_ipaddr=$(nvram get lan_ipaddr)
+		_lan_ipaddr=$(nvram get lan_ipaddr)
 		_lan_hwaddr=$(nvram get lan_hwaddr | tr '[A-Z]' '[a-z]')
 		_wan_ipaddr=$(nvram get wan_ipaddr)
 		_wan_hwaddr=$(nvram get wan_hwaddr | tr '[A-Z]' '[a-z]')
@@ -414,7 +416,7 @@ setFirmware()
 		_conntrack_awk='BEGIN { printf "var curr_connections=[ "} { gsub(/(src|dst|sport|dport)=/, ""); printf "[ '\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'','\''%s'\'' ],",$3,$3 == "tcp" ? $7 : $6,$3 == "tcp" ? $9 : $8,$3 == "tcp" ? $8 : $7,$3 == "tcp" ? $10 : $9; } END { print "[ null ] ]"}'
 	elif [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ]; then #OpenWRT//LEDE
 		_lan_iface="br-lan"
-		[ "$_includeLAN" -ne "0" ] && _lan_ipaddr=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+		_lan_ipaddr=$(ifconfig br-lan | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
 		_lan_hwaddr=$(ifconfig br-lan | awk '/HWaddr/ {print $5}' | tr '[A-Z]' '[a-z]')
 		_wan_ipaddr=$(ifconfig eth0 | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
 		_wan_hwaddr=$(ifconfig eth0 | awk '/HWaddr/ {print $5}' | tr '[A-Z]' '[a-z]')
@@ -491,9 +493,9 @@ shutDown(){
 	[ "$_symlink2data" -eq "0" ] && [ "$_dowwwBU" -eq 1 ] && doFinalBU
 
 	local t_options=''
-	[ "$_useTMangle" -eq "0" ] && t_options='-t mangle'
+	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
 	eval iptables $t_options -F "$YAMON_IP4"
-	[ "$_includeIPv6" -eg "1" ] && eval ip6tables $t_options -F "$YAMON_IP6"
+	[ "$_includeIPv6" -eq "1" ] && eval ip6tables $t_options -F "$YAMON_IP6"
 
 	send2log "
 	=====================================
@@ -552,14 +554,7 @@ changeDates()
 
 	[ ! -z "$_lan_ipaddr" ] && checkIPTableEntries "iptables" "$YAMON_IP4" "$_lan_ipaddr" 0
 	[ ! -z "$_wan_ipaddr" ] && checkIPTableEntries "iptables" "$YAMON_IP4" "$_wan_ipaddr" 0
-	if [ "$_includeIPv6" -eq "1" ] ; then
-		if [ "$_useTMangle" -eq "0" ] ; then
-			$(ip6tables -F "$YAMON_IP6")
-		else
-			$(ip6tables -t mangle -F "$YAMON_IP6")
-		fi
-		[ ! -z "$_lan_ip6addr" ] && checkIPTableEntries "ip6tables" "$YAMON_IP6" "$_lan_ip6addr" 0
-	fi
+	[ "$_includeIPv6" -eq "1" ] && [ ! -z "$_lan_ip6addr" ] && checkIPTableEntries "ip6tables" "$YAMON_IP6" "$_lan_ip6addr" 0
 }
 checkIPs()
 {
@@ -1031,11 +1026,9 @@ updateUsage()
 	send2log "=== updateUsage ($cmd/$chain)=== " 0
 	local hr=$(date +%H)
 	_ud_list=''
-	if [ "$_useTMangle" -eq "0" ] ; then
-		local iptablesData=$($cmd -L "$chain" -vnxZ | tail -n +3 | tr -s '-' ' ' | grep -v "0 0 RETURN" | cut -d' ' -f3,8,9)
-	else
-		local iptablesData=$($cmd -t mangle -L "$chain" -vnxZ | tail -n +3 | tr -s '-' ' ' | grep -v "0 0 RETURN" | cut -d' ' -f3,8,9)
-	fi
+    local t_options=''
+	[ "$_useTMangle" -eq "1" ] && t_options='-t mangle'
+	local iptablesData=$(eval $cmd $t_options -L "$chain" -vnxZ | tail -n +3 | tr -s '-' ' ' | grep -v "0 0 RETURN" | cut -d' ' -f3,8,9)
 	if [ -z "$iptablesData" ] ; then
 		send2log "	>>> $cmd returned no data... returning " 0
 		return
@@ -1197,7 +1190,7 @@ installedtype=$(nvram get dist_type)
 
 np=$(ps | grep -v grep | grep -c yamon)
 if [ -d "$_lockDir" ] ; then
-	echo "$(ps | grep -v grep | grep yamon)"
+	echo "$(ps | grep -v grep | grep yamon$_version)"
 	echo "$_s_running" && exit 0
 fi
 [ -x /usr/bin/clear ] && clear
