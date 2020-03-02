@@ -71,7 +71,7 @@ d_sendAlerts=0
 d_organizeData=2
 d_allowMultipleIPsperMAC=0
 d_includeIPv6=0
-d_path2ip='/opt/sbin/ip'
+d_path2ip='ip'
 d_debug=0
 DB_SOME=1
 DB_MOST=2
@@ -139,7 +139,7 @@ loadconfig()
 		_bridgeMAC=$(echo "$_bridgeMAC" | tr '[A-Z]' '[a-z]')
 	fi
 	[ -z "$_includeIPv6" ] && _includeIPv6=$d_includeIPv6	
-	[ "$_includeIPv6" -eq "1" ] && [ -z "$_path2ip" ] && _path2ip=$d_path2ip	
+	[ -z "$_path2ip" ] && _path2ip=$d_path2ip	
 
 	[ -z "$_debug" ] && _debug=$d_debug	
 	[ "$_debug" -gt "0" ] && _log2file=2	

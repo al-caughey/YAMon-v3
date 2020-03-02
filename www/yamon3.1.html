@@ -20,17 +20,14 @@
 			document.write('<link rel="stylesheet" type="text/css" href="' + domain + path + 'css/yamon' + ver + '.css"/>')
 			document.write('<' + 'link rel="shortcut icon" href="' + domain + path + 'images/favicon.png"/>')
 		</script>
-
-		<!--script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?v=3.exp"></script-->
 		<script type="text/javascript" src="//code.jquery.com/jquery-latest.min.js"></script>
 		<script type="text/javascript" src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
-		<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+		<script src="https://www.gstatic.com/charts/loader.js"></script>
 		<script type="text/javascript">
 			document.write('<' + 'script src="' + domain + path + 'js/util' + ver+ '.js"><' + '/script>')
 			document.write('<' + 'script src="' + domain + path + 'js/yamon' + ver + '.js"><' + '/script>')
 			if(typeof(_settings_pswd)!='undefined') document.write('<' + 'script src="' + domain + path + 'js/jquery.md5.min.js"><' + '/script>')
-			google.load('visualization','1.0',{'packages':['corechart']})
-			google.load('visualization','1.0',{'packages':['gauge']})
+			google.charts.load('current', {'packages':['corechart', 'gauge']});
 			//$.ajaxSetup({'cache':true});
 		</script>
 

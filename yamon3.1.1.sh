@@ -24,6 +24,7 @@
 # 3.0.16 (2016-25-25): fixed some functions to returns zeroes rather than null
 # 3.0.17 (2016-25-28): tweaks; Tomato updates as per Todd Saylor (in getDeviceName)
 # 3.1.0 (2016-10-05): bumped to 3.1 because of breaking changes to yamon.html; FTP functionality; added checks for LAN & WAN IP addresses; fixed IP address regex
+# 3.1.1 (2016-10-10): tweaks not caught in 3.1.0; added arp, added init script for OpenWrt (in setup.sh)
 
 # ==========================================================
 #				  Functions
@@ -63,14 +64,27 @@ setInitValues(){
 	local months="Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec"   
 	local string="${months%$lmm*}"
 	local lmmno=$(printf %02d $((${#string}/4 + 1)))
-	_canSort=$(echo $(busybox) | grep -c 'sort')
+	local sortStr=''
+	local canSort=$(echo $(busybox) | grep -c 'sort')
+	[ "$canSort" -gt "0" ] && sortStr=" | sort -k2"
+	
+	local tip=$($_path2ip -4 neigh show)
+	if [ -z "$tip" ] ; then
+		_getIP4List="cat /proc/net/arp | grep '^[0-9]' | grep -v '00:00:00:00:00:00' | tr -s ' ' | cut -d' ' -f 1,4 | tr '[A-Z]' '[a-z]' $sortStr"
+	else
+		_getIP4List="$_path2ip -4 neigh | grep 'lladdr' | cut -d' ' -f 1,5 | tr '[A-Z]' '[a-z]' $sortStr"
+	fi
+
 	_usersLastMod="$lmy-$lmmno-$lmd $lmt"
 	[ "$_debugging" -eq "1" ] && set -x 
 	checkIPChain "iptables" "FORWARD" "$YAMON_IP4"
 	checkIPChain "iptables" "INPUT" "$YAMON_IP4"
-	[ "$_includeIPv6" -eq "1" ] && checkIPChain 'ip6tables' 'FORWARD' $YAMON_IP6
-	[ "$_includeIPv6" -eq "1" ] && checkIPChain 'ip6tables' 'INPUT' $YAMON_IP6
 
+	if [ "$_includeIPv6" -eq "1" ] ; then
+		_getIP6List="$_path2ip -6 neigh | grep 'lladdr' | cut -d' ' -f 1,5 | tr '[A-Z]' '[a-z]' $sortStr"
+		checkIPChain 'ip6tables' 'FORWARD' $YAMON_IP6
+		checkIPChain 'ip6tables' 'INPUT' $YAMON_IP6
+	fi
 	started=1
 }
 setLogFile()
@@ -166,6 +180,11 @@ setDataDirectories()
 	_macUsageWWW="$wwwsavePath$rYear-$rMonth-$rday-$_usageFileName"
 	[ ! -f "$_macUsageDB" ] && createMonthlyFile
 	[ "$_doLiveUpdates" -eq "1" ] && _liveFilePath="$_wwwPath$_wwwJS$_liveFileName"
+	[ ! -d "$_wwwPath$_wwwJS" ] && mkdir -p "$_wwwPath$_wwwJS"
+	if [ ! -f "$_liveFileName" ] ; then 
+		touch $_liveFileName
+		chmod 666 $_liveFileName
+	fi
 	_hourlyUsageDB="$savePath$_cYear-$_cMonth-$_cDay-$_hourlyFileName"
 	_hourlyUsageWWW="$wwwsavePath$_cYear-$_cMonth-$_cDay-$_hourlyFileName"
 
@@ -507,8 +526,7 @@ checkIPv4()
 {
 	send2log "=== checkIPv4 ===" 0
 	[ "$_debugging" -eq "1" ] && set +x 
-	local ipl=$($_path2ip -4 neigh | grep 'lladdr' | cut -d' ' -f 1,5 | tr '[A-Z]' '[a-z]')
-	[ "$_canSort" -gt "0" ] && ipl=$(echo "$ipl" | sort -k2)
+	local ipl="$(eval $_getIP4List)"
 	local ipv4=$(getMACIPList "iptables" "$YAMON_IP4" "$ipl")
 	[ "$_debugging" -eq "1" ] && set -x 
 	send2log "	>>> ipv4 -> 
@@ -527,8 +545,7 @@ checkIPv6()
 {
 	send2log "=== checkIPv6 ===" 0
 	[ "$_debugging" -eq "1" ] && set +x
-	local ipl=$($_path2ip -6 neigh | grep -v '^fe80' | grep 'lladdr' | cut -d' ' -f 1,5 | tr '[A-Z]' '[a-z]')
-	[ "$_canSort" -gt "0" ] && ipl=$(echo "$ipl" | sort -k2)
+	local ipl="$(eval $_getIP6List)"	
 	local ipv6=$(getMACIPList "ip6tables" "$YAMON_IP6" "$ipl")
 	[ "$_debugging" -eq "1" ] && set -x
 	send2log "	>>> ipv6 ->

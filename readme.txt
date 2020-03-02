@@ -1,5 +1,5 @@
-Yet Another Monitor (version 3.1.0)
-Last updated: Oct 5, 2016
+Yet Another Monitor (version 3.1.1)
+Last updated: Oct 16, 2016
 
 Yet Another Monitor (YAMon) records and reports on the traffic (downloads and uploads) for all of the devices connecting to your router.  The data is aggregated by hour, day and month (within your ISP billing interval) and can be rolled-up into arbitrary groups (e.g., by family member, function, location or by any other logical grouping of devices).  
 
@@ -61,11 +61,11 @@ CONFIGURING YOUR WEB REPORTS
 
 There's not much that you have to do here.  As mentioned above, the script will automatically download and/or create all of the necessary files.
 
-To access the reports, go to http://<router_ip>/user/yamon3.html - e.g., http://192.168.1.1/user/yamon3.html
+To access the reports, go to http://<router_ip>/user/yamon3.1.html - e.g., http://192.168.1.1/user/yamon3.1.html
 
-When you open the reports for the first time, you will get an intro screen that asks you to confirm that settings in the reports are consistent with those you've set in `config.file`.  Change the values as necessary (or accept the defaults) and click the green checkmark to save each setting.  Once all of the checkmarks have been cleared, the page will automatically reload and you'll see the reports. (NB - you'll have to repeat this confirmation step if you view the reports from a different device or browser.)
+When you open the reports for the first time, you will get an intro screen that asks you to confirm that settings in the reports are consistent with those you've set in `config.file`.  Change the values as necessary (or accept the defaults) and click the green checkmark to confirm each setting.  Once all of the checkmarks have been cleared, the page will automatically reload and you'll see the reports. (NB - you'll have to repeat this confirmation step if you view the reports from a different device or browser.)
 
-NB - a rare number of firmware variants do not like the timestamps which are appended to the json queries which dynamically update the page while you are viewing the reports.  If this is the case for you, open yamon3.html (in /opt/YAMon3/www) and uncomment the line `//$.ajaxSetup({'cache':true});` (i.e., remove the `//`)
+NB - a rare number of firmware variants do not like the timestamps which are appended to the json queries which dynamically update the page while you are viewing the reports.  If this is the case for you, open yamon3.1.html (in /opt/YAMon3/www) and uncomment the line `//$.ajaxSetup({'cache':true});` (i.e., remove the `//`)
 
 ----------
 OTHER INFO
