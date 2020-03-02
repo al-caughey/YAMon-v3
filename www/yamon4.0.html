@@ -8,16 +8,16 @@
 		<title>YAMon:: Usage monitoring by group and device...</title>
 		<meta name="description" content="Internet Usage Statistics" />
 		<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/smoothness/jquery-ui.css">
-		<script type="text/javascript" src="js/config3.4.js"></script>
+		<script type="text/javascript" src="js/config4.0.js"></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 		<script defer type="text/javascript">
-			var _html_version='3.4.5'
-			if(typeof(_file_version)=='undefined') var _file_version='3.4'
+			var _html_version='4.0'
+			var _file_version='4.0'
 			var args=window.location.search.replace('?','').split('&'),ver=args[1]||_file_version,domain='',path=''
 			if(typeof(_doLocalFiles)=='undefined'||_doLocalFiles=='0'){
 				path = (localStorage.getItem('devOrCurr') || 'current') + '/'
-				domain=(location.protocol=='http:')?'http://usage-monitoring.com/':'https://usagemonitoringcom.ipage.com/'
+				domain='https://usage-monitoring.com/'
 			}
 			$("<link/>", {rel: "stylesheet", type: "text/css", href: domain + path + 'css/normalize.css'}).appendTo("head");
 			$("<link/>", {rel: "stylesheet", type: "text/css", href: domain + path + 'css/yamon' + ver + '.css'}).appendTo("head");
@@ -76,6 +76,7 @@
 				<article id='acses-tab' class='settings-tab btn' title='Open the Access Restrictions tab'></article>
 				<article id='settings-tab' class='settings-tab btn' title='Open the Settings tab'></article>
 				<article id='alert-tab' class='settings-tab alert-icon btn hidden' title="Uh-oh... something's gone wrong!"></article>
+				<a id='latest-log' class='btn' href='logs/latest-log.html' target='_blank'></a>
 				<article id='help-tab' class='settings-tab btn p-a' title='Get Help!'></article>
 			</section>
 			<section id='main-body' class='p-r'>
@@ -91,7 +92,7 @@
 				<div id='error-notification' class='p-r'>
 					<h1>This text will go away once all of the data has loaded.</h1>
 					<h2>Ah nuts!  An unexpected JavaScript error has prevented the reports from opening properly.<br/>
-					Please go to the <a href='http://usage-monitoring.com/help/?t=error-notification' target='_blank'>Help</a> page to find out how you can help resolve this issue.</h2>
+					Please go to the <a href='https://usage-monitoring.com/help/?t=error-notification' target='_blank'>Help</a> page to find out how you can help resolve this issue.</h2>
 				</div>
 				<div id="summary-tab-section" class="tab-div hidden p-r">
 
@@ -135,17 +136,12 @@
 							</tr>
 							<tr id='serverload' >
 								<td class='a-r fw-b br bl'>Load:</td>
-								<td class='br p-r' colspan=2>
-									<p><span id='sp_curSL' title='Current Ave 5-min Load'></span></p>
-									<p><span class='gradient'></span></p>
-									<p class=''>
-										<span id='sp_minSL' class='p-a'>
-											<span class='txt'></span>
-										</span>
-										<span id='sp_maxSL' class='p-a'>
-											<span class='txt'></span>
-										</span>
-									</p>
+								<td class='br' colspan=2>
+									<span class='gradient p-r'>
+										<span id='sp_1minSL' title='Current Ave 1-min Load' class='p-a'></span>
+										<span id='sp_5minSL' title='Ave 5-min Load' class='p-a'></span>
+										<span id='sp_15minSL' title='Ave 15-min Load' class='p-a'></span>
+									</span>
 								</td>
 							</tr>
 							<tr class='bg-lt'>
@@ -263,7 +259,7 @@
 								<tbody>
 								</tbody>
 							</table>
-							<div id="UsageGraph" class=""></div>
+							<div id="UsageGraph" class="graphdiv"></div>
 						</article>
 					</section>
 				</div>
@@ -487,7 +483,7 @@
 							</table>
 						</article>
 						<article class='rc'>
-							<div id="DailyGraph" class=""></div>
+							<div id="DailyGraph" class="graphdiv"></div>
 						</article>
 
 					</section>
@@ -497,7 +493,7 @@
                             <thead>
                                 <tr class='header-row'>
                                     <th rowspan=2>Group</th>
-                                    <th rowspan=2>Name</th>
+                                    <th rowspan=2 class='br'>Name</th>
                                     <th class='header AM btn' colspan=12>AM</th>
                                     <th class='header PM btn' colspan=12>PM</th>
                                 </tr>
@@ -567,14 +563,10 @@
                             </tfoot>
                         </table>
                     </div>
-					<div id="hourlyGraph" class="p-r">Hourly Data Graph</div>
-					<p id='bnav' class='p-r'>
-						<button type="button" id="bpDBtn" class='pDBtn' title='Go to the previous day in this interval'></button>
-						<button type="button" id="bnDBtn" class='nDBtn' title='Go to the next day in this interval'></button>
-						<button type="button" class='go2today hidden' title="Click to return to today's date">Today</button>
-					</p>
-					<div id="hourlyDiffGraph">Hourly Differences Graph</div>
-					<div id="hourlyLoadGraph">Hourly Server Loads Graph... coming soon</div>
+					<div id="hourlyGraph" class="graphdiv">Hourly Data Graph</div>
+					<div id="hourlyDiffGraph" class="graphdiv">Hourly Differences Graph</div>
+					<div id="hourlyLoadGraph" class="graphdiv">Hourly Server Loads Graph... coming soon</div>
+					<div id="InterfacesGraph" class="graphdiv">Hourly Traffic by Interface Graph... coming soon</div>
 				</div>
 				<div id="monthly-tab-section" class="tab-div p-r hidden">
 					<h2>Monthly Usage Report</h2>
@@ -662,12 +654,12 @@
 						</table>
 						</article>
 						<article class='rc'>
-							<div id="MonthlyGraph"></div>
-							<div id="UnlimitedGraph" class="isUL"></div>
+							<div id="MonthlyGraph" class='graphdiv'></div>
+							<div id="UnlimitedGraph" class="graphdiv isUL"></div>
 						</article>
 					</section>
-					<div id="MonthlyGraphbyDevice"></div>
-					<div id="MonthlyGraphbyOwner"></div>
+					<div id="MonthlyGraphbyDevice" class='graphdiv'></div>
+					<div id="MonthlyGraphbyOwner" class='graphdiv'></div>
 				</div>
 
 				<div id="monthly-breakdown-tab-section" class="tab-div p-r hidden">
@@ -758,14 +750,14 @@
 						<label for='cb-cdifp' class='gr-nall'><input type='checkbox' id='cb-cdifp' class='gr-cb' checked>Cumulative Difference (in %)</label>
 					</p>
 					<div id='mbd-graphs'>
-						<div id="gr-cb-down" class="	"></div>
-						<div id="gr-cb-up" class="	"></div>
-						<div id="gr-cb-tot" class="	"></div>
-						<div id="gr-cb-cum" class="	"></div>
-						<div id="gr-cb-dif" class="	"></div>
-						<div id="gr-cb-difp" class="	"></div>
-						<div id="gr-cb-cdif" class="	"></div>
-						<div id="gr-cb-cdifp" class="	"></div>
+						<div id="gr-cb-down" class="graphdiv"></div>
+						<div id="gr-cb-up" class="graphdiv"></div>
+						<div id="gr-cb-tot" class="graphdiv"></div>
+						<div id="gr-cb-cum" class="graphdiv"></div>
+						<div id="gr-cb-dif" class="graphdiv"></div>
+						<div id="gr-cb-difp" class="graphdiv"></div>
+						<div id="gr-cb-cdif" class="graphdiv"></div>
+						<div id="gr-cb-cdifp" class="graphdiv"></div>
 					</div>
 				</div>
 
@@ -796,12 +788,12 @@
 							</div>
 						</article>
 						<article class='rc'>
-							<div id='sl-graph'></div>
+							<div id='sl-graph' class='graphdiv'></div>
 						</article>
 					</section>
 					<div id='live-graphs' class='main-section'>
-						<div id='livekbs-do-graph'></div>
-						<div id='livekbs-up-graph'></div>
+						<div id='livekbs-do-graph' class='graphdiv'></div>
+						<div id='livekbs-up-graph' class='graphdiv'></div>
 					</div>
 					<section class='main-section'>
 						<article id='current-devices' class='lc info-top p-r'>
@@ -931,7 +923,6 @@
 					</section>
 
 				</div>
-
 				<div id="devices-tab-section" class="tab-div p-r hidden">
 					<h2>Groups &amp; Devices</h2>
 					<section class='main-section p-r'>
@@ -1005,59 +996,21 @@
 
 					</section>
 				</div>
+				<div id="acses-tab-section" class="tab-div p-r hidden">
+					<h2>Access Restrictions</h2>
 
-				<div id='server-tab-section' class="tab-div p-r hidden">
-
+					<p>A better way to define which devices can access the Internet when...</p>
+					<p><button class='btn' id='go2AccessRestrictions'>Set/update my Access Restrictions</button></p>
+					<p class='nb'>Proceed with caution because overly broad rules could inadvertently prevent all devices from accessing your router!  <p>If this occurs, unplugging your USB drive and manually rebooting your router should get you back in.</p>
+					<form name='setAccessRestrictions' method='POST' action='https://usage-monitoring.com/current/SetAccessRestrictions.php?t=123'>
+						<input name='_dbkey' type='hidden'></input>
+						<input name='groups' type='hidden'></input>
+					</form>
+					<p>At some point in the future, this will list your restrictions.  Right now, I need people to help test this functionality.</p>
+					<p class='nb'>Organize your devices into groups on the Settings tab *before* creating access restrictions.<br/><br/>By default, all new devices get added to the `Unknown` group and that group gets blocked whenever a restriction is in effect (so that users cannot bypass the access restrictions by spoofing their MAC address). If you have not moved your devices and/or some of the others into another group, you might not be pleased with the results!</p>
 				</div>
 
 				<div id="settings-tab-section" class="tab-div p-r hidden">
-					<div class='intro p-r hidden'>
-						<div class='intro-t'>
-							<h1>Welcome to the `<i>Yet Another Monitor</i>` reports!</h1>
-							<p>The good news is that you've gotten to this page so it looks like everything has been installed properly!</p>
-							<p>Just a few more clicks and you can see the reports.</p>
-						</div>
-						<div class='intro-t'>
-							<h1>Navigation</h1>
-							<p>The tabs across the top of the page allow you to see various views of the data from your site.</p>
-							<p><img src='//usage-monitoring.com/images/report-tabs.png'></p>
-							<p>See the <a href='http://usage-monitoring.com/reports.php' target='_blank'>Reports</a> page at http://usage-monitoring.com/ for a more detailed description of each report.</p>
-						</div>
-						<div class='intro-t'>
-							<h1>Date Selection</h1>
-							<p>The reports will open showing data for the current date. The date selection slider allows you to easily navigate to any date in the current ISP billing interval.</p>
-							<p><img src='//usage-monitoring.com/images/date-selection.png'></p>
-							<p>The buttons to the left and right of the slider allow you see date for the previous/next day, first/last day of the current interval or the previous/next intervals.</p>
-						</div>
-						<div class='intro-t req-settings'>
-							<h1><span class='settings-tab settings'></span>Settings</h1>
-							<p>The `Settings` tab allows you to configure how data is presented in the reports.  By default, these settings and any customizations you make for device names & groupings are saved in a `<a href='http://www.w3schools.com/html/html5_webstorage.asp' target='_blank'>LocalStorage</a>` variable which means that your settings are specific to this browser and this device.  If you plan to view these reports from multiple devics, I recommend that you look at the `Database Integration` settings which will share your settings with any device used to view these reports. See detailed `Database Integration` instructions <a href='http://usage-monitoring.com/help/?t=share-settings' target='_blank'>here</a>.</p>
-						</div>
-						<div class='intro-t'>
-							<h1><span class='settings-tab settings'></span>ISP Integration</h1>
-							<p>If you want to compare your YAMon traffic reports with those provided by your ISP, check out the `ISP Settings` too.</p>
-							<p>This will allow you to see how YAMon's values differ from what your ISP reports.  (Generally my ISP's totals are ~3-5% higher than YAMon.)</p>
-							<p>See detailed instructions <a href='http://usage-monitoring.com/help/?t=isp-data' target='_blank'>here</a>.</p>
-						</div>
-						<div class='intro-t'>
-							<h1><span class='settings-tab devices'></span>Customizing Device Names & Groups</h1>
-							<p>When a new device is detected on your router, it will appear in the reports usually as `New Device` in the `Unknown` group (although you might get more information depending on how the user has named their device).</p>
-							<p>You can customize this information in the `Groups & Devices` table on the `Devices` tab by simply clicking the <span class='edit-d'></span> icon at the far right side of the table.  See detailed instructions <a href='http://usage-monitoring.com/help/?t=users-js' target='_blank'>here</a></p>
-							<p>Once you've tweaked all of the values as appropriate for your network, you can export the information by clicking the <span class='intro-export'></span> icon.  This will generate a new `users.js` file that you can copy to your router.  See detailed instructions <a href='http://usage-monitoring.com/help/?t=export-users' target='_blank'>here</a>.</p>
-						</div>
-						<div class='intro-t'>
-							<h1>Getting Help</h1>
-							<p>If you have any troubles with the reports, please visit <a href='http://usage-monitoring.com/help/?c=Reports ' target='_blank'>http://usage-monitoring.com</a> or the<a href='http://www.dd-wrt.com/phpBB2/viewtopic.php?t=289324' target='_blank'>YAMon thread</a> at the DD-WRT forum.  If you have any questions/suggestions or find an error, drop me a <a href="mailto:questions@usage-monitoring.com?subject=Yet Another Monitor Questions%2FComments">line</a>...  I'll do my best to respond ASAP!
-							</p>
-						</div>
-						<div class='intro-t'>
-							<h1>Last but not least...</h1>
-							<p>Please show your appreciation and support future development of this tool by <a href='https://www.paypal.me/YAMon/25' target='_blank'>donating</a> or by clicking one of the ads on the <a href='http://usage-monitoring.com' target='_blank'>usage-monitoring.com</a> site.</p>
-							<p>Anything that you can contribute is greatly appreciated.  Thanks!</p>
-						</div>
-						<p class='intro-btn btn a-c'><button id='intro-p'><< Back</button><button id='intro-n'>Next >></button> </p>
-					</div>
-
 					<h2>Settings</h2>
 					<div id='d-settings_pswd' class='hidden'>
 						<p>The settings are password protected!</p>
@@ -1121,14 +1074,12 @@
 										<option value="TB" title='Really!'>Terabytes</option>
 										<option value="PB" title='Really! Really?!?'>Petabytes</option>
 									</select>
-								</p>
-							   <p title='Select the number of decimal places to display'>
-									<label for="NumDecimals"># Decimals:</label>
+									with
 									<select name="NumDecimals" id="NumDecimals">
 										<option value="0">0</option>
 										<option value="1">1</option>
 										<option value="2">2</option>
-									</select>
+									</select> decimals
 								</p>
 								<p title='Show/Hide devices within each `owner` grouping (default: selected)'>
 									<input type="checkbox" id="ShowDevices" checked>
@@ -1150,6 +1101,10 @@
 									<input id='DupTotals' type='checkbox'>
 									<label for='DupTotals'>Duplicate totals row</label>
 								</p>
+								<p title='Display in dark mode'>
+									<input id='DarkMode' type='checkbox'>
+									<label for='DarkMode'>Dark mode</label>
+								</p>
 								<p title='Interval to auto refresh the reports (in seconds)'>
 									<label for="RefreshInterval">Refresh Interval:</label>
 									<input type="number" pattern='^[1-9][0-9]*$' size="4" name="Refresh" id="RefreshInterval" class='linked a-r' value="120"> sec.
@@ -1157,17 +1112,17 @@
 								<p>
 									<label for="dateFMT">Date Format:</label>
 									<select name="dateFMT" id="dateFMT">
-										<option id='dateFMT-1' value="0">Mon Sep 15 2014</option>
-										<option id='dateFMT-2' value="1">Mon 15 Sep 2014</option>
-										<option id='dateFMT-3' value="2">Mon 15 09 2014</option>
+										<option id='dateFMT-1' value="0" title='Month day year'>Mon Sep 15 2014</option>
+										<option id='dateFMT-2' value="1" title='Day month Year'>Mon 15 Sep 2014</option>
+										<option id='dateFMT-3' value="2" title='Day month-number year'>Mon 15 09 2014</option>
+										<option id='dateFMT-4' value="4" title='Year month-number day'>Mon 15 09 2014</option>
 									</select>
-								</p>
-								<p>
-									<label for="dateSep">Date Separator:</label>
+									separated by
 									<select name="dateSep" id="dateSep">
-										<option value=' '> </option>
-										<option value='-'>-</option>
-										<option value='/'>/</option>
+										<option value=' ' title='a space'> </option>
+										<option value='-' title='a dash'>-</option>
+										<option value='/' title='a slash'>/</option>
+										<option value='.' title='a dot'>.</option>
 									</select>
 								</p>
 								<p title='Set the speed of the loading animations'>
@@ -1268,7 +1223,7 @@
 					<hr/>
 					<p>For online help, FAQs, etc. either go to:</p>
 					<ul>
-						<li><a href='http://usage-monitoring.com' target='_blank'>http://usage-monitoring.com</a></li>
+						<li><a href='https://usage-monitoring.com' target='_blank'>https://usage-monitoring.com</a></li>
 						<li><a href='http://www.dd-wrt.com/phpBB2/viewtopic.php?p=1050090' target='_blank'>the YAMon 3.x forum at DD-WRT</a></li>
 						<li><a href='http://www.dd-wrt.com/phpBB2/viewtopic.php?t=259806' target='_blank'>the YAMon 2,x forum at DD-WRT</a></li>
 					</ul>
@@ -1276,82 +1231,7 @@
 					<p>Otherwise, if you have any questions/suggestions or find an error, drop me a <a href="mailto:questions@usage-monitoring.com?subject=Yet Another Monitor Questions%2FComments">line</a>.  I'll do my best to respond ASAP!</p>
 					<hr/>
 					<p>YAMon is based upon: <a href='http://code.google.com/p/wrtbwmon/' target='_blank'>wrtbwmon</a> by Emmanuel Brucy &  <a href='http://code.google.com/p/lal-projects/' target='_blank'>bw_monitor</a> by FezJay; and, adapted from modifications by: `bpsmicro`,`OrionShock` & others.  Thanks to `spanman` and too many others to mention here who've made suggestion for features & GUI improvements and/or patiently helped me find and resolve bugs</p>
-					<p>Thanks also to everyone who's made a <a href='http://usage-monitoring.com/donations.php'>donation</a>... I *really* appreciate those!  In case it is not blatantly obvious, you can make donations via Paypal.</p>
-				</div>
-				<div id="acses-tab-section" class="tab-div p-r hidden">
-					<h2>Access Restrictions</h2>
-					<p>Coming soon... </p>
-					<p>A way to define which devices can access the Internet when...</p>
-					<fieldset class='restrictions'>
-						<legend>Access Restrictions</legend>
-						<table id='restrictions-list'>
-							<tr>
-								<th class='rest-name bt bl'>Restriction Name</th>
-								<th class='rest-days bt'>Restricts access on the following days</th>
-								<th class='rest-time bt'>Between</th>
-								<th class='rest-groups p-r bt br' colspan=2>For<span class='rest-new btn p-a'></span></th>
-							</tr>
-							<tr class='edit-restrictions hidden'>
-								<td class='rest-name bl'>
-									<input type='text' class='rst-name' placeholder='Restriction Name'>
-								</td>
-								<td class='p-cb-top rest-days'>
-								 <!-- Javascript: d.getDay() gives Sun->0,Mon->1,... whereas Bash date "%u" gives Mon->1,... Sun->7-->
-									<label class='p-cb-lbl'>
-										<span id='ac-da' class='p-cb p-r'>
-											<span class='p-cb-bg p-a'></span>
-											<span class='p-cb-st p-a'></span>
-										</span>
-										Every day
-									</label> or just:<hr/>
-									<span id='ac-da-l'>
-										<label for='ac-da-1'><input id='ac-da-1' dn='1' class='ac-da' type='checkbox'>Mon</label>
-										<label for='ac-da-2'><input id='ac-da-2' dn='2' class='ac-da' type='checkbox'>Tues</label>
-										<label for='ac-da-3'><input id='ac-da-3' dn='3' class='ac-da' type='checkbox'>Wed</label>
-										<label for='ac-da-4'><input id='ac-da-4' dn='4' class='ac-da' type='checkbox'>Thurs</label>
-										<label for='ac-da-5'><input id='ac-da-5' dn='5' class='ac-da' type='checkbox'>Fri</label>
-										<label for='ac-da-6'><input id='ac-da-6' dn='6' class='ac-da' type='checkbox'>Sat</label>
-										<label for='ac-da-7'><input id='ac-da-7' dn='7' class='ac-da' type='checkbox'>Sun</label>
-									</span>
-								</td>
-								<td class='rest-time'>
-									<select class='ac-start' title='start time'></select>
-									and
-									<select class='ac-end' title='end time'></select>
-								</td>
-								<td class='p-cb-top rest-groups'>
-									<label class='p-cb-lbl'>
-										<span id='ac-gp' class='p-cb p-r' mode='except'>
-											<span class='p-cb-bg p-a'></span>
-											<span class='p-cb-st p-a'></span>
-										</span>
-										Every Group
-									</label> Except:<hr/>
-									<span id='ac-gr-l'></span>
-								</td>
-								<td class='rest-btn'>
-									<span class='rest-close btn' title='Close this entry'></span>
-									<span class='rest-save btn' title='Save Changes'></span>
-									<span class='rest-delete btn' title='Delete this entry'></span>
-								</td>
-							</tr>
-							<tr class='restriction-row'>
-								<td class='rest-name bl'>Weekend Nights</td>
-								<td class='rest-days' value='5,6'>Fri, Sat</td>
-								<td class='rest-time'>01:00-07:00</td>
-								<td class='rest-groups' value='al,devices'>All except: Al, Devices</td>
-								<td class='rest-btn btn br'></td>
-							</tr>
-							<tr class='restriction-row'>
-								<td class='rest-name bl'>School Nights</td>
-								<td class='rest-days' value='1,2,3,4,7'>Mon, Tues, Wed, Thur, Sun</td>
-								<td class='rest-time'>22:00-07:00</td>
-								<td class='rest-groups' value='al,devices'>All except: Devices</td>
-								<td class='rest-btn btn br'></td>
-							</tr>
-						</table>
-					</fieldset>
-
+					<p>Thanks also to everyone who's made a <a href='https://usage-monitoring.com/donations.php'>donation</a>... I *really* appreciate those!  In case it is not blatantly obvious, you can make donations via Paypal.</p>
 				</div>
 				<div id='myAlert' class='dlog hidden'>
 					<p>Alert
@@ -1736,6 +1616,6 @@
 			</section> <!-- end of main-body -->
 
 		</div>
-		<footer class='a-r'>Yet Another Monitor (YAMon) - Al Caughey &copy; 2013-present, All rights reserved.</footer>
+		<footer>Yet Another Monitor (YAMon) - Al Caughey &copy; 2013-present, All rights reserved.<a class='a-r' href='https://usage-monitoring.com/privacy.php' target='_blank'>Privacy Policy</a></footer>
 	</body>
 </html>
