@@ -324,8 +324,8 @@ createUDList(){
 		local f1=$(echo "$line" | cut -d' ' -f1)
 		local f2=$(echo "$line" | cut -d' ' -f2)
 		local f3=$(echo "$line" | cut -d' ' -f3)
-        local isy=$(echo "$f1" | grep -i 'yamon')
-        [ ! -z "$isy" ] && continue
+		local isy=$(echo "$f1" | grep -i 'yamon')
+		[ ! -z "$isy" ] && continue
 		[ "$f1" -eq '0' ] && continue
 		send2log "  >>> f1-->$f1	f2-->$f2   f3-->$f3   " -1
 		if [ "$f2" == "0.0.0.0/0" ] || [ "$f2" == "::/0" ] ; then

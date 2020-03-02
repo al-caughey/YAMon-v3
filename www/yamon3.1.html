@@ -12,7 +12,7 @@
 		<script type="text/javascript" src="//code.jquery.com/jquery-latest.min.js"></script>
 		<script type="text/javascript" src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 		<script type="text/javascript">
-			var _html_version='3.1.3' 
+			var _html_version='3.1.4' 
 			if(typeof(_file_version)=='undefined') var _file_version='3.1'
 			var args=window.location.search.replace('?','').split('&'),ver=args[1]||_file_version,domain='',path=''
 			if(typeof(_doLocalFiles)=='undefined'||_doLocalFiles=='0'){
@@ -43,7 +43,7 @@
 	</head>
 	<body>
 	<noscript class='alert'>This web application makes extensive use of JavaScript.  You must either enable JavaScript in your current browswer or upgrade to a JavaScript capable browser.</noscript>
-		<div class='loading-wrapper hidden a-c p-a'>
+		<div class='loading-wrapper a-c p-a'>
 			<div class='loading p-a'>
 				<span id='splash' class='p-r'><span class="verno"></span></span>
 				<h1>Loading...</h1>
@@ -1441,7 +1441,10 @@
 									<option value='/'>/</option>
 								</select>
 							</p>
-
+							<p title='Show/Hide updating popups'>
+								<input type="checkbox" id="SuppressUpdates">
+								<label for="SuppressUpdates">Suppress loading alerts</label>
+							</p>
 						</fieldset>
 						<fieldset id='settings-col_3'>
 							<legend>Database Integration</legend>

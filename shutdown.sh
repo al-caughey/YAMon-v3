@@ -11,8 +11,12 @@
 
 d_baseDir=`dirname $0`
 
-source "$d_baseDir/includes/util.sh"
 source "$d_baseDir/includes/defaults.sh"
+if [ -f "$d_baseDir/includes/util$_version.sh" ] ; then
+	source "$d_baseDir/includes/util$_version.sh"
+else
+	source "$d_baseDir/includes/util.sh"
+fi
 _configFile="$d_baseDir/config.file"
 source "$_configFile"
 loadconfig

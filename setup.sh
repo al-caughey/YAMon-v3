@@ -16,8 +16,9 @@
 #HISTORY
 # 3.1.1 (2016-10-10): added etc/init.d/yamon3 for OpenWrt as per michaeljprentice @ http://www.dd-wrt.com/phpBB2/viewtopic.php?p=1046901#1046901
 # 3.1.2 (2016-10-15): added cchecks for missing parameters; fixed /tmp/www prompts; removed extra declarations for Lede;
-#       (2016-10-23): replaced busybox call with command -v
-# 3/1/6 (2016-11-19): added a logging info to setup.log
+#	   (2016-10-23): replaced busybox call with command -v
+# 3.1.6 (2016-11-19): added a logging info to setup.log
+# 3.1.8 (2016-12-15): add version to util.sh
 
 d_baseDir="$YAMON"
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
@@ -25,8 +26,13 @@ delay=$1
 [ -z $delay ] && delay=5
 
 _debugging=0  # set this value to 1 if Al tells you to... only needed if you are experiencing issues with this script
-source "${d_baseDir}includes/util.sh"
+
 source "${d_baseDir}includes/defaults.sh"
+if [ -f "$d_baseDir/includes/util$_version.sh" ] ; then
+	source "$d_baseDir/includes/util$_version.sh"
+else
+	source "$d_baseDir/includes/util.sh"
+fi
 
 _enableLogging=1
 _log2file=1
@@ -40,7 +46,7 @@ This script will guide you through the process of setting up the
 basic parameters in your \`config.file\` for YAMon$_version.
 
 NB - a number of the advanced (aka less commonly used) settings
-     are not currently addressed in this script.
+	 are not currently addressed in this script.
 
 If you want to use any of those features, you can edit your
 \`config.file\` directly (without actually having to stop the
@@ -64,16 +70,16 @@ echo "Installed firmware: $installedfirmware $installedversion $installedtype"
 send2log "Installed firmware: $installedfirmware $installedversion $installedtype" 2
 
 if [ ! -f "${d_baseDir}config.file" ] && [ ! -f "${d_baseDir}default_config.file" ] ; then
-    send2log '*** Cannot find either config.file or default_config.file...' 2
-    write2log
-    echo '*** Cannot find either config.file or default_config.file...
+	send2log '*** Cannot find either config.file or default_config.file...' 2
+	write2log
+	echo '*** Cannot find either config.file or default_config.file...
 *** Please check your installation! ***
 *** Exiting the script. ***' 
-    exit 0
+	exit 0
 elif [ -f "${d_baseDir}config.file" ] ; then
-    _configFile="${d_baseDir}config.file"
+	_configFile="${d_baseDir}config.file"
 else 
-    _configFile="${d_baseDir}default_config.file"
+	_configFile="${d_baseDir}default_config.file"
 fi
 source "$_configFile"
 loadconfig()
@@ -89,14 +95,14 @@ send2log "upnp_enable --> $upnp_enable" 1
 [ "$upnp_enable" -eq "1" ] && echo "
 $wrn
 $bl_a
-    ##   \`UPnP\` is enabled in your DD-WRT config.
-    ##   UPnP alters the normal flow of packets through \`iptables\` and that  
-    ##   will likely prevent YAMon from accurately reporting the traffic on
-    ##   your router.
+  ##   \`UPnP\` is enabled in your DD-WRT config.
+  ##   UPnP alters the normal flow of packets through \`iptables\` and that  
+  ##   will likely prevent YAMon from accurately reporting the traffic on
+  ##   your router.
 $bl_a
-    ##   It is recommended that you disable this option!
+  ##   It is recommended that you disable this option!
 $bl_a
-    ##   DD-WRT web GUI: \`NAT / QoS\`-->\`UPnP\` -->\`UPnP Configuration\`
+  ##   DD-WRT web GUI: \`NAT / QoS\`-->\`UPnP\` -->\`UPnP Configuration\`
 $bl_a
 $loh" && sleep 5
 
@@ -105,14 +111,14 @@ send2log "privoxy_enable --> $privoxy_enable" 1
 [ ! -z "$privoxy_enable" ] && [ "$privoxy_enable" -eq "1" ] && echo "
 $wrn
 $bl_a
-    ##   \`Privoxy\` is enabled in your DD-WRT config.
-    ##   Privoxy alters the normal flow of packets through \`iptables\` and 
-    ##   that *will* prevent YAMon from accurately reporting the traffic
-    ##   on your router.
+  ##   \`Privoxy\` is enabled in your DD-WRT config.
+  ##   Privoxy alters the normal flow of packets through \`iptables\` and 
+  ##   that *will* prevent YAMon from accurately reporting the traffic
+  ##   on your router.
 $bl_a
-    ##   If you want to use YAMon to monitor usage, you must disable Privoxy!
+  ##   If you want to use YAMon to monitor usage, you must disable Privoxy!
 $bl_a
-    ##   DD-WRT web GUI: \`Services\`-->\`Adblocking\`-->\`Privoxy\`
+  ##   DD-WRT web GUI: \`Services\`-->\`Adblocking\`-->\`Privoxy\`
 $bl_a
 $loh" && sleep 5
 
@@ -121,14 +127,14 @@ send2log "ntp_enable --> $ntp_enable" 1
 [ "$ntp_enable" -ne "1" ] && echo "
 $wrn
 $bl_a
-    ##   \`NTP Client\` is not enabled in your DD-WRT config.
-    ##   The NTP Client allows you to set your time zone and synchronize
-    ##   the clock on your router.
+  ##   \`NTP Client\` is not enabled in your DD-WRT config.
+  ##   The NTP Client allows you to set your time zone and synchronize
+  ##   the clock on your router.
 $bl_a
-    ##   YAMon will likely not provide accurate reports if you do not
-    ##   enabled this option!
+  ##   YAMon will likely not provide accurate reports if you do not
+  ##   enabled this option!
 $bl_a
-    ##   DD-WRT web GUI: \`Setup\`-->\`Basic Setup\`-->\`Time Settings\`
+  ##   DD-WRT web GUI: \`Setup\`-->\`Basic Setup\`-->\`Time Settings\`
 $bl_a
 $loh" && sleep 5
 
@@ -139,13 +145,13 @@ send2log "schedule_enable --> $schedule_enable ($schedule_hours:$schedule_minute
 [ "$schedule_enable" -eq "1" ] && [ "$schedule_hours" -eq "0" ] && [ "$schedule_minutes" -lt "10" ] && echo "
 $wrn
 $bl_a
-    ##   Your router is scheduled to auto-reboot at '$schedule_hours:$schedule_minutes'.
-    ##   This may interfere with the YAMon function that consolidates
-    ##   the daily totals into the monthly usage file.
+  ##   Your router is scheduled to auto-reboot at '$schedule_hours:$schedule_minutes'.
+  ##   This may interfere with the YAMon function that consolidates
+  ##   the daily totals into the monthly usage file.
 $bl_a
-    ##   If you must auto-reboot your router, please do so after ~12:15AM!
+  ##   If you must auto-reboot your router, please do so after ~12:15AM!
 $bl_a
-    ##   DD-WRT web GUI: \`Administration\`-->\`Keep Alive\`-->\`Schedule Reboot\`
+  ##   DD-WRT web GUI: \`Administration\`-->\`Keep Alive\`-->\`Schedule Reboot\`
 $bl_a
 $loh" && sleep 5
 
@@ -172,24 +178,24 @@ updateConfig "_baseDir" "$d_baseDir"
 [ "$_liveFileName" == "live_data.js" ] && updateConfig "_liveFileName" "live_data3.js" 
 
 if [ "$installedfirmware" == "DD-WRT" ] ; then
-    _firmware=0
+	_firmware=0
 elif [ "$installedfirmware" == "OpenWrt" ] ; then
-    _firmware=1
+	_firmware=1
 fi
 
 prompt '_firmware' 'Which of the *WRT firmware variants is your router running?' 'Options: 
-            0 -> DD-WRT(*)
-            1 -> OpenWrt
-            2 -> Asuswrt-Merlin
-            3 -> Tomato
-            4 -> LEDE' $_firmware ^[0-4]$
+    0 -> DD-WRT(*)
+    1 -> OpenWrt
+    2 -> Asuswrt-Merlin
+    3 -> Tomato
+    4 -> LEDE' $_firmware ^[0-4]$
 t_wid=1
 prompt 't_wid' "Is your \`data\` directory in \`$d_baseDir\`?" "$yn_n" $t_wid $zo_r
 [ "$t_wid" -eq 0 ] && prompt '_dataDir' "Enter the path to your data directory" "Options: 
-          * to specify an absolute path, start with \`/\`
-          * the path *must* end with \`/\`" "data/" ^[a-z0-9\/]*/$
+    * to specify an absolute path, start with \`/\`
+    * the path *must* end with \`/\`" "data/" ^[a-z0-9\/]*/$
 prompt '_ispBillingDay' 'What is your ISP bill roll-over date?' 'Enter the day number [1-31]' '' ^[1-9]$\|^[12][0-9]$\|^[3][01]$
-prompt '_unlimited_usage' 'Does your ISP offer `Bonus Data`?\n    (i.e., uncapped data usage during offpeak hours)' "$yn_n" '0' $zo_r
+prompt '_unlimited_usage' 'Does your ISP offer `Bonus Data`?\n	(i.e., uncapped data usage during offpeak hours)' "$yn_n" '0' $zo_r
 [ "$_unlimited_usage" -eq 1 ] && prompt '_unlimited_start' 'Start time for bonus data?' 'Enter the time in [hh:mm] format' '' ^[1-9]:[0-5][0-9]$\|^1[0-2]:[0-5][0-9]$
 [ "$_unlimited_usage" -eq 1 ] && prompt '_unlimited_end' 'End time?' 'Enter the time in [hh:mm] format' '' ^[1-9]:[0-5][0-9]$\|^[1][0-2]:[0-5][0-9]$
 prompt '_updatefreq' 'How frequently would you like to check the data?' 'Enter the interval in seconds [1-300 sec]' '30' ^[1-9]$\|^[1-9][0-9]$\|^[1-2][0-9][0-9]$\|^300$
@@ -198,41 +204,41 @@ prompt '_publishInterval' 'How many checks between updates in the reports?' 'Ent
 ipv6_enable=$(nvram get ipv6_enable)
 send2log "ipv6_enable --> $ipv6_enable" 1
 if [ "$ipv6_enable" -eq "1" ] ; then
-    prompt '_includeIPv6' 'Do you want to include IPv6 traffic?\n    (i.e., you *must* have a full version if `ip` installed)' "$yn_n" '0' $zo_r
-    if [ "$_includeIPv6" -eq 1 ] ; then
-        tip=$(echo `ip -6 neigh show`)
-        if [ -z "$tip" ] ; then
-            send2log "firmware does not include the full ip" 2
-            echo "
+	prompt '_includeIPv6' 'Do you want to include IPv6 traffic?\n	(i.e., you *must* have a full version if `ip` installed)' "$yn_n" '0' $zo_r
+	if [ "$_includeIPv6" -eq 1 ] ; then
+		tip=$(echo `ip -6 neigh show`)
+		if [ -z "$tip" ] ; then
+			send2log "firmware does not include the full ip" 2
+			echo "
 ******************************************************************
 *  It appears that your firmware does not include the full version 
 *  of the \`ip\` command i.e., \`ip -6 neigh show\` returns nothing
 ******************************************************************
 "
-            t_ip=0
-            prompt 't_ip' 'Have you manually installed the full version of `ip` elsewhere on your router?' "$yn_n" $t_ip $zo_r
-            if [ "$t_ip" -eq 1 ] ; then
-               prompt '_path2ip' 'Where is the full version of `ip` installed?' '' '/opt/sbin/ip' ^[a-z0-9\/]*$
+			t_ip=0
+			prompt 't_ip' 'Have you manually installed the full version of `ip` elsewhere on your router?' "$yn_n" $t_ip $zo_r
+			if [ "$t_ip" -eq 1 ] ; then
+			   prompt '_path2ip' 'Where is the full version of `ip` installed?' '' '/opt/sbin/ip' ^[a-z0-9\/]*$
 
-                if [ ! -f "$_path2ip" ] ; then
-                    send2log "path to full ip \`$_path2ip\` is not correct" 2
-                    updateConfig "_includeIPv6" "0"
-                    echo "
-          *******************************************************
-          *  \`$_path2ip\` does not exist... Setting \`_includeIPv6\`=0
-          *******************************************************
+				if [ ! -f "$_path2ip" ] ; then
+					send2log "path to full ip \`$_path2ip\` is not correct" 2
+					updateConfig "_includeIPv6" "0"
+					echo "
+    *******************************************************
+    *  \`$_path2ip\` does not exist... Setting \`_includeIPv6\`=0
+    *******************************************************
 "
-                fi
-            else
-                updateConfig "_includeIPv6" "0"
-                echo "
-          *******************************************************
-          *  Resetting \`_includeIPv6\`=0
-          *******************************************************
+				fi
+			else
+				updateConfig "_includeIPv6" "0"
+				echo "
+    *******************************************************
+    *  Resetting \`_includeIPv6\`=0
+    *******************************************************
 "
-            fi
-        fi
-    fi
+			fi
+		fi
+	fi
 fi
 prompt '_symlink2data' 'Create symbollic links to the web data directories?' "$yn_y" '1' $zo_r
 [ "$_firmware" -eq "2" ] && prompt '_wwwPath' 'Specify the path to the web directories?' "" '/tmp/var/wwwext/' ^[a-z0-9\/]*$
@@ -242,33 +248,33 @@ prompt '_enableLogging' 'Enable logging (for support & debugging purposes)?' "$y
 [ "$_enableLogging" -eq 1 ] && prompt '_loglevel' 'How much detail do you want in the logs?' 'Options: -1->really verbose -or- 0->all -or- 1->most(*) -or- 2->serious only' '1' ^[012]$\|^-1$
 [ "$_log2file" -eq 2 ] || [ "$_log2file" -eq 2 ] && prompt '_scrlevel' 'How much detail do you want shown on the screen?' 'Options: -1->really verbose -or- 0->all -or- 1->most(*) -or- 2->serious only' '1' ^[012]$\|^-1$
 
-[ ! -z "$(command -v ftpput)" ] &&  prompt '_enable_ftp' 'Do you want to mirror a copy of your data files to an external FTP site? \n    NB - *YOU* must setup the FTP site yourself!' "$yn_n" '0' $zo_r
+[ ! -z "$(command -v ftpput)" ] &&  prompt '_enable_ftp' 'Do you want to mirror a copy of your data files to an external FTP site? \n	NB - *YOU* must setup the FTP site yourself!' "$yn_n" '0' $zo_r
 if [ "$_enable_ftp" -eq "1" ] ; then
-    prompt '_ftp_site' 'What is the URL for your FTP site?' '' '' ''
-    prompt '_ftp_user' 'What is the username for your FTP site?' '' '' ''
-    prompt '_ftp_pswd' 'What is the password for your FTP site?' '' '' ''
+	prompt '_ftp_site' 'What is the URL for your FTP site?' '' '' ''
+	prompt '_ftp_user' 'What is the username for your FTP site?' '' '' ''
+	prompt '_ftp_pswd' 'What is the password for your FTP site?' '' '' ''
 else
-    prompt '_doDailyBU' 'Enable daily backup of data files?' "$yn_y" '1' $zo_r
-    [ "$_doDailyBU" -eq 1 ] && prompt '_tarBUs' 'Compress the backups?' "$yn_y" '1' $zo_r
+	prompt '_doDailyBU' 'Enable daily backup of data files?' "$yn_y" '1' $zo_r
+	[ "$_doDailyBU" -eq 1 ] && prompt '_tarBUs' 'Compress the backups?' "$yn_y" '1' $zo_r
 fi
 if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] ; then
-    [ "$_dnsmasq_conf" == "/tmp/dnsmasq.conf" ] && updateConfig "_dnsmasq_conf" "/tmp/etc/dnsmasq.conf"
-    [ "$_dnsmasq_leases" == "/tmp/dnsmasq.leases" ] && updateConfig "_dnsmasq_leases" "/tmp/dhcp.leases"
+	[ "$_dnsmasq_conf" == "/tmp/dnsmasq.conf" ] && updateConfig "_dnsmasq_conf" "/tmp/etc/dnsmasq.conf"
+	[ "$_dnsmasq_leases" == "/tmp/dnsmasq.leases" ] && updateConfig "_dnsmasq_leases" "/tmp/dhcp.leases"
 fi
 [ ! -f "$_dnsmasq_conf" ] && echo "  >>> specified path to _dnsmasq_conf ($_dnsmasq_conf) does not exist"
 [ ! -f "$_dnsmasq_leases" ] && echo "  >>> specified path to _dnsmasq_leases ($_dnsmasq_leases) does not exist"
 
 _configFile="${d_baseDir}config.file"
 if [ ! -f "$_configFile" ] ; then
-    touch "$_configFile"
-    send2log "Created and saved settings in new file: \`$_configFile\`" 1
-    echo "
+	touch "$_configFile"
+	send2log "Created and saved settings in new file: \`$_configFile\`" 1
+	echo "
 ******************************************************************
 Created and saved settings in new file: \`$_configFile\`
 ******************************************************************"
 else
-    copyfiles "$_configFile" "${d_baseDir}config.old"
-    send2log "Updated existing settings: \`$_configFile\`" 1
+	copyfiles "$_configFile" "${d_baseDir}config.old"
+	send2log "Updated existing settings: \`$_configFile\`" 1
    echo "
 ******************************************************************
 Copied previous configuration settings to \`${d_baseDir}config.old\`
@@ -283,17 +289,17 @@ p_list=$(cat "${d_baseDir}/default_config.file" | grep -o "^_[^=]\{1,\}")
 IFS=$'\n'
 for line in $(echo "$p_list")
 do
-    dpe=$(echo "$configStr" | grep -i "^$line")
-    #echo "dpe-->$dpe"
-    [ ! -z "$dpe" ] && continue
-    eval nv=\"\$$line\"
-    [ ! -z "$nv" ] && continue
-    dvn="d$line"
-    eval dv=\"\$$dvn\"
-    dirty="true"
-    mfl="$mfl
-    * $line ($dv)"
-    updateConfig "$line" "$dv"
+	dpe=$(echo "$configStr" | grep -i "^$line")
+	#echo "dpe-->$dpe"
+	[ ! -z "$dpe" ] && continue
+	eval nv=\"\$$line\"
+	[ ! -z "$nv" ] && continue
+	dvn="d$line"
+	eval dv=\"\$$dvn\"
+	dirty="true"
+	mfl="$mfl
+	* $line ($dv)"
+	updateConfig "$line" "$dv"
 done
 
 [ ! -z "$dirty" ] && echo "
@@ -317,141 +323,141 @@ glc="${d_baseDir}glc.sh"
 
 prompt 't_permissions' "Do you want to set directory permissions for \`${d_baseDir}\`?" "$yn_y" '1' $zo_r
 if [ "$t_permissions" -eq "1" ] ; then
-    prompt 't_perm' "What permission value do you want to use?" "e.g., 770(*)-> rwxrwx---" '770' ^[0-7][0-7][0-7]$
-    send2log "Changed directory permissions to: \`$t_perm\`" 1
-    chmod "$t_perm" -R "$d_baseDir"
-    chmod "$t_perm" "$su"
-    chmod "$t_perm" "$sd"
-    chmod "$t_perm" "$ya"
-    chmod "$t_perm" "$h2m"
-    chmod "$t_perm" "$glc"
+	prompt 't_perm' "What permission value do you want to use?" "e.g., 770(*)-> rwxrwx---" '770' ^[0-7][0-7][0-7]$
+	send2log "Changed directory permissions to: \`$t_perm\`" 1
+	chmod "$t_perm" -R "$d_baseDir"
+	chmod "$t_perm" "$su"
+	chmod "$t_perm" "$sd"
+	chmod "$t_perm" "$ya"
+	chmod "$t_perm" "$h2m"
+	chmod "$t_perm" "$glc"
 else
-    chmod 700 -R "$d_baseDir"
-    chmod 700 "$su"
-    chmod 700 "$sd"
-    chmod 700 "$ya"
-    chmod 700 "$h2m"
-    chmod 700 "$glc"
+	chmod 700 -R "$d_baseDir"
+	chmod 700 "$su"
+	chmod 700 "$sd"
+	chmod 700 "$ya"
+	chmod 700 "$h2m"
+	chmod 700 "$glc"
 fi
 t_www=0
 t_perm="770"
 t_perm_msg="e.g., $t_perm(*)-> rwxrwx---"
 perm_r=^[0-7][0-7][0-7]$
 if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] ; then
-    t_perm="a+rX"
-    perm_r=^[a-zA-z+][a-zA-z+][a-zA-z+][a-zA-z+]$
-    prompt 't_www' "Do you want to set directory permissions for \`${_wwwPath}\`?" "$yn_y" '1' $zo_r
+	t_perm="a+rX"
+	perm_r=^[a-zA-z+][a-zA-z+][a-zA-z+][a-zA-z+]$
+	prompt 't_www' "Do you want to set directory permissions for \`${_wwwPath}\`?" "$yn_y" '1' $zo_r
 fi
 if [ "$t_www" -eq "1" ] ; then
-    prompt 't_perm' "What permissions value do you want to use?" "t_perm_msg" "$t_perm" $perm_r
-    chmod "$t_perm" -R "$_wwwPath"
-    send2log "Changed \`$_wwwPath\` permissions to: \`$t_perm\`" 1
+	prompt 't_perm' "What permissions value do you want to use?" "t_perm_msg" "$t_perm" $perm_r
+	chmod "$t_perm" -R "$_wwwPath"
+	send2log "Changed \`$_wwwPath\` permissions to: \`$t_perm\`" 1
 else
 
-    chmod 700 -R "$_wwwPath"
+	chmod 700 -R "$_wwwPath"
 fi
 startup_delay=''
 prompt 'startup_delay' "By default, \`startup.sh\` will delay for 10 seconds prior to starting \`yamon${_version}.sh\`. Some routers may require extra time." 'Enter the start-up  delay [0-300]' '10' ^[0-9]$\|^[1-9][0-9]$\|^[1-2][0-9][0-9]$\|^300$
 if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] ; then
-    etc_init="/etc/init.d/yamon3"
-    t_init=0
-    prompt 't_init' 'Create YAMon init script in `/etc/init.d/`?' "$yn_y" '1' $zo_r
-    if [ "$t_init" -eq "1" ] ; then
-        send2log "Created YAMon init script in `/etc/init.d/`" 1
-        [ ! -d "/etc/init.d/" ] mkdir -p "/etc/init.d/" # is this even necessary?
-        echo "#!/bin/sh /etc/rc.common
+	etc_init="/etc/init.d/yamon3"
+	t_init=0
+	prompt 't_init' 'Create YAMon init script in `/etc/init.d/`?' "$yn_y" '1' $zo_r
+	if [ "$t_init" -eq "1" ] ; then
+		send2log "Created YAMon init script in `/etc/init.d/`" 1
+		[ ! -d "/etc/init.d/" ] mkdir -p "/etc/init.d/" # is this even necessary?
+		echo "#!/bin/sh /etc/rc.common
 START=99
 STOP=10
-start() {       
-    # commands to launch application
-    if [ -d "$_lockDir" ]; then
-        echo 'Unable to start, found YAMon3-running directory'
-        return 1
-    fi
-    ${d_baseDir}startup.sh 10 &
-}                 
-stop() {         
-    ${d_baseDir}shutdown.sh
-    return 0
+start() {	   
+	# commands to launch application
+	if [ -d "$_lockDir" ]; then
+		echo 'Unable to start, found YAMon3-running directory'
+		return 1
+	fi
+	${d_baseDir}startup.sh 10 &
+}				 
+stop() {		 
+	${d_baseDir}shutdown.sh
+	return 0
 }
-restart() {         
-    ${d_baseDir}restart.sh
-    return 0
+restart() {		 
+	${d_baseDir}restart.sh
+	return 0
 }
 boot() {
-    start
+	start
 }" > "$etc_init"
-        chmod +x "$etc_init"
-    fi
+		chmod +x "$etc_init"
+	fi
 else
-    prompt 't_startup' 'Do you want to create startup and shutdown scripts?' "$yn_y" '1' $zo_r
-    need2commit=''
-    if [ "$t_startup" -eq "1" ] ; then
-        cnsu=$(nvram get rc_startup)
-        if [ -z "$cnsu" ] ; then
-            send2log "Created nvram-->rc_startup" 1
-            echo "
-    nvram-->rc_startup was empty... \`$su\` was added"
-            nvram set rc_startup="$su $startup_delay"
-            need2commit="true"
-        elif [ -z $(echo "$cnsu" | grep 'startup.sh') ] ; then
-            send2log "Added to nvram-->rc_startup" 1
-            echo "
-    nvram-->rc_startup was not empty but does not contain the string \`startup.sh\`... 
-    \`$su\` was appended"
-            nvram set rc_startup="$cnsu
+	prompt 't_startup' 'Do you want to create startup and shutdown scripts?' "$yn_y" '1' $zo_r
+	need2commit=''
+	if [ "$t_startup" -eq "1" ] ; then
+		cnsu=$(nvram get rc_startup)
+		if [ -z "$cnsu" ] ; then
+			send2log "Created nvram-->rc_startup" 1
+			echo "
+	nvram-->rc_startup was empty... \`$su\` was added"
+			nvram set rc_startup="$su $startup_delay"
+			need2commit="true"
+		elif [ -z $(echo "$cnsu" | grep 'startup.sh') ] ; then
+			send2log "Added to nvram-->rc_startup" 1
+			echo "
+	nvram-->rc_startup was not empty but does not contain the string \`startup.sh\`... 
+	\`$su\` was appended"
+			nvram set rc_startup="$cnsu
 $su $startup_delay"
-            need2commit="true"
-        else
-            send2log "Skipped adding nvram-->rc_startup" 1
-            echo -e "
-    nvram-->rc_startup already contains the string \`startup.sh\`...
-    \`$su\` was not added"
-        fi
-        cnsd=$(nvram get rc_shutdown)
-        if [ -z "$cnsd" ] ; then
-            send2log "Created nvram-->rc_shutdown" 1
-            echo "
-    nvram-->rc_shutdown was empty... \`$sd\` was added"
-            nvram set rc_shutdown="$sd"
-            need2commit="true"
-        elif [ -z $(echo "$cnsd" | grep 'shutdown.sh') ] ; then
-            send2log "Added to nvram-->rc_shutdown" 1
-            echo "
-    nvram-->rc_shutdown was not empty but does not contain the string \`shutdown.sh\`... 
-    \`$sd\` was appended"
-            nvram set rc_shutdown="$cnsd
+			need2commit="true"
+		else
+			send2log "Skipped adding nvram-->rc_startup" 1
+			echo -e "
+	nvram-->rc_startup already contains the string \`startup.sh\`...
+	\`$su\` was not added"
+		fi
+		cnsd=$(nvram get rc_shutdown)
+		if [ -z "$cnsd" ] ; then
+			send2log "Created nvram-->rc_shutdown" 1
+			echo "
+	nvram-->rc_shutdown was empty... \`$sd\` was added"
+			nvram set rc_shutdown="$sd"
+			need2commit="true"
+		elif [ -z $(echo "$cnsd" | grep 'shutdown.sh') ] ; then
+			send2log "Added to nvram-->rc_shutdown" 1
+			echo "
+	nvram-->rc_shutdown was not empty but does not contain the string \`shutdown.sh\`... 
+	\`$sd\` was appended"
+			nvram set rc_shutdown="$cnsd
 $sd"
-            need2commit="true"
-        else
-            send2log "Skipped nvram-->rc_shutdown" 1
-            echo -e "
-    nvram-->rc_shutdown already contains the string \`shutdown.sh\`...
-    \`$sd\` was not added"
-        fi
-        [ ! -z "$need2commit" ] && nvram commit
-    fi
+			need2commit="true"
+		else
+			send2log "Skipped nvram-->rc_shutdown" 1
+			echo -e "
+	nvram-->rc_shutdown already contains the string \`shutdown.sh\`...
+	\`$sd\` was not added"
+		fi
+		[ ! -z "$need2commit" ] && nvram commit
+	fi
 fi
 
 prompt 't_launch' 'Do you want to launch YAMon now?' "$yn_y" '1' $zo_r
 if [ "$t_launch" -eq "1" ] ; then
-    send2log "Launched " 1
-    write2log
-    echo "
+	send2log "Launched " 1
+	write2log
+	echo "
 
 ****************************************************************
-    
+	
 [Re]starting $su
 
 " 
-    ${d_baseDir}restart.sh $startup_delay
-    exit 0
+	${d_baseDir}restart.sh $startup_delay
+	exit 0
 fi
 
 echo "
 
 ****************************************************************
-    
+	
 YAMon$_version is now configured and ready to run.
 
 To launch YAMon, enter \`${d_baseDir}startup.sh\`.
@@ -459,8 +465,8 @@ To launch YAMon, enter \`${d_baseDir}startup.sh\`.
 Send questions to questions@usage-monitoring.com
 
 Thank you for installing YAMon.  You can show your appreciation and support future development by donating at https://www.paypal.me/YAMon/.
-    
-Thx!    Al
-    
+	
+Thx!	Al
+	
 "
 write2log

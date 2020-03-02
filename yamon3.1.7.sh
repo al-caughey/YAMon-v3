@@ -31,6 +31,7 @@
 #				   : check for duplicate MAC addresses in users.js; reduced number of messages going to logs
 # 3.1.5 (2016-11-16): fixed regexs (never released to the wild though)
 # 3.1.6 (2016-11-17): changed br_u/br_d for hr=start in new 'getStartPND' (to roll over values from previous day); fixed issue in sendAlerts
+# 3.1.7 (2016-11-20): changed fixed 'getStartPND' _br_u/_br_d
 # ==========================================================
 #				  Functions
 # ==========================================================
@@ -241,7 +242,6 @@ createHourlyFile()
 	
 	local hc="var hourly_created=\"$ds\""
 	_pndData=$(getStartPND 'start' "$upsec")
-	send2log "  *** set start in pnd - $br_d / $br_u" 1
 	local hourlyHeader=$(getHourlyHeader "$upsec" "$ds")
 	_hourlyData=''
 	local nht="$_hourlyCreated
@@ -279,16 +279,19 @@ serverloads(\"$sl_min\",\"$sl_min_ts\",\"$sl_max\",\"$sl_max_ts\")
 getStartPND(){
 	send2log "=== getStartPND ===" -1
 	local thr="$1"
-	send2log "  *** setting start in pnd - $br_d / $br_u" 1
-	[ -z "$br_d" ] && br_d=0
-	[ -z "$br_u" ] && br_u=0
-	send2log "  *** getStartPND: br_d: $br_d  br_u: $br_u" -1
+	send2log "  *** setting start in pnd - $_br_d / $_br_u" 1
+	if [ -z "$_br_d" ] || [ -z "$_br_u" ] ; then
+		local tstr=$(getPND "$thr" "$upsec")
+		_br_u=$(getCV "$tstr" 'up')
+		_br_d=$(getCV "$tstr" 'down')  
+	fi
+	send2log "  *** getStartPND: _br_d: $_br_d  _br_u: $_br_u" -1
 	
 	local ip4=$(getForwardData 'iptables' $YAMON_IP4)
 	local ip6=''
 	[ "$_includeIPv6" -eq "1" ] && ip6=$(getForwardData 'ip6tables' $YAMON_IP6)
 
-	local result="pnd({\"hour\":\"$thr\",\"uptime\":$2,\"down\":$br_d,\"up\":$br_u,\"lost\":$_totalLostBytes,\"hr-loads\":\"$hr_min1,$hr_min5,$hr_max5,$hr_max1\"$ip4$ip6})"
+	local result="pnd({\"hour\":\"$thr\",\"uptime\":$2,\"down\":$_br_d,\"up\":$_br_u,\"lost\":$_totalLostBytes,\"hr-loads\":\"$hr_min1,$hr_min5,$hr_max5,$hr_max1\"$ip4$ip6})"
 	echo "$result"
 }
 getPND(){
@@ -297,8 +300,8 @@ getPND(){
 	local thr="$1"
 	local br0=$(cat "/proc/net/dev" | grep -i "$_lan_iface" | tr -s ': ' ' ')
 	send2log "  *** PND: br0: [$br0]" -1
-	br_d=$(echo $br0 | cut -d' ' -f10)
-	br_u=$(echo $br0 | cut -d' ' -f2)
+	local br_d=$(echo $br0 | cut -d' ' -f10)
+	local br_u=$(echo $br0 | cut -d' ' -f2)
 	[ "$br_d" == '0' ] && br_d=$(echo $br0 | cut -d' ' -f11)
 	[ "$br_u" == '0' ] && br_u=$(echo $br0 | cut -d' ' -f3)
 	[ -z "$br_d" ] && br_d=0
@@ -1057,7 +1060,8 @@ updateHourly()
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
 	local hourlyHeader=$(getHourlyHeader "$upsec" "$ds")
 	_thisHrpnd=$(getPND "$hr" "$upsec")
-
+	_br_u=$(getCV "$_thisHrpnd" 'up')
+	_br_d=$(getCV "$_thisHrpnd" 'down')  
 	send2log "  _hourlyData--> $_hourlyData" -1
 	send2log "  _thisHrdata--> $_thisHrdata" 0
 	send2log "  _pndData-> $_pndData" -1
@@ -1152,8 +1156,8 @@ sl_max_ts=""
 sl_min=""
 sl_min_ts=""
 _iteration=0
-br_d=''
-br_u=''
+_br_d=''
+_br_u=''
 
 installedfirmware=$(uname -o)
 installedversion=$(nvram get os_version)
