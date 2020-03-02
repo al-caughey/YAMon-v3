@@ -88,7 +88,7 @@ updateConfig(){
 	local nv=$2
 	[ "${vn:0:2}" == 't_' ] && return
 	[ -z "$nv" ] && eval nv="\$$vn"
-	#echo "updateConfig: $vn--> $nv" >&2
+	echo "	  $vn --> $nv" >> $_logfilename
 	local sv="$vn=.*#"
 	local rv="$vn=\'$nv\'"
 	local sm=$(echo "$configStr" | grep -o $sv)
@@ -186,7 +186,6 @@ sendAlert()
 		send2log "sendAlert:: exceeded daily alerts max... cannot send subj: $subj  msg: $omsg" 0
 		return
 	fi
-
 	if [ "$_sendAlerts" -eq "1" ] ; then
 		subj=${subj//\'/`}
 		msg=${msg//\'/`}
@@ -195,7 +194,7 @@ sendAlert()
 			curl -G -sS "$url" --data-urlencode "t=$_sendAlertTo" --data-urlencode "s=$subj" --data-urlencode "m=$msg"  > /tmp/sndm.txt
 		else
 			url="$url?t=$_sendAlertTo&s=$subj&m=$msg"
-			local nurl=${url// /%20}
+			local url=${url// /%20}
 			wget "$url" -U "YAMon-Setup" -qO "/tmp/sndm.txt"
 		fi
 		local res=$(cat /tmp/sndm.txt)
@@ -325,7 +324,9 @@ createUDList(){
 		local f1=$(echo "$line" | cut -d' ' -f1)
 		local f2=$(echo "$line" | cut -d' ' -f2)
 		local f3=$(echo "$line" | cut -d' ' -f3)
-		#[ "$f1" -eq '0' ] && continue
+        local isy=$(echo "$f1" | grep -i 'yamon')
+        [ ! -z "$isy" ] && continue
+		[ "$f1" -eq '0' ] && continue
 		send2log "  >>> f1-->$f1	f2-->$f2   f3-->$f3   " -1
 		if [ "$f2" == "0.0.0.0/0" ] || [ "$f2" == "::/0" ] ; then
 			add2UDList $f3 $f1 0
@@ -334,7 +335,7 @@ createUDList(){
 		fi
 	done
 	unset IFS
-    #send2log "  >>> createUDList: _ud_list-->
+	#send2log "  >>> createUDList: _ud_list-->
 #$_ud_list" 1
 }
 doFinalBU()
@@ -479,17 +480,19 @@ $mac $ip"
 getForwardData(){
 	local cmd="$1"
 	local chain="$2"
-	local fc=$("$cmd" -L FORWARD -vnx | tr -s '[\-]'  ' ' | sed 's~^\s*~~')
+	local fc=$("$cmd" -L FORWARD -vnx | tr -s '-'  ' ' | sed 's~^\s*~~')
 	ym=$(echo "$fc" | grep "$chain" | cut -d' ' -f2)
 	[ -z "$ym" ] && ym=0
 	l2w=$(echo "$fc" | grep "lan2wan" | cut -d' ' -f2)
 	[ -z "$l2w" ] && l2w=0
-	dp=$(echo "$fc" | grep "DROP" | cut -d' ' -f2 | tr -s "\n" " " )
-	n1=$(echo "$dp"  | cut -d' ' -f1)
-	n2=$(echo "$dp"  | cut -d' ' -f2)
-	dp=$(digitAdd "$n1" "$n2")
-
-	echo ", '$cmd': {\"$chain\":$ym,\"lan2wan\":$l2w,\"DROP\":$dp}"
+	dp=$(iptables -L -vnx | tr -s '-' ' ' | sed 's~^\s*~~' | grep "DROP" | cut -d' ' -f2)
+	IFS=$'\n'
+	local tot=0
+	for line in $(echo "$dp")
+	do
+		tot=$(digitAdd "$tot" "$line")
+	done
+	echo ", '$cmd': {\"$chain\":$ym,\"lan2wan\":$l2w,\"DROP\":$tot}"
 }
 save2File(){
 	send2log "=== save2File === " 0

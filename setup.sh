@@ -17,6 +17,7 @@
 # 3.1.1 (2016-10-10): added etc/init.d/yamon3 for OpenWrt as per michaeljprentice @ http://www.dd-wrt.com/phpBB2/viewtopic.php?p=1046901#1046901
 # 3.1.2 (2016-10-15): added cchecks for missing parameters; fixed /tmp/www prompts; removed extra declarations for Lede;
 #       (2016-10-23): replaced busybox call with command -v
+# 3/1/6 (2016-11-19): added a logging info to setup.log
 
 d_baseDir="$YAMON"
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
@@ -26,6 +27,7 @@ delay=$1
 _debugging=0  # set this value to 1 if Al tells you to... only needed if you are experiencing issues with this script
 source "${d_baseDir}includes/util.sh"
 source "${d_baseDir}includes/defaults.sh"
+
 _enableLogging=1
 _log2file=1
 _loglevel=0
@@ -46,14 +48,45 @@ YAMon script).
 $los
 "
 
-[ ! -f "${d_baseDir}config.file" ] && [ ! -f "${d_baseDir}default_config.file" ] && echo '*** Cannot find either config.file or default_config.file...
-    *** Please check your installation! ***
-    *** Exiting the script. ***' && exit 0
+_logDir='logs/'
+_logfilename="${d_baseDir}$_logDir"'setup.log'
+echo "Log file:  \`$_logfilename\`."
+[ ! -d "${d_baseDir}$_logDir" ] && mkdir -p "${d_baseDir}$_logDir"
+[ ! -f "$_logfilename" ] && touch "$_logfilename"
+
+send2log "Launched setup.sh" 2
+echo "You are running this script from \`$d_baseDir\`."
+
+installedfirmware=$(uname -o)
+installedversion=$(nvram get os_version)
+installedtype=$(nvram get dist_type)
+echo "Installed firmware: $installedfirmware $installedversion $installedtype"
+send2log "Installed firmware: $installedfirmware $installedversion $installedtype" 2
+
+if [ ! -f "${d_baseDir}config.file" ] && [ ! -f "${d_baseDir}default_config.file" ] ; then
+    send2log '*** Cannot find either config.file or default_config.file...' 2
+    write2log
+    echo '*** Cannot find either config.file or default_config.file...
+*** Please check your installation! ***
+*** Exiting the script. ***' 
+    exit 0
+elif [ -f "${d_baseDir}config.file" ] ; then
+    _configFile="${d_baseDir}config.file"
+else 
+    _configFile="${d_baseDir}default_config.file"
+fi
+source "$_configFile"
+loadconfig()
+
+echo "Loading baseline settings from \`$_configFile\`." 
+send2log "Loading baseline settings from \`$_configFile\`." 2
+configStr=$(cat "$_configFile")
+
 sleep $delay
 
-nvram=$(nvram show 2>&1)
-upnp_enable=$(echo "$nvram" | grep -i 'upnp_enable=1')
-[ ! -z "$upnp_enable" ] && echo "
+upnp_enable=$(nvram get upnp_enable)
+send2log "upnp_enable --> $upnp_enable" 1
+[ "$upnp_enable" -eq "1" ] && echo "
 $wrn
 $bl_a
     ##   \`UPnP\` is enabled in your DD-WRT config.
@@ -66,8 +99,10 @@ $bl_a
     ##   DD-WRT web GUI: \`NAT / QoS\`-->\`UPnP\` -->\`UPnP Configuration\`
 $bl_a
 $loh" && sleep 5
-privoxy_enable=$(echo "$nvram" | grep -i 'privoxy_enable=1')
-[ ! -z "$privoxy_enable" ] && echo "
+
+privoxy_enable=$(nvram get privoxy_enable)
+send2log "privoxy_enable --> $privoxy_enable" 1
+[ ! -z "$privoxy_enable" ] && [ "$privoxy_enable" -eq "1" ] && echo "
 $wrn
 $bl_a
     ##   \`Privoxy\` is enabled in your DD-WRT config.
@@ -81,8 +116,9 @@ $bl_a
 $bl_a
 $loh" && sleep 5
 
-ntp_enable=$(echo "$nvram" | grep -i 'ntp_enable=0')
-[ ! -z "$ntp_enable" ] && echo "
+ntp_enable=$(nvram get ntp_enable)
+send2log "ntp_enable --> $ntp_enable" 1
+[ "$ntp_enable" -ne "1" ] && echo "
 $wrn
 $bl_a
     ##   \`NTP Client\` is not enabled in your DD-WRT config.
@@ -96,13 +132,14 @@ $bl_a
 $bl_a
 $loh" && sleep 5
 
-schedule_enable=$(echo "$nvram" | grep -i 'schedule_enable=1')
-schedule_hr=$(echo "$nvram" | grep -i 'schedule_hours' | cut -d'=' -f2)
-schedule_min=$(echo "$nvram" | grep -i 'schedule_minutes' | cut -d'=' -f2)
-[ ! -z "$schedule_enable" ] && [ "$schedule_hr" -eq "0" ] && [ "$schedule_min" -lt "10" ] && echo "
+schedule_enable=$(nvram get schedule_enable)
+schedule_hours=$(nvram get schedule_hours)
+schedule_minutes=$(nvram get schedule_minutes)
+send2log "schedule_enable --> $schedule_enable ($schedule_hours:$schedule_minutes)" 1
+[ "$schedule_enable" -eq "1" ] && [ "$schedule_hours" -eq "0" ] && [ "$schedule_minutes" -lt "10" ] && echo "
 $wrn
 $bl_a
-    ##   Your router is scheduled to auto-reboot at '$schedule_hr:$schedule_min'.
+    ##   Your router is scheduled to auto-reboot at '$schedule_hours:$schedule_minutes'.
     ##   This may interfere with the YAMon function that consolidates
     ##   the daily totals into the monthly usage file.
 $bl_a
@@ -111,8 +148,6 @@ $bl_a
     ##   DD-WRT web GUI: \`Administration\`-->\`Keep Alive\`-->\`Schedule Reboot\`
 $bl_a
 $loh" && sleep 5
-
-echo "You are running this script from \`$d_baseDir\`."
 
 echo "
 In the prompts below, the recommended value is denoted with
@@ -126,17 +161,7 @@ zo_r=^[01nNyY]$
 zot_r=^[012]$
 _qn=0
 
-_configFile="${d_baseDir}config.file"
-[ ! -f "$_configFile" ] && [ -f "${d_baseDir}default_config.file" ] && _configFile="${d_baseDir}default_config.file"
-source "$_configFile"
-loadconfig()
-[ -f "$_configFile" ] && echo "Loading baseline settings from \`$_configFile\`."
-configStr=$(cat "$_configFile")
-
-_logfilename="${d_baseDir}$_logDir"'setup.log'
-echo "Log file:  \`$_logfilename\`."
-[ ! -d "${d_baseDir}$_logDir" ] && mkdir -p "${d_baseDir}$_logDir"
-[ ! -f "$_logfilename" ] && touch "$_logfilename"
+write2log
 
 updateConfig "_baseDir" "$d_baseDir"
 [ "$_setupWebDir" == "Setup/www/" ] && updateConfig "_setupWebDir" "www/"
@@ -145,12 +170,19 @@ updateConfig "_baseDir" "$d_baseDir"
 [ "$_wwwData" == "data/" ] || [ "$_wwwData" == "data" ] && updateConfig "_wwwData" "data3/"
 [ "$_configWWW" == "config.js" ] && updateConfig "_configWWW" "config3.js"
 [ "$_liveFileName" == "live_data.js" ] && updateConfig "_liveFileName" "live_data3.js" 
+
+if [ "$installedfirmware" == "DD-WRT" ] ; then
+    _firmware=0
+elif [ "$installedfirmware" == "OpenWrt" ] ; then
+    _firmware=1
+fi
+
 prompt '_firmware' 'Which of the *WRT firmware variants is your router running?' 'Options: 
             0 -> DD-WRT(*)
             1 -> OpenWrt
             2 -> Asuswrt-Merlin
             3 -> Tomato
-            4 -> LEDE' '0' ^[0-4]$
+            4 -> LEDE' $_firmware ^[0-4]$
 t_wid=1
 prompt 't_wid' "Is your \`data\` directory in \`$d_baseDir\`?" "$yn_n" $t_wid $zo_r
 [ "$t_wid" -eq 0 ] && prompt '_dataDir' "Enter the path to your data directory" "Options: 
@@ -163,12 +195,14 @@ prompt '_unlimited_usage' 'Does your ISP offer `Bonus Data`?\n    (i.e., uncappe
 prompt '_updatefreq' 'How frequently would you like to check the data?' 'Enter the interval in seconds [1-300 sec]' '30' ^[1-9]$\|^[1-9][0-9]$\|^[1-2][0-9][0-9]$\|^300$
 prompt '_publishInterval' 'How many checks between updates in the reports?' 'Enter the number of checks [must be a positive integer]' '2' ^[1-9]$\|^[1-9][0-9]$\|^[1-9][0-9][0-9]$
 
-ipv6_enable=$(echo "$nvram" | grep -i 'ipv6_enable=1')
-if [ ! -z "$ipv6_enable" ] ; then
+ipv6_enable=$(nvram get ipv6_enable)
+send2log "ipv6_enable --> $ipv6_enable" 1
+if [ "$ipv6_enable" -eq "1" ] ; then
     prompt '_includeIPv6' 'Do you want to include IPv6 traffic?\n    (i.e., you *must* have a full version if `ip` installed)' "$yn_n" '0' $zo_r
     if [ "$_includeIPv6" -eq 1 ] ; then
         tip=$(echo `ip -6 neigh show`)
         if [ -z "$tip" ] ; then
+            send2log "firmware does not include the full ip" 2
             echo "
 ******************************************************************
 *  It appears that your firmware does not include the full version 
@@ -181,6 +215,7 @@ if [ ! -z "$ipv6_enable" ] ; then
                prompt '_path2ip' 'Where is the full version of `ip` installed?' '' '/opt/sbin/ip' ^[a-z0-9\/]*$
 
                 if [ ! -f "$_path2ip" ] ; then
+                    send2log "path to full ip \`$_path2ip\` is not correct" 2
                     updateConfig "_includeIPv6" "0"
                     echo "
           *******************************************************
@@ -226,19 +261,21 @@ fi
 _configFile="${d_baseDir}config.file"
 if [ ! -f "$_configFile" ] ; then
     touch "$_configFile"
+    send2log "Created and saved settings in new file: \`$_configFile\`" 1
     echo "
 ******************************************************************
 Created and saved settings in new file: \`$_configFile\`
 ******************************************************************"
 else
     copyfiles "$_configFile" "${d_baseDir}config.old"
-    echo "
+    send2log "Updated existing settings: \`$_configFile\`" 1
+   echo "
 ******************************************************************
 Copied previous configuration settings to \`${d_baseDir}config.old\`
 and saved new settings to \`$_configFile\`
 ******************************************************************"
 fi
-
+write2log
 dirty=''
 mfl=''
 p_list=$(cat "${d_baseDir}/default_config.file" | grep -o "^_[^=]\{1,\}")
@@ -271,7 +308,7 @@ that the defaults are appropriate for your network configuration.
 
 "
 echo "$configStr" > "$_configFile"
-
+write2log
 su="${d_baseDir}startup.sh"
 sd="${d_baseDir}shutdown.sh"
 ya="${d_baseDir}yamon${_version}.sh"
@@ -281,6 +318,7 @@ glc="${d_baseDir}glc.sh"
 prompt 't_permissions' "Do you want to set directory permissions for \`${d_baseDir}\`?" "$yn_y" '1' $zo_r
 if [ "$t_permissions" -eq "1" ] ; then
     prompt 't_perm' "What permission value do you want to use?" "e.g., 770(*)-> rwxrwx---" '770' ^[0-7][0-7][0-7]$
+    send2log "Changed directory permissions to: \`$t_perm\`" 1
     chmod "$t_perm" -R "$d_baseDir"
     chmod "$t_perm" "$su"
     chmod "$t_perm" "$sd"
@@ -307,6 +345,7 @@ fi
 if [ "$t_www" -eq "1" ] ; then
     prompt 't_perm' "What permissions value do you want to use?" "t_perm_msg" "$t_perm" $perm_r
     chmod "$t_perm" -R "$_wwwPath"
+    send2log "Changed \`$_wwwPath\` permissions to: \`$t_perm\`" 1
 else
 
     chmod 700 -R "$_wwwPath"
@@ -318,6 +357,7 @@ if [ "$_firmware" -eq "1" ] || [ "$_firmware" -eq "4" ] ; then
     t_init=0
     prompt 't_init' 'Create YAMon init script in `/etc/init.d/`?' "$yn_y" '1' $zo_r
     if [ "$t_init" -eq "1" ] ; then
+        send2log "Created YAMon init script in `/etc/init.d/`" 1
         [ ! -d "/etc/init.d/" ] mkdir -p "/etc/init.d/" # is this even necessary?
         echo "#!/bin/sh /etc/rc.common
 START=99
@@ -349,11 +389,13 @@ else
     if [ "$t_startup" -eq "1" ] ; then
         cnsu=$(nvram get rc_startup)
         if [ -z "$cnsu" ] ; then
+            send2log "Created nvram-->rc_startup" 1
             echo "
     nvram-->rc_startup was empty... \`$su\` was added"
             nvram set rc_startup="$su $startup_delay"
             need2commit="true"
         elif [ -z $(echo "$cnsu" | grep 'startup.sh') ] ; then
+            send2log "Added to nvram-->rc_startup" 1
             echo "
     nvram-->rc_startup was not empty but does not contain the string \`startup.sh\`... 
     \`$su\` was appended"
@@ -361,17 +403,20 @@ else
 $su $startup_delay"
             need2commit="true"
         else
+            send2log "Skipped adding nvram-->rc_startup" 1
             echo -e "
     nvram-->rc_startup already contains the string \`startup.sh\`...
     \`$su\` was not added"
         fi
         cnsd=$(nvram get rc_shutdown)
         if [ -z "$cnsd" ] ; then
+            send2log "Created nvram-->rc_shutdown" 1
             echo "
     nvram-->rc_shutdown was empty... \`$sd\` was added"
             nvram set rc_shutdown="$sd"
             need2commit="true"
         elif [ -z $(echo "$cnsd" | grep 'shutdown.sh') ] ; then
+            send2log "Added to nvram-->rc_shutdown" 1
             echo "
     nvram-->rc_shutdown was not empty but does not contain the string \`shutdown.sh\`... 
     \`$sd\` was appended"
@@ -379,6 +424,7 @@ $su $startup_delay"
 $sd"
             need2commit="true"
         else
+            send2log "Skipped nvram-->rc_shutdown" 1
             echo -e "
     nvram-->rc_shutdown already contains the string \`shutdown.sh\`...
     \`$sd\` was not added"
@@ -389,6 +435,8 @@ fi
 
 prompt 't_launch' 'Do you want to launch YAMon now?' "$yn_y" '1' $zo_r
 if [ "$t_launch" -eq "1" ] ; then
+    send2log "Launched " 1
+    write2log
     echo "
 
 ****************************************************************
@@ -415,3 +463,4 @@ Thank you for installing YAMon.  You can show your appreciation and support futu
 Thx!    Al
     
 "
+write2log
