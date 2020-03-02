@@ -7,8 +7,8 @@
 #
 ##########################################################################
 
-_version='3.1.9'
-_file_version='3.1'
+_version='3.2.0'
+_file_version='3.2'
 
 [ -z "$d_baseDir" ] && d_baseDir="`dirname $0`/"
 _lockDir="/tmp/YAMon3-running"

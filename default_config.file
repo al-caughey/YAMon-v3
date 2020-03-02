@@ -99,7 +99,7 @@ _ftp_site=''                                 # set to url to your FTP site... **
 _ftp_user=''                                 # set to the username for your FTP site
 _ftp_pswd=''                                 # set to the password for your FTP site
 _ftp_dir=''                                  # set to root directory path to your desired storage location
-_useTMangle=1                                # whether or not to use the `-t mangle` option for ipchain: 0->no || 1->yes
+_useTMangle=1                                # whether or not to use the `-t mangle` option for ipchain: 0->no || 1->yes(*)
 #--------------------------------- COMING IN YAMon 3.2 ---------------------------------
 _enable_db=0                                 # set to 1 if you want to save data value to an external database - values: 0-->No(*) || 1->Yes
 _db_url=''                                   # set to url to your db site... I ***DO NOT*** know what this is!

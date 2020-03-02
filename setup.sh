@@ -243,6 +243,9 @@ prompt '_symlink2data' 'Create symbollic links to the web data directories?' "$y
 prompt '_organizeData' 'Organize the data files (into directories by year or year-month)?' 'Options: 0->No(*) -or- 1->by year -or- 2->by year & month' '0' $zot_r
 prompt '_enableLogging' 'Enable logging (for support & debugging purposes)?' "$yn_y" '1' $zo_r
 [ "$_enableLogging" -eq 1 ] && prompt '_log2file' 'Where do you want to send the logging info?' 'Options: 0->screen -or- 1->file(*) -or- 2->both' '1' $zot_r
+[ "$_enableLogging" -eq 1 ] && [ "$_log2file" -ne 0 ] && prompt '_logDir' 'Where do you want to create the logs directory?' 'Options: 
+    * to specify an absolute path, start with \`/\`
+    * the path *must* end with \`/\`' 'logs/' $re_path_slash
 [ "$_enableLogging" -eq 1 ] && prompt '_loglevel' 'How much detail do you want in the logs?' 'Options: -1->really verbose -or- 0->all -or- 1->most(*) -or- 2->serious only' '1' ^[012]$\|^-1$
 [ "$_log2file" -eq 2 ] || [ "$_log2file" -eq 2 ] && prompt '_scrlevel' 'How much detail do you want shown on the screen?' 'Options: -1->really verbose -or- 0->all -or- 1->most(*) -or- 2->serious only' '1' ^[012]$\|^-1$
 
@@ -252,7 +255,7 @@ if [ "$_enable_ftp" -eq "1" ] ; then
 	prompt '_ftp_site' 'What is the URL for your FTP site?' 'Enter just the URL or IP address' '' ''
 	prompt '_ftp_user' 'What is the username for your FTP site?' '' '' ''
 	prompt '_ftp_pswd' 'What is the password for your FTP site?' '' '' ''
-	prompt '_ftp_dir' 'What is the path to your storage location?' 'Options: \"\"->root level -or- enter path' '' ''
+	prompt '_ftp_dir' 'What is the path to your storage location?' "Options: ''->root level -or- enter path" '' ''
     [ "$_organizeData" -gt "0" ] && echo "
     *******************************************************
     *  You will have to manually create the year/month 

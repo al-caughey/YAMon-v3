@@ -61,7 +61,8 @@ CONFIGURING YOUR WEB REPORTS
 
 There's not much that you have to do here.  As mentioned above, the script will automatically download and/or create all of the necessary files.
 
-To access the reports, go to http://<router_ip>/user/yamon3.1.html - e.g., http://192.168.1.1/user/yamon3.1.html
+To access the reports, go to http://<router_ip>/user/index.html - e.g., http://192.168.1.1/user/index.html
+NB - users upgrading from yamon3.1.x might still use http://192.168.1.1/user/yamon3.1.html until you update the value of `_setupWebIndex` in `config.file`
 
 When you open the reports for the first time, you will get an intro screen that asks you to confirm that settings in the reports are consistent with those you've set in `config.file`.  Change the values as necessary (or accept the defaults) and click the green checkmark to confirm each setting.  Once all of the checkmarks have been cleared, the page will automatically reload and you'll see the reports. (NB - you'll have to repeat this confirmation step if you view the reports from a different device or browser.)
 
