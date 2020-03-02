@@ -20,7 +20,8 @@
 # 3.4.6 (2018-08-11): added option to exclude failed/incomplete entries; check static leases on launch; detach from terminal
 # 3.4.6a (2019-01-25): added check for firmware in updateStaticLeases()	
 # 3.4.6b (2019-01-26): suppressed the error output from crippled ip function; fixed owner replacement in updateStaticLeases()
-# 3.4.7 (2019-01-29): fixed lingering _updated_ in users.js; better handling of cripple ip function for IPv6
+# 3.4.7 (2019-01-29): fixed lingering _updated_ in users.js; better handling of crippled ip function for IPv6
+# 3.4.8 (2019-04-19): minor updates, added _guest_iface
 
 # ==========================================================
 #				  Functions
@@ -121,16 +122,8 @@ setInitValues(){
 	_configFile="$d_baseDir/config.file"
 	source "$_configFile"
 	loadconfig
-	$(ip -6 neigh show >> /tmp/ipv6.text 2>&1)
-	if [ $? -ne 0 ] ; then
-		_includeIPv6=0
-		echo "  
-*** _includeIPv6 changed to 0 because the installed version of the ip function
-    does not support IPv6 or the neigh parameter.
-*** Please check your config.file and/or your version of busybox.
-" >&2 
-	fi
-	rm /tmp/ipv6.text
+	d_max_digits=$(check4Overflow)
+	
 	source "$d_baseDir/strings/$_lang/strings.sh"
 	setLogFile
 
@@ -148,25 +141,41 @@ setInitValues(){
 	fi
 	updateServerStats
 	setDataDirectories
+			
+	if [ ! "$_guest_iface" == '' ] ; then
+		local spdn=$(echo "$_pndData" | grep "\"hour\":\"start\"")
+		if [ -z "$(echo $spdn | grep 'guest-')" ] ; then
+			gpdn=$(getPND 'start') 
+			local g_do=$(getCV "$gpdn" 'guest-down')
+			local g_up=$(getCV "$gpdn" 'guest-up')
+			local nl=$(echo "$spdn" | sed -e "s~,\"lost\"~,\"guest-down\":$g_do,\"guest-up\":$g_up,\"lost\"~Ig")
+			$send2log "Update PDN entries to include guest- params: $nl" 1
+			_pndData="$nl
+$(echo "$_pndData" | grep -v "\"hour\":\"start\"")"
+			echo "$_pndData" >&2
+		fi
+	fi
+
 	setWebDirectories
 	setUsers
 	setConfigJS
 	[ ! -d "$_lockDir" ] && mkdir "$_lockDir"
 	local ts=$(date +"%H:%M:%S")
 	if [ "$started" -eq "0" ] ; then
-		echo "$_s_started"
+		echo -e "$_s_started"
 		if [ "$_doLocalFiles" -gt "0" ] ; then
 			source "$d_baseDir/includes/getLocalCopies.sh"
 			getLocalCopies
 		fi
 		$send2log "YAMon was started" 99
 	fi
+
 	meminfo=$(cat /proc/meminfo | tr -s ' ')
 	_totMem=$(getMI "MemTotal")
 	$send2log "_totMem: $_totMem" 0
 
-	local iginc=' grep -v '00:00:00:00:00:00' | '
-	[ "$_includeIncomplete" -eq "1" ] && iginc=''
+	local iginc=''
+	[ "$_includeIncomplete" -eq "0" ] && iginc=" grep -v '00:00:00:00:00:00' | " #completely disregard incomplete macs
 	
 	[ -z "$_path2ip" ] && _path2ip=$(which ip)
 	if [ "$_firmware" -eq "4" ] ; then
@@ -299,6 +308,7 @@ setDataDirectories()
 	_hourlyUsageWWW="$wwwsavePath$_cYear-$_cMonth-$_cDay-$_hourlyFileName"
 
 	[ ! -f "$_hourlyUsageDB" ] && createHourlyFile
+	
 	local hd=$(cat "$_hourlyUsageDB")
 	local hdhu=$(echo "$hd" | grep '^hu' )
 	local hdpd=$(echo "$hd" | grep '^pnd' )
@@ -374,7 +384,7 @@ createHourlyFile()
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
 
 	local hc="var hourly_created=\"$ds\""
-	_pndData=$(getStartPND 'start' "$upsec")
+	_pndData=$(getPND 'start' "$upsec")
 	local hourlyHeader=$(getHourlyHeader "$upsec" "$ds")
 	_hourlyData=''
 	local nht="$_hourlyCreated
@@ -401,7 +411,7 @@ getHourlyHeader(){
 	local cacheMem=$(getMI "Cached")
 	local availMem=$(($freeMem+$bufferMem+$cacheMem))
 	local disk_utilization=$(df "${d_baseDir}" | tail -n 1 | tr -s ' ' | cut -d' ' -f5)
-
+	
 	echo "
 var hourly_updated=\"$2\"
 var users_updated=\"$_usersLastMod\"
@@ -412,35 +422,46 @@ serverloads(\"$sl_min\",\"$sl_min_ts\",\"$sl_max\",\"$sl_max_ts\")
 
 "
 }
-getStartPND(){
-	$send2log "getStartPND: $1" 0
-	local thr="$1"
-	$send2log "*** setting start in pnd - $_br_d / $_br_u" 1
-	if [ -z "$_br_d" ] || [ -z "$_br_u" ] ; then
-		local tstr=$(getPND "$thr" "$upsec")
-		_br_u=$(getCV "$tstr" 'up')
-		_br_d=$(getCV "$tstr" 'down')
-	fi
-	$send2log "*** getStartPND: _br_d: $_br_d  _br_u: $_br_u" -1
-	local result="pnd({\"hour\":\"$thr\",\"uptime\":$2,\"down\":$_br_d,\"up\":$_br_u,\"lost\":$_totalLostBytes,\"hr-loads\":\"$hr_min1,$hr_min5,$hr_max5,$hr_max1\"})"
-	echo "$result"
-	$send2log "result-->$result" -1
-}
+
 getPND(){
-	$send2log "getPND: $1" 0
+	guestPND_0(){
+		#_guest_iface 
+		$send2log "guestPND_0: _guest_iface: null" 0
+		echo ''
+	}
+	guestPND_1(){
+		#_guest_iface contains a single entry or CSV list
+		local brg=$(echo "$pnd" | grep -i "$_guest_iface")
+		$send2log "guestPND_1 --> _guest_iface: $_guest_iface" 0
+		$send2log "*** guestPND_1: brg: $brg" -1
+		local g_d=0
+		local g_u=0
+		IFS=$'\n'
+		for line in $brg
+		do
+			l_d=$(echo $line | cut -d' ' -f11) || $(echo $line | cut -d' ' -f12) || 0
+			l_u=$(echo $line | cut -d' ' -f3) || $(echo $line | cut -d' ' -f4) || 0
+			g_d=$(($g_d + $l_d))
+			g_u=$(($g_u + $l_u))
+		done
+		echo "\"guest-down\":$g_d,\"guest-up\":$g_u,"
+	}
+	
+	$send2log "getPND: $1 $2" 0
 	local thr="$1"
-	local br0=$(cat "/proc/net/dev" | grep -i "$_lan_iface" | tr -s ': ' ' ')
+	local pnd=$(cat "/proc/net/dev" | tr -s ': ' ' ')
+	local br0=$(echo "$pnd" | grep -i "$_lan_iface")
 	$send2log "*** PND: br0: [$br0]" -1
-	local br_d=$(echo $br0 | cut -d' ' -f10)
-	local br_u=$(echo $br0 | cut -d' ' -f2)
-	[ "$br_d" == '0' ] && br_d=$(echo $br0 | cut -d' ' -f11)
-	[ "$br_u" == '0' ] && br_u=$(echo $br0 | cut -d' ' -f3)
-	[ -z "$br_d" ] && br_d=0
-	[ -z "$br_u" ] && br_u=0
+	local br_d=$(echo $br0 | cut -d' ' -f10) || $(echo $br0 | cut -d' ' -f11) || 0
+	local br_u=$(echo $br0 | cut -d' ' -f2) || br_u=$(echo $br0 | cut -d' ' -f3) || 0
+
+	local guest_traffic=$(eval $guestPND)
 	$send2log "*** PND: br_d: $br_d  br_u: $br_u" -1
-	local result="pnd({\"hour\":\"$thr\",\"uptime\":$2,\"down\":$br_d,\"up\":$br_u,\"lost\":$_totalLostBytes,\"hr-loads\":\"$hr_min1,$hr_min5,$hr_max5,$hr_max1\"})"
+	$send2log "*** guest_traffic: $guest_traffic" -1
+
+	local result="pnd({\"hour\":\"$thr\",\"uptime\":$2,\"down\":$br_d,\"up\":$br_u,$guest_traffic\"lost\":$_totalLostBytes,\"hr-loads\":\"$hr_min1,$hr_min5,$hr_max5,$hr_max1\"})"
 	echo "$result"
-	$send2log "result-->$result" -1
+	$send2log "getPND: result-->$result" 0
 }
 setUsers(){
 	fixIncompletes()
@@ -599,6 +620,7 @@ $_currentUsers" -1
 		mac=$(getField "$device" 'mac')
 		owner=$(getField "$device" 'owner')
 		name=$(getField "$device" 'name')
+		local lastSeen=$(getField "$device" 'last-seen')
 		IFS=$','
 		for ip in $ip4
 		do
@@ -612,8 +634,8 @@ $_currentUsers" -1
 				updateinUsersJS
 				IFS=$','
 			fi
-			checkIPTableEntries "iptables" "$YAMON_IP4" "$ip" "$mac"
-			CheckUsersJS $mac "$ip" 0 "$owner" "$name"
+			[ ! -z "$lastSeen" ] && checkIPTableEntries "iptables" "$YAMON_IP4" "$ip" "$mac"
+			#CheckUsersJS $mac "$ip" 0 "$owner" "$name"
 		done
 		if [ "$_includeIPv6" -eq "1" ] ; then 
 			ip6=$(getField "$device" 'ip6')
@@ -621,7 +643,7 @@ $_currentUsers" -1
 			for ip in $ip6
 			do
 				[ -z "$(echo "$ip" | grep '(dup)')" ] || continue
-				[ -z "$(echo "$ip" | grep -Ei "$_local_ip6")" ] && checkIPTableEntries "ip6tables" "$YAMON_IP6" "$ip" "$mac"
+				[ ! -z "$lastSeen" ] && [ -z "$(echo "$ip" | grep -Ei "$_local_ip6")" ] && checkIPTableEntries "ip6tables" "$YAMON_IP6" "$ip" "$mac"
 			done
 		fi 
 		IFS=$'\n'
@@ -710,6 +732,13 @@ setFirmware()
 	fi
 	$send2log "_lan_iface: $_lan_iface" 0
 	
+	if [ "$_guest_iface" == '' ] ; then
+		guestPND="guestPND_0"
+	else 
+		guestPND="guestPND_1"
+	fi
+	_guest_iface=${_guest_iface//,/\\|} 
+	
 	_lan_ipaddr=$(ifconfig $_lan_iface | grep 'inet addr:' | tr -s ' ' | cut -d' ' -f3 | cut -d: -f2)
 	_lan_hwaddr=$(ifconfig $_lan_iface | grep 'HWaddr' | tr -s ' ' | cut -d' ' -f5 | tr 'A-Z' 'a-z')
 	
@@ -787,20 +816,17 @@ shutDown(){
 	$send2log "shutDown" 1
 
 	updateHourly
+	updateLastSeen
 
 	$send2log "\`yamon.sh\` has been stopped" 2
 	exit 0
-
 }
 
 changeDates()
 {
 	$send2log ">>> date change: $_pDay --> $_cDay " 1
-	
 	source "$d_baseDir/includes/hourly2monthly.sh"
-
 	updateHourly $_p_hr
-	
 	updateHourly2Monthly $_cYear $_cMonth $_pDay &
 	
 	local avrt='n/a'
@@ -820,11 +846,11 @@ changeDates()
 	local yLocal=$(eval "iptables -nL ${YAMON_IP4}Local -vxZ | tr -s '-' ' ' | cut -d' ' -f2,3,8,9,10 $sortStr")
 	local yall=$(eval "iptables -nL ${YAMON_IP4} -vx | tr -s '-' ' ' | cut -d' ' -f2,3,8,9,10 $sortStr")
 
-	$send2log ">>> YAMON33v4Entry:
+	$send2log ">>> ${YAMON_IP4}Entry:
 $yEntry" 0
-	$send2log ">>> YAMON33v4Local:
+	$send2log ">>> ${YAMON_IP4}Local:
 $yLocal" 0
-	$send2log ">>> yall:
+	$send2log ">>> ${YAMON_IP4}:
 $yall" 0
 	[ "$_doDailyBU" -eq "1" ] && dailyBU "$_cYear-$_cMonth-$_pDay" &
 	sl_max=''
@@ -906,7 +932,7 @@ $newuser"
 }
 updateinUsersJS()
 {
-	$send2log "updateinUsersJS" 0
+	$send2log "updateinUsersJS - $mac / $ip" 0
 	
 	[ -z "$tip" ] && tip=${ip//\./\\.}
 	[ -z "$ip" ] || clearDupIPs
@@ -931,13 +957,74 @@ o_ip: $o_ip" -1
 clearDupIPs()
 {
 	$send2log "clearDupIPs: ip: $ip" 1 
-	[ -z "$ip" ] && return
 	local tip=${ip//\./\\.}
+	[ -z "$ip" ] && return
 	_currentUsers=$(echo "$_currentUsers" | sed -re "s~([\b,\"])$tip([,\b\"])~\1$ip (dup)\2~Ig" | sed -e "s~$tip (dup) (dup)~$ip (dup)~Ig")
 }
 
 checkIPs()
 {
+	checkIncompleteMac()
+	{
+		local incomplete=$(echo "$iplist" | grep -Ei "00:00:00:00:00:00|failed|incomplete")
+		[ -z "$incomplete" ] && return
+		$send2log "checkIncompleteMac: $iplist / $incomplete" 0
+		local cu_inc=$(echo "$_currentUsers" | grep -i "in:co:mp:le:te" | sort -r)
+		local cu_not_inc=$(echo "$_currentUsers" | grep -iv "in:co:mp:le:te")
+
+		IFS=$'\n'
+		for line in $incomplete
+		do
+			[ -z "$line" ] && continue
+			local ip=$(echo "$line" | cut -d' ' -f1)
+			local tip=${ip//\./\\.}
+			local mac=$(echo "$line" | cut -d' ' -f2)
+
+			local o_mac=$mac
+			$send2log "Incomplete MAC ($mac) for IP: $ip" 0
+			local uline=$(echo "$cu_not_inc" | grep -i "[\b\",]$tip[,\"]")
+			#uline gets just matching `active` IPs... not (dup) IPs
+			if [ -z "$uline" ] ; then  #no match
+				local mline=$(echo "$cu_inc" | grep -Ei "\b$tip\b")
+				#mline gets just in:co:mp:le:te entries with matching IPs
+				$send2log "mline: $mline" 0
+				if [ -z "$mline" ] ; then	#no matching inactive IPs... add a new entry
+					local num_inc=$(echo "$(getField "$cu_inc" "mac")" | cut -d'-' -f2)
+					[ -z "$num_inc" ] && num_inc=0
+					num_inc=$(printf %02d $((${num_inc#0}+1)))
+					mac="in:co:mp:le:te-$num_inc"
+					$send2log "Changed incomplete MAC for IP: $ip from $o_mac to $mac" 0
+					add2UsersJS "$mac" "$ip" "$is_ipv6" 'Unknown' "Incomplete-$num_inc"
+				else
+					local nm=$(echo "$mline" | wc -l)
+					if [ "$nm" -eq '1' ] ; then
+						mac=$(getField "$mline" 'mac')
+						o_ip=$(getField "$mline" "$wip")
+						$send2log "Changed incomplete MAC for IP: $ip from $o_mac to $mac" 0
+						[ -z "$(echo $o_ip | grep '(dup)')" ] || updateinUsersJS
+					else
+						$send2log "$nm incomplete MACs with duplicate IP: $ip - not sure what to do
+$mline" 2
+					fi
+				fi
+			else
+				$send2log "uline: $uline" 0
+				local nm=$(echo "$uline" | wc -l) 
+				if [ "$nm" -eq "1" ] ; then	# match... nothing to do really
+					mline="$uline"
+					mac=$(getField "$mline" 'mac')
+					o_ip=$(getField "$mline" "$wip")
+					$send2log "Changed incomplete MAC for IP: $ip from $o_mac to $mac" 0
+					[ -z "$(echo $o_ip | grep '(dup)')" ] || updateinUsersJS
+				else   # too many matches... mark both as duplicate
+					$send2log "$nm active IPs in users.js for $ip - marking all as duplicate
+$uline" 2
+					[ -z "$ip" ] || clearDupIPs
+				fi
+			fi
+		done
+		unset IFS
+	}
 	checkBridgeMac()
 	{
 		$send2log "checkBridgeMac" 0
@@ -991,69 +1078,6 @@ $mline" 2
 					$send2log "Changed bridged MAC for IP: $ip from $o_mac to $mac" 0
 					mline="$uline"
 					o_ip=$(getField "$mline" "$wip")
-					[ -z "$(echo $o_ip | grep '(dup)')" ] || updateinUsersJS
-				else   # too many matches... mark both as duplicate
-					$send2log "$nm active IPs in users.js for $ip - marking all as duplicate
-$uline" 2
-					[ -z "$ip" ] || clearDupIPs
-				fi
-			fi
-		done
-		unset IFS
-	}
-
-
-	checkIncompleteMac()
-	{
-		local incomplete=$(echo "$iplist" | grep -Ei "00:00:00:00:00:00|failed|incomplete")
-		[ -z "$incomplete" ] && return
-		local cu_inc=$(echo "$_currentUsers" | grep -i "in:co:mp:le:te" | sort -r)
-		local cu_not_inc=$(echo "$_currentUsers" | grep -iv "in:co:mp:le:te")
-
-		$send2log "checkIncompleteMac: $incomplete" 0
-		IFS=$'\n'
-		for line in $incomplete
-		do
-			[ -z "$line" ] && continue
-			local ip=$(echo "$line" | cut -d' ' -f1)
-			local tip=${ip//\./\\.}
-			local mac=$(echo "$line" | cut -d' ' -f2)
-
-			local o_mac=$mac
-			$send2log "Incomplete MAC ($mac) for IP: $ip" 0
-			local uline=$(echo "$cu_not_inc" | grep -i "[\b\",]$tip[,\"]")
-			#uline gets just matching `active` IPs... not (dup) IPs
-			if [ -z "$uline" ] ; then  #no match
-				local mline=$(echo "$cu_inc" | grep -Ei "\b$tip\b")
-				#mline gets just in:co:mp:le:te entries with matching IPs
-				$send2log "mline: $mline" 0
-				if [ -z "$mline" ] ; then	#no matching inactive IPs... add a new entry
-					local num_inc=$(echo "$(getField "$cu_inc" "mac")" | cut -d'-' -f2)
-					[ -z "$num_inc" ] && num_inc=0
-					num_inc=$(printf %02d $((${num_inc#0}+1)))
-					mac="in:co:mp:le:te-$num_inc"
-					$send2log "Changed incomplete MAC for IP: $ip from $o_mac to $mac" 0
-					add2UsersJS "$mac" "$ip" "$is_ipv6" 'Unknown' "Incomplete-$num_inc"
-				else
-					local nm=$(echo "$mline" | wc -l)
-					if [ "$nm" -eq '1' ] ; then
-						mac=$(getField "$mline" 'mac')
-						o_ip=$(getField "$mline" "$wip")
-						$send2log "Changed incomplete MAC for IP: $ip from $o_mac to $mac" 0
-						[ -z "$(echo $o_ip | grep '(dup)')" ] || updateinUsersJS
-					else
-						$send2log "$nm incomplete MACs with duplicate IP: $ip - not sure what to do
-$mline" 2
-					fi
-				fi
-			else
-				$send2log "uline: $uline" 0
-				local nm=$(echo "$uline" | wc -l) 
-				if [ "$nm" -eq "1" ] ; then	# match... nothing to do really
-					mline="$uline"
-					mac=$(getField "$mline" 'mac')
-					o_ip=$(getField "$mline" "$wip")
-					$send2log "Changed incomplete MAC for IP: $ip from $o_mac to $mac" 0
 					[ -z "$(echo $o_ip | grep '(dup)')" ] || updateinUsersJS
 				else   # too many matches... mark both as duplicate
 					$send2log "$nm active IPs in users.js for $ip - marking all as duplicate
@@ -1135,7 +1159,7 @@ $retlist"
 		[ -z "$l_bridgeMAC" ] && l_bridgeMAC='XX:XX:XX:XX:XX:XX'
 		local l_multipleIPMAC="$_multipleIPMAC"
 		[ -z "$l_multipleIPMAC" ] && l_multipleIPMAC='XX:XX:XX:XX:XX:XX'
-		local regular_list=$(echo "$iplist" | grep -Eiv "00:00:00:00:00:00|failed|incomplete|$l_bridgeMAC|$l_multipleIPMAC")
+		local regular_list=$(echo "$iplist" | grep -Eiv "in:co:mp:le:te|$l_bridgeMAC|$l_multipleIPMAC")
 		[ -z "$regular_list" ] && return
 		local regular=$(eval "getReg_$hasUniq")
 		
@@ -1190,14 +1214,57 @@ $mline" 2
 		[ "$is_ipv6" -eq "1" ] && wip='ip6'
 
 		IFS=$'\n'
+		
 		for line in $iplist
 		do
 			[ -z "$line" ] && continue
 			local ip=$(echo "$line" | cut -d' ' -f1)
-			local tip=${ip//\./\\.}
+			#local tip=${ip//\./\\.}
+			local tip="[\b\",]${ip//\./\\.}[,\"]"
 			local mac=$(echo "$line" | cut -d' ' -f2)
+			local badmac=$(echo "$mac" | grep -i "\(\([a-f0-9]\)\{2\}:\)\{5\}\([a-f0-9]\)\{2\}" | grep -v "00:00:00:00:00:00")
+			$send2log "checkIPList: $mac / $ip / ($badmac)" -1
+			if [ -z "$badmac" ] ; then #if mac does not match a valid mac address
+				local nm=$(cat /proc/net/arp | grep "$tip" | tr -s ' ' | cut -d' ' -f4)
+				if [ -z "$nm" ] ; then 		#no match in arp; look in users.js
+					local cul=$(echo "$_currentUsers" | grep -v " (dup)" | grep "$tip") #first check non-duplicates
+					if [ -z "$cul" ] ; then 
+						local ndm=$(echo "$_currentUsers" | grep -c "$tip") #next check duplicates
+						if [ "$ndm" -eq 1 ] ; then # if unique match, update mac; otherwise give up and add as incomplete
+							cul=$(echo "$_currentUsers" | grep "$tip")
+							nm=$(getField "$cul" 'mac')
+							o_ip=$(getField "$cul" "$wip")
+							$send2log "checkIPList: found unique (but duplicate IP) match \`$nm\` for bad mac \`$mac\` in users.js" 1
+							mac="$nm"
+							updateinUsersJS #re-activate the user entry (aka remove (dup)
+						elif [ "$ndm" -eq 0 ] ; then
+							$send2log "checkIPList: ambiguous or no matches ($ndm) for bad mac \`$mac\` & \`$ip\` in users.js" 1
+							local cu_inc=$(echo "$_currentUsers" | grep -i "in:co:mp:le:te" | sort -r)
+							local num_inc=$(echo "$(getField "$cu_inc" "mac")" | cut -d'-' -f2)
+							[ -z "$num_inc" ] && num_inc=0
+							num_inc=$(printf %02d $((${num_inc#0}+1)))
+							nm="in:co:mp:le:te-$num_inc"
+							$send2log "Changed incomplete MAC (\`$mac\`) for IP: \`$ip\` to \`$nm\`" 1
+							mac="$nm"
+							add2UsersJS "$mac" "$ip" "$is_ipv6" 'Unknown' "Incomplete-$num_inc"
+						else
+							$send2log "?!?" 1
+						fi 
+					else
+						cul=$(echo "$_currentUsers" | grep "$tip")
+						nm=$(getField "$cul" 'mac')
+						$send2log "checkIPList: found unique (non-duplicate) match \`$nm\` with IP (\`$ip\`) for bad mac \`$mac\` in users.js" 1
+						mac="$nm"
+					fi
+				else		#matching (presumably good) value in arp; change value
+					$send2log "checkIPList: replaced bad mac \`$mac\` with \`$nm\` (via arp)" 1
+					mac="$nm"
+				fi
+				iplist=$(echo "$iplist" | sed -e "s~$line~$ip $mac~")
+
+			fi
 			$send2log "mac-->$mac  ip-->$ip" -1
-			checkIPTableEntries "$cmd" "$rule" "$ip" "$mac"
+			checkIPTableEntries "$cmd" "$rule" "$ip" "$mac" # ensure iptables entries are correct 
 		done
 		unset IFS
 		
@@ -1361,7 +1428,7 @@ updateStaticLeases(){
 	$send2log "updateStaticLeases" -1
 	[ ! -f "$_dnsmasq_conf" ] && return
 	_changesInUsersJS=0
-	local leases=$(cat $_dnsmasq_conf | grep dhcp-host)
+	local leases=$(cat $_dnsmasq_conf | grep -v "^#" | grep dhcp-host)
 	local namefield=2
 	local ipfield=3
 
@@ -1461,13 +1528,14 @@ $_thisHrpnd"
 	_p_hr=$hr
 	
 	local disk_utilization=$(df "${d_baseDir}" | tail -n 1 | tr -s ' ' | cut -d' ' -f5)
-
-	if 	[ "$disk_utilization" \> "90%" ] ; then
+	disk_utilization="$(printf %02d ${disk_utilization//%/})%"
+	local dd=${disk_utilization/%/}
+	if 	[ "$dd" -gt "90" ] ; then
 		$send2log "Disk usage is becoming critically high ($disk_utilization)" 99
-	elif [ "$disk_utilization" \> "75%" ] ; then
-		$send2log "Disk usage is more than $disk_utilization" 2
-	elif [ "$disk_utilization" \> "50%" ] ; then
-		$send2log "Disk usage is more than $disk_utilization" 1
+	elif [ "$dd" -gt "80" ] ; then
+		$send2log "Disk usage is more than 80% ($disk_utilization)" 2
+	elif [ "$dd" -gt "66" ] ; then
+		$send2log "Disk usage is more than 66% ($isk_utilization)" 1
 	fi
 	$send2log "getHourlyHeader:_totMem-->$_totMem" -1
 
@@ -1505,8 +1573,7 @@ doliveUpdates_1()
 	load5=$(echo "$loadavg" | cut -f2 -d" ")
 	local load15=$(echo "$loadavg" | cut -f3 -d" ")
 	local cTime=$(date +"%T")
-	echo "var last_update='$_cYear/$_cMonth/$_cDay $cTime'
-serverload($load1,$load5,$load15)" > $_liveFilePath
+	echo -e "var last_update='$_cYear/$_cMonth/$_cDay $cTime'${_nl}serverload($load1,$load5,$load15)" > $_liveFilePath
 
 	if [ "$_doCurrConnections" -eq "1" ] ; then
 		$send2log ">>> curr_connections" -1
@@ -1568,7 +1635,7 @@ checkChains_0()
 }
 update()
 {
-	$send2log "update " 0
+	$send2log "update: $1 / $2 / $3 / $4" 0
 	newHourlyLine_0()
 	{	#_inUnlimited=0
 		$send2log "newHourlyLine_0 " -1
@@ -1601,13 +1668,14 @@ update()
 		_totalLostBytes=$(digitAdd "$_totalLostBytes" "$nb")
 		$send2log "$1 (_totalLostBytes=$_totalLostBytes / $nb)" 2
 	}
-	
-
-	$send2log "update arguments: $1 $2 $3 $4" -1
 
 	local ds=$(date +"%Y-%m-%d %H:%M:%S")
 
 	local ip="${1%/128}"
+	if [ "$ip" == 'LOG' ] ; then
+		$send2log "Changed value of ip from $ip to $_generic_ipv4" 2
+		ip=$_generic_ipv4 #catches LOG entries in `ipl` 
+	fi
 	local tip=${ip//\./\\.}
 	local do="$2"
 	local up="$3"
@@ -1615,14 +1683,15 @@ update()
 	local bytes=$(digitAdd "$do" "$up")
 	local cu_no_dup=$(echo "$_currentUsers" | grep -vi "$tip (dup)")
 	local cuc=$(echo "$cu_no_dup" | grep -ic "[\b\",]$tip\b")
+	
 	if [ "$cuc" -eq 0 ] ; then
-		lostBytes "!!! No matching entry in _currentUsers for $mac / $ip ($tip)?!? - adding $bytes to unknown mac 
-$_ud_list" $bytes
+		lostBytes "!!! No matching entry in _currentUsers for $ip ($tip)?!? - adding $bytes to unknown mac"
 		update "$_generic_ipv4" "$do" "$up" "$hr"
 		return
 	elif [ "$cuc" -gt 1 ] ; then
-		$send2log "cu_no_dup: $cu_no_dup" -1
-		lostBytes "!!! $cuc matching entries in _currentUsers for $ip ($tip / $mac)?!? returning - adding $bytes to unknown mac " $bytes
+		local bl=$(echo "$cu_no_dup" | grep -i "[\b\",]$tip\b")
+		$send2log "cu_no_dup: ${_nl}$bl" 0
+		lostBytes "!!! $cuc matching entries in _currentUsers for $ip ($tip)?!? returning - adding $bytes to unknown mac " $bytes
 		update "$_generic_ipv4" "$do" "$up" "$hr"
 		return
 	fi
@@ -1634,14 +1703,17 @@ $_ud_list" $bytes
 	[ -z "$new_do" ] && new_do=0
 	[ -z "$new_up" ] && new_up=0
 	local cu=$(echo "$cu_no_dup" | grep -i "[\b\",]$tip\b")
+	local nl=$(replace "$cu" "last-seen" "_seen_")
+	_currentUsers=$(echo "$_currentUsers" | sed -e "s~$cu~$nl~Ig")
+
 	local mac=$(getField "$cu" 'mac')
 	if [ -z "$mac" ] ; then
 		$send2log "cu-->$cu" -1
 		lostBytes "!!! No matching MAC in _currentUsers for $ip?!? - adding $bytes to unknown mac " $bytes
 		update "$_generic_ipv4" "$new_do" "$new_up" "$hr"
 		return
-	elif [ "$mac" == "00:00:00:00:00:00" ] || [ "$mac" == "failed" ] || [ "$mac" == "incomplete" ] ; then
-		lostBytes ">>> skipping null/invalid MAC address for $ip?!? - adding $bytes to unknown mac " $bytes
+	elif [ "$mac" == "00:00:00:00:00:00" ] || [ "$mac" == "failed" ] || [ "$mac" == "incomplete" ] || [ "$mac" == "used" ] || [ "$mac" == "ref" ] ; then
+		lostBytes ">>> skipping null/invalid MAC address ($mac) for $ip?!? - adding $bytes to unknown mac " $bytes
 		update "$_generic_ipv4" "$new_do" "$new_up" "$hr"
 		return
 	elif [ "$_includeBridge" -eq "1" ] && [ "$mac" == "$_bridgeMAC" ] ; then
@@ -1686,26 +1758,23 @@ updateUsage()
 	local cmd=$1
 	local chain=$2
 	local hr=$(date +%H)
-	_ud_list=''
-    local iptablesData=$(eval $cmd $_tMangleOption -nL "$chain" -vxZ | tr -s '-' ' ' | grep -vi RETURN | grep "^ [1-9]" | cut -d' ' -f3,8,9)
+    local iptablesData=$(eval $cmd $_tMangleOption -L "$chain" -vxZ | grep -v RETURN | tr -s ' '  | grep "^ [1-9]")
+	$send2log ">>> iptablesData-->${_nl}$iptablesData" 0
 	if [ -z "$iptablesData" ] ; then
 		$send2log ">>> $cmd returned no data... returning " -1
 		return
 	fi
-	createUDList "$iptablesData"
-	$send2log "iptablesData-->
-$iptablesData" -1
-	_ud_list=$(echo "$_ud_list" | tail -n+2)
-	$send2log "_ud_list-->
-$_ud_list" 0
+
+	local ipl=$(echo "$iptablesData" | sed -e "s~all\|\b0\b\|-\|any\|anywhere~~Ig" | tr -s ' ' | cut -d' ' -f5 | sort -u)
+	$send2log ">>> ipl-->$ipl" 0
 	IFS=$'\n'
-	for line in $_ud_list
+	for ip in $ipl
 	do
-		[ -z "$line" ] && continue
-		$send2log ">>> line-->$line" -1
-		local ip=$(echo "$line" | cut -d',' -f1)
-		local do=$(echo "$line" | cut -d',' -f2)
-		local up=$(echo "$line" | cut -d',' -f3)
+		local tip=${ip//\./\\.}
+		local do=$(echo "$iptablesData" | grep "anywhere $tip\b" | cut -d' ' -f3)
+		[ -z "$do" ] && do=0
+		local up=$(echo "$iptablesData" | grep "\b$tip anywhere" | cut -d' ' -f3)
+		[ -z "$up" ] && up=0
 		update "$ip" "$do" "$up" "$hr"
 	done
 	unset IFS
@@ -1753,7 +1822,12 @@ $_pndData
 $_thisHrpnd"
 	$save2File "$nht" "$_hourlyUsageDB"
 }
-
+updateLastSeen(){
+	local ds=$(date +"%Y-%m-%d %H:%M:%S")
+	$send2log "updateLastSeen - $ds" 0
+	_currentUsers=$(echo "$_currentUsers" | sed -e "s~_seen_~$ds~Ig")
+	$save2File "$_currentUsers" "$_usersFile"
+}
 runtimestats()
 {
 	$send2log "runtimestats $_totalhrRunTime $_hriterations" -1
@@ -1777,20 +1851,13 @@ runtimestats()
 
 d_baseDir=$(cd "$(dirname "$0")" && pwd)
 if [ ! -d "$d_baseDir/includes" ] || [ ! -f "$d_baseDir/includes/defaults.sh" ] ; then
-	echo "
-**************************** ERROR!!! ****************************
-  You are missing the \`$d_baseDir/includes\` directory and/or
-  files contained within that directory. Please re-download the
-  latest version of YAMon and make sure that all of the necessary
-  files and folders are copied to \`$d_baseDir\`!
-******************************************************************
-"
+	echo -e "${los}${_err}You are missing the \`$d_baseDir/includes\` directory and/or${_nlsp}files contained within that directory. Please re-download the${_nlsp}latest version of YAMon and make sure that all of the necessary${_nlsp}files and folders are copied to \`$d_baseDir\`!${los}${_nl}"
 	exit 0
 fi
 
 source "${d_baseDir}/includes/versions.sh"
 _configFile="$d_baseDir/config.file"
-[ ! -f "$_configFile" ] && echo "$_s_noconfig" && exit 0
+[ ! -f "$_configFile" ] && echo -e "$_s_noconfig" && exit 0
 source "$_configFile"
 
 source "${d_baseDir}/includes/defaults.sh"
@@ -1847,12 +1914,16 @@ fi
 np=$(ps | grep -v grep | grep -c yamon)
 if [ -d "$_lockDir" ] ; then
 	echo "$(ps | grep -v grep | grep yamon$_version)"
-	echo "$_s_running" && exit 0
+	echo -e "$_s_running" && exit 0
 fi
 [ -x /usr/bin/clear ] && clear
-echo "$_s_title"
+
+echo -e "${los}"
+echo -E "$_s_title"
+echo -e "${los}"
+
 _cYear=$(date +%Y)
-[ "$_cYear" -lt "2015" ] && echo "$_s_cannotgettime" && exit 0
+[ "$_cYear" -lt "2015" ] && echo -e "$_s_cannotgettime" && exit 0
 
 _cDay=$(date +%d)
 _pDay="$_cDay"
@@ -1874,7 +1945,8 @@ timealign=$(($_updatefreq-$(date +%s)%$_updatefreq))
 $send2log ">>> Delaying ${timealign}s to align updates" 1
 [ -n "$2" ] && sleep  "$timealign";
 _p_hr=$(date +%H)
-$send2log ">>> Starting main loop" 1
+pid=$(echo $$)
+$send2log ">>> Starting main loop - $pid" 1
 
 # Detach from terminal as suggested by yoyoma2
 if [ "$_log2file" -eq "1" ] ; then
@@ -1897,6 +1969,7 @@ while [ 1 ]; do
 		eval "checkChains_$_includeIPv6"
 		checkConfig
 		updateHourly
+		updateLastSeen
 	fi
 
 	end=$(date +%s)

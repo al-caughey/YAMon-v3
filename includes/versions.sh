@@ -14,5 +14,5 @@
 # 2019-01-29: updated to 3.4.7
 # 2019-04-19: updated to 3.4.8
 
-_version='3.4.7'
+_version='3.4.8'
 _file_version='3.4'

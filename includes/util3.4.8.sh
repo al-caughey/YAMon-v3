@@ -35,17 +35,16 @@ prompt()
 	local resp
 	local vn=$1
 	eval nv=\"\$$vn\"
-	local df="$4"
-	local regex="$5"
-	_qn=$(($_qn + 1))
 	local p2="$2"
-	local topic="$6"
-	[ -z  "$topic" ] && topic="$vn"
-	echo -e "
-#$_qn. $p2" >&2
-	p3="$(echo -e "    $3
+	local p3="$(echo -e "    $3
 	"| sed -re 's~[\t]+~    ~g')
     "
+	local df="$4"
+	local regex="$5"
+	local topic="$6"
+	_qn=$(($_qn + 1))
+	[ -z  "$topic" ] && topic="$vn"
+	echo -e "${_nl}#$_qn. $p2" >&2
 	if [ -z "$nv" ] && [ -z "$df" ] ; then
 		nv='n/a'
 		df='n/a'
@@ -86,19 +85,17 @@ prompt()
 			exit 0
 		fi
 		$send2log "Bad value for $vn --> $resp" 1
-		echo "
-    *** \`$resp\` is not a permitted value for this variable!  Please try again.
-     >>> For more info, see http://usage-monitoring.com/help/?t=$topic" >&2
+		echo -e "${_nls}\`$resp\` is not a permitted value for this variable!${_nlsp}Please try again.${_nlsp}>>> For more info, see http://usage-monitoring.com/help/?t=$topic" >&2
 	done
 	eval $vn=\"$resp\"
 	updateConfig $vn "$resp" "$rt"
 }
 updateConfig(){
+	[ "${1:0:2}" == 't_' ] && return
 	$send2log "updateConfig:  $1	$2	$3" 0
 	local vn=$1
 	local nv=$2
 	echo "	  $vn --> $nv	($rt)" >> $_logfilename
-	[ "${vn:0:2}" == 't_' ] && return
 	[ -z "$nv" ] && eval nv="\$$vn"
 	local sv="$vn=.*#"
 	local rv="$vn=\'$nv\'"
@@ -156,6 +153,10 @@ send2log_0()
 {	#_enableLogging=0
 	return
 }
+indentList(){
+	local tl="$1"
+	echo "$tl" | sed -e "s~^\s\{0,\}~      ~Ig" 
+}
 alertfile(){
 	local msg="$(echo "$1" | sed "s~[^a-z0-9\.\-\/:_\t ]~~ig" | tr '\n' '+')"
 	local ts=$(date +"%Y-%m-%d %H:%M:%S")
@@ -172,7 +173,6 @@ alertfile(){
 	sed -i "s~$srch~$repl~ w /tmp/afn.txt" $_alertfilename
 	
 	[ "$2" -eq "99" ] && $sendAlert "YAMon Alert..." "$1"
-
 }
 send2log_1_0()
 {	#_enableLogging=1 & _log2file=0 (screen only)
@@ -207,7 +207,6 @@ send2log()
 	[ "$_log2file" -ge "1" ] && [ "$ll" -ge "$_loglevel" ] && echo "$ts\t$ll\t$1" >> $_logfilename
 	[ "$_log2file" -ne "1" ] && [ "$ll" -ge "$_scrlevel" ] && echo "$ts $ll $1" >&2
 }
-
 sendAlert_0()
 {
 	return
@@ -241,8 +240,7 @@ sendAlert_1()
 		fi
 		local res=$(cat /tmp/sndm.txt)
 	elif [ "$_sendAlerts" -eq "2" ] ; then
-		ECHO=/bin/echo
-		$ECHO -e "Subject: $subj\n\n$msg\n\n" | $_path2MSMTP -C $_MSMTP_CONFIG -a gmail $_sendAlertTo
+		echo -e "Subject: $subj\n\n$msg\n\n" | $_path2MSMTP -C $_MSMTP_CONFIG -a gmail $_sendAlertTo
 		$send2log "calling sendAlert via msmtp - subj: $subj  msg: $msg" 2
 	fi
 	ndAMS=$(($ndAMS+1))
@@ -305,31 +303,27 @@ setWebDirectories()
 	fi
 	local reports="${lan_ip}$_wwwURL/$_webIndex"
 	reports="http://${reports//\/\//\/}"
-	echo "
-
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    ~  Your reports URL: $reports
-    ~  (subject to some firmware variant oddities)
-    ~  If your reports do not open properly, see
-    ~     http://usage-monitoring.com/help/?t=reports-help
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+	echo -e "${_nl}${lot}${_nlt}Your reports URL: $reports${_nlt}(subject to some firmware variant oddities)${_nlt}If your reports do not open properly, see${_nlt}http://usage-monitoring.com/help/?t=reports-help${lot}${_nl}"
 	$send2log "Reports URL: $reports" 1
-	$send2log "Paths:
-$(ls -la $_wwwPath)" 0
+	$send2log "Paths:${_nl}$(ls -la $_wwwPath)" 0
 }
 getField()
 {	#returns just the first match... duplicates are ignored
-	local result=$(echo "$1" | grep -o -m1 "$2\":\"[^\"]\{1,\}" | cut -d\" -f3)
+	local result=$(echo "$1" | grep -io -m1 "$2\":\"[^\"]\{1,\}" | cut -d\" -f3)
 	echo "$result"
-	$send2log "getField: $1 / $2=$result" 0
-	[ -z "$result" ] && $send2log "field '$2' not found in '$1'" -1
+	$send2log "getField: $1 / $2=$result" -1
+	[ -z "$result" ] && $send2log "getField: field '$2' not found in '$1'" 0
 }
 getCV()
-{	#returns just the first match... duplicates are ignored
+{	#returns just the first match... duplicates are ignored... zero if no match
 	local result=$(echo "$1" | grep -io -m1 "\"$2\":[\"0-9]\{1,\}" | grep -o "[0-9]\{1,\}");
-	echo "$result"
-	$send2log "getCV: $1 / $2=$result" 0
-	[ -z "$result" ] && result=0 && $send2log "field '$2' not found in '$1'... set to 0" -1
+	if [ ! -z "$result" ] ; then
+		echo "$result"
+		$send2log "getCV: $1 / $2=$result" -1
+	else
+		echo 0 
+		$send2log "getCV: field '$2' not found in '$1'... set to 0" 0
+	fi
 }
 replace()
 {
@@ -366,7 +360,7 @@ dailyBU()
 	local manifest="/tmp/manifest.txt"
 	[ -f "$manifest" ] && touch "$manifest"
 	local bu_ds=$1
-	echo "$bu_ds
+	echo -e "$bu_ds
 _usersFile: $_usersFile
 _macUsageDB: $_macUsageDB
 _hourlyUsageDB: $_hourlyUsageDB" > "$manifest"
@@ -395,48 +389,6 @@ _hourlyUsageDB: $_hourlyUsageDB" > "$manifest"
 		[ "$_doArchiveLiveUpdates" -eq "1" ] && copyfiles "$_liveArchiveFilePath" "$budir"
 		[ "$_enableLogging" -eq "1" ] && copyfiles "$_logfilename" "$budir"
 	fi
-}
-add2UDList(){
-	$send2log "add2UDList:  $1  $2  $3" 0
-	local ip=$1
-	local do=$2
-	local up=$3
-	local le=$(echo "$_ud_list" | grep -i "\b$ip\b")
-	$send2log "le-->$le" -1
-	if [ -z "$le" ] ; then
-		_ud_list="$_ud_list
-$ip,$do,$up"
-	else
-		local pd=$(echo $le | cut -d',' -f2)
-		local pu=$(echo $le | cut -d',' -f3)
-		do=$(digitAdd "$do" "$pd")
-		up=$(digitAdd "$up" "$pu")
-		local tip=${ip//\./\\.}
-		_ud_list=$(echo "$_ud_list" | sed -e "s~^$tip\b.*~$ip,$do,$up~Ig")
-	fi
-}
-createUDList(){
-	$send2log "createUDList:  $1" -1
-	local results=''
-	local itd="$1"
-	IFS=$'\n'
-	for line in $itd
-	do
-		$send2log ">>> line-->$line" -1
-		local f1=$(echo "$line" | cut -d' ' -f1)
-		local f2=$(echo "$line" | cut -d' ' -f2)
-		local f3=$(echo "$line" | cut -d' ' -f3)
-		local isy=$(echo "$f1" | grep -i 'yamon')
-		[ -n "$isy" ] && continue
-		[ "$f1" -eq '0' ] && continue
-		$send2log ">>> f1-->$f1	f2-->$f2   f3-->$f3   " -1
-		if [ "$f2" == "$_generic_ipv4" ] || [ "$f2" == "$_generic_ipv6" ] ; then
-			add2UDList $f3 $f1 0
-		else
-			add2UDList $f2 0 $f1
-		fi
-	done
-	unset IFS
 }
 maxF(){
 	$send2log "maxF:  $1	$2" -1
@@ -478,7 +430,6 @@ checkIPTableEntries()
 		local cmd=$1
 		local chain=$2
 		local ip=$3
-		#[ "$ip" == "$g_ip" ] && return
 		while [ true ]; do
 			local dup_num=$(eval $cmd $_tMangleOption -vnxL "$chain" --line-numbers | grep -m 1 -i "\b$ip\b" | cut -d' ' -f1)
 			[ -z "$dup_num" ] && break
@@ -490,14 +441,9 @@ checkIPTableEntries()
 		local cmd=$1
 		local chain=$2
 		local ip=$3
-		if [ "$ip" == "$g_ip" ] ; then
+		if [ "$ip" == "$g_ip" ] ; then #if 0.0.0.0/0 || ::/0
 			[ "$_logNoMatchingMac" -eq "1" ] && eval $cmd $_tMangleOption -A "$chain" -s "$ip" -j LOG --log-prefix "YAMon: "
 			eval $cmd $_tMangleOption -A"$chain" -s "$ip" -j RETURN
-			#iptables -A LOGGING -m limit --limit 2/min -j LOG --log-prefix "IPTables-Dropped: " --log-level 4
-
-		#elif [ "$cmd" == 'iptables' ] ; then
-		#	eval $cmd $_tMangleOption -I "$chain" -s "$ip" -g $gn
-		#	eval $cmd $_tMangleOption -I "$chain" -d "$ip" -g $gn
 		else
 			ip=${ip/ (dup)/}
 			eval $cmd $_tMangleOption -I "$chain" -s "$ip" -j RETURN
@@ -582,47 +528,7 @@ checkIPChain()
         eval $cmd $_tMangleOption -I "$chain" -j "$rule"
     fi
 }
-getMACIPList(){
-	local iplist=$1
-	$send2log "getMACIPList:  $1" 0
-
-	#local list="$(eval "$iplist")"
-	local list="$1"
-	$send2log "list: $list" -1
-
-	local result
-	IFS=$'\n'
-	for line in $list
-	do
-		local ip=$(echo "$line" | cut -d' ' -f1)
-		local tip=${ip//\./\\.}
-		local mac=$(echo "$line" | cut -d' ' -f2)
-		local append
-		
-		if [ "$mac" == "00:00:00:00:00:00" ] || [ "$mac" == "failed" ] || [ "$mac" == "incomplete" ] ; then
-			append=0
-		elif [ -n "$(echo $_bridgeMAC | grep -i "$mac")" ] ; then
-			append=0
-			#$send2log "_bridgeMAC: $append" 1
-		else
-			append=1
-			#$send2log "append: $append" 1
-		fi
-
-		local me=$(echo "$result" | grep $mac )
-		if [ -z "$me" ] || [ "$append" -eq "0" ] ; then
-			result="$result
-$mac $ip"
-		else
-			result=$(echo "$result" | sed -e "s~$mac ~$mac $ip,~Ig")
-		fi
-		$send2log "mac: $mac / ip: $ip" 0
-	done
-	unset IFS
-	echo "$result"
-}
 save2File(){ #old... likely unused but left in for legacy
-	$send2log "save2File:  $1  $2  $3" -1
 	local s_path=${2//\/\//\/}
 	if [ -z "$3" ] ;  then
 		echo "$1" > "$s_path" #replace the file if param #3 is null
@@ -634,25 +540,23 @@ save2File(){ #old... likely unused but left in for legacy
 	[ "$_enable_ftp" -eq 1 ] && send2FTP "$s_path"
 }
 save2File_0(){ #no FTP
-	$send2log "save2File0: $2  $3" 0
 	local s_path=${2//\/\//\/}
 	if [ -z "$3" ] ;  then
 		echo "$1" > "$s_path" #replace the file if param #3 is null
-		$send2log "save2File --> data saved to $s_path2 " 0
+		$send2log "save2File_0 --> data saved to $s_path " 0
 	else
 		echo "$1" >> "$s_path" #otherwise append to the file
-		$send2log "save2File --> data appended to $s_path " 0
+		$send2log "save2File_0 --> data appended to $s_path " 0
 	fi
 }
 save2File_1(){ # save & FTP
-	$send2log "save2File1:   $2  $3" 0
 	local s_path=${2//\/\//\/}
 	if [ -z "$3" ] ;  then
 		echo "$1" > "$s_path" #replace the file if param #3 is null
-		$send2log "save2File --> data saved to $s_path " 0
+		$send2log "save2File_1 --> data saved to $s_path " 0
 	else
 		echo "$1" >> "$s_path" #otherwise append to the file
-		$send2log "save2File --> data appended to $s_path " 0
+		$send2log "save2File_1 --> data appended to $s_path " 0
 	fi
 	send2FTP "$s_path"
 }
@@ -673,7 +577,7 @@ digitAdd()
 	local l2=${#n2}
 	[ -z "$n1" ] && n1=0
 	[ -z "$n2" ] && n2=0
-	if [ "$l1" -lt "10" ] && [ "$l2" -lt "10" ] ; then
+	if [ "$l1" -lt "$d_max_digits" ] && [ "$l2" -lt "$d_max_digits" ] ; then
 		total=$(($n1+$n2))
 		echo $total
 		return
@@ -709,7 +613,7 @@ digitSub()
 	fi
 	local l1=${#n1}
 	local l2=${#n2}
-	if [ "$l1" -lt "10" ] && [ "$l2" -lt "10" ] ; then
+	if [ "$l1" -lt "$d_max_digits" ] && [ "$l2" -lt "$d_max_digits" ] ; then
 		echo $(($n1-$n2))
 		return
 	fi
@@ -735,4 +639,21 @@ digitSub()
 	[ "$b" -eq "1" ] && total="-$total"
 	echo $(echo "$total" | sed 's/0*//')
 	$send2log "digitSub: $1 - $2 = $total" -1
+}
+check4Overflow(){
+	local n=1
+	local a=9
+	local b=9
+	local ob=0
+	while [ true ] ; do 
+		c=$(($a + $b))
+		[ $c -lt $a ] || [ $c -lt $b ] && break #check for sum overflow
+		ob=$b
+		a=$(($a * 10 + 1))
+		b=$(($b * 10 + 9))
+		[ $b -lt $ob ] && break #check for value overflow
+		[ $n -eq 32 ] && break #check for max digits 
+		n=$(($n + 1))
+	done
+	echo $n
 }
