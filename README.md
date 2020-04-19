@@ -1,7 +1,9 @@
 # YAMon-v3
 Official repository for YAMon v3
 
-This repository is posted for legacy purposes. I have not plans to further develop this version of this code... please see [YAMon-v4](https://github.com/al-caughey/YAMon-v4/) instead.
+This repository is posted for legacy purposes. I have not plans to further develop this version of this code
+
+Please see [YAMon-v4](https://github.com/al-caughey/YAMon-v4/) instead.
 
 
 # License
